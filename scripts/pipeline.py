@@ -24,13 +24,13 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import ResearchConfig  # noqa: E402
+from config import ResearchConfig
 
 # Local-PDF matching is a geokit-environment feature (out of this skill's
 # web-only scope). Lazy + loud: absent geokit → warning + skip that
 # enhancement; the web pipeline itself must run anywhere.
 try:
-    from geokit.research._fulltext import (
+    from geokit.research._fulltext import (  # pyright: ignore[reportMissingImports]
         build_local_index,
         get_local_paper_count,
         load_fulltext,
@@ -466,10 +466,9 @@ def run_pipeline(
         from _sources import load_corpus, save_corpus
         from verify import load_rw_index, verify_paper
 
-        # Retraction Watch CSV via env (fail-open when unset — secondary signal)
-        rw_index = None
-        if os.environ.get("SCIENTIFIC_RESEARCH_RW_CSV"):
-            rw_index = load_rw_index(Path(os.environ["SCIENTIFIC_RESEARCH_RW_CSV"]))
+        # Retraction Watch CSV: --rw-csv arg > env > default install location
+        # (auto-discovered; fail-open with one log line when absent)
+        rw_index = load_rw_index()
 
         corpus_papers = load_corpus(corpus_path)
 

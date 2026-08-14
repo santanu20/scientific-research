@@ -552,7 +552,7 @@ class TestMonitorFiltering:
         from monitor import filter_by_since
 
         papers = [
-            PaperRecord(publication_date=2020),
+            PaperRecord(publication_date="2020"),
             PaperRecord(publication_date=2024),
         ]
         out = filter_by_since(papers, "2022-01-01")

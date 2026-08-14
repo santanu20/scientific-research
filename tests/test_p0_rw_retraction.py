@@ -30,6 +30,24 @@ def _rw_csv(tmp_path, rows):
 
 
 class TestLoadRwIndex:
+    def test_default_path_auto_discovery(self, tmp_path, monkeypatch):
+        """No arg + no env → resolves _RW_DEFAULT_CSV (the git-clone location)."""
+        f = _rw_csv(tmp_path, ["1,P,10.1/d,2024,Misconduct\n"])
+        monkeypatch.delenv("SCIENTIFIC_RESEARCH_RW_CSV", raising=False)
+        monkeypatch.setattr(verify, "_RW_DEFAULT_CSV", f)
+        idx = load_rw_index(None)
+        assert idx == {"10.1/d"}
+
+    def test_env_overrides_default(self, tmp_path, monkeypatch):
+        env_csv = tmp_path / "env.csv"
+        env_csv.write_text("Record ID,Title,OriginalPaperDOI\n1,E,10.1/env\n")
+        default_csv = tmp_path / "default.csv"
+        default_csv.write_text("Record ID,Title,OriginalPaperDOI\n1,D,10.1/default\n")
+        monkeypatch.setenv("SCIENTIFIC_RESEARCH_RW_CSV", str(env_csv))
+        monkeypatch.setattr(verify, "_RW_DEFAULT_CSV", default_csv)
+        idx = load_rw_index(None)
+        assert idx == {"10.1/env"}  # env wins over default
+
     def test_loads_dois_from_any_doi_column(self, tmp_path):
         f = _rw_csv(
             tmp_path,

@@ -48,4 +48,5 @@ class TestCohenKappa:
 
     def test_chance_agreement_near_zero(self):
         # 50/50 marginals with 50% agreement → κ ≈ 0
-        assert abs(cohen_kappa(5, 5, 5, 5)) < 1e-12
+        kappa_chance = cohen_kappa(5, 5, 5, 5)
+        assert kappa_chance is not None and abs(kappa_chance) < 1e-12

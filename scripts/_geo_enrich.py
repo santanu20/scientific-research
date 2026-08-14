@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections import Counter
 
 log = logging.getLogger("scientific_research.geo_enrich")
 

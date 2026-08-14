@@ -19,10 +19,16 @@ Per O'Mara-Eves et al. 2015 (DOI:10.1186/2046-4053-4-5):
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Protocol
 
-if TYPE_CHECKING:
-    from _sources import PaperRecord
+
+class ScreenablePaper(Protocol):
+    """Structural type screen_paper accepts (PaperRecord, dict adapters, test doubles)."""
+
+    title: str
+    abstract: str
+    raw_metadata: dict
+
 
 _log = logging.getLogger(__name__)
 
@@ -122,7 +128,7 @@ def _is_non_research(
 
 
 def screen_paper(
-    paper: PaperRecord,
+    paper: ScreenablePaper,
     query: str,
     *,
     use_llm: bool = False,

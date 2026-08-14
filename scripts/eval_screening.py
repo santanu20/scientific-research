@@ -34,101 +34,11 @@ Output (stdout):
 
 from __future__ import annotations
 
-# --- Self-contained skill venv bootstrap (mirrors pdf-ocr/web-search pattern) ---
-import os as _bs_os, sys as _bs_sys
+# --- Skill venv bootstrap (shared: see _bootstrap.py) ---
+if __name__ == "__main__":
+    import _bootstrap
 
-_SKILL_VENV = _bs_os.path.expanduser(
-    "~/.config/opencode/skills/scientific-research/.venv"
-)
-_SKILL_VENV_PY = _bs_os.path.join(_SKILL_VENV, "bin", "python")
-_REQ_IMPORTS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "sklearn",
-    "httpx",
-)
-_REQ_INSTALLS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "scikit-learn",
-    "httpx",
-    "pytest",
-    "ruff",
-)
-if __name__ == "__main__" and not _bs_os.environ.get(
-    "SCIENTIFIC_RESEARCH_NO_SKILL_VENV"
-):
-    if not _bs_os.path.exists(_SKILL_VENV_PY) and not _bs_os.environ.get(
-        "SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"
-    ):
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(
-                "Bootstrapping scientific-research skill venv (one-time setup)...\n"
-            )
-            _bs_sp.run(
-                ["uv", "venv", _SKILL_VENV, "--python", "3.13"],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sys.stderr.write("scientific-research skill venv ready.\n")
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(
-                f"Failed to auto-bootstrap: {_bs_ex}\nManual: uv venv {_SKILL_VENV} --python 3.13 && uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-            )
-            _bs_sys.exit(2)
-    if _bs_os.path.exists(_SKILL_VENV_PY) and _bs_os.path.normpath(
-        _bs_sys.prefix
-    ) != _bs_os.path.normpath(_SKILL_VENV):
-        _bs_os.environ["SCIENTIFIC_RESEARCH_NO_SKILL_VENV"] = "1"
-        _bs_os.execv(
-            _SKILL_VENV_PY,
-            [_SKILL_VENV_PY, _bs_os.path.abspath(__file__)] + _bs_sys.argv[1:],
-        )
-    _missing = []
-    for _m in _REQ_IMPORTS:
-        try:
-            __import__(_m)
-        except ImportError:
-            _missing.append(_m)
-    if _missing and not _bs_os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):
-        # stale venv: auto-install missing deps once, then re-check
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(f"Installing missing deps: {', '.join(_missing)}\n")
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True,
-                capture_output=True,
-            )
-            _missing = []
-            for _m in _REQ_IMPORTS:
-                try:
-                    __import__(_m)
-                except ImportError:
-                    _missing.append(_m)
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(f"Auto-install failed: {_bs_ex}\n")
-    if _missing:
-        _bs_sys.stderr.write(
-            f"FATAL: missing required deps: {', '.join(_missing)}\nInstall: uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-        )
-        _bs_sys.exit(2)
+    _bootstrap.ensure_env()
 # --- End bootstrap ---
 
 

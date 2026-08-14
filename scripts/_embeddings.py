@@ -34,7 +34,7 @@ def _get_model():
     """Lazily load the BGE embedding model (singleton)."""
     global _model
     if _model is None:
-        from fastembed import TextEmbedding
+        from fastembed import TextEmbedding  # pyright: ignore[reportMissingImports]
 
         _model = TextEmbedding(model_name=_model_name)
         log.info("Loaded embedding model: %s", _model_name)
@@ -44,7 +44,9 @@ def _get_model():
 def is_available() -> bool:
     """Check if semantic embeddings are available (without loading model)."""
     try:
-        from fastembed import TextEmbedding  # noqa: F401
+        from fastembed import (
+            TextEmbedding,  # pyright: ignore[reportMissingImports]  # noqa: F401
+        )
 
         return True
     except ImportError:
@@ -172,7 +174,7 @@ def semantic_rank(
     ranked.sort(key=lambda x: -x[1])
 
     # Filter by minimum score
-    ranked = [(p, s) for p, s in ranked if s >= min_score]
+    ranked = [(p, float(s)) for p, s in ranked if s >= min_score]
 
     return ranked
 

@@ -25,101 +25,11 @@ Outputs:
 
 from __future__ import annotations
 
-# --- Self-contained skill venv bootstrap (mirrors pdf-ocr/web-search pattern) ---
-import os as _bs_os, sys as _bs_sys
+# --- Skill venv bootstrap (shared: see _bootstrap.py) ---
+if __name__ == "__main__":
+    import _bootstrap
 
-_SKILL_VENV = _bs_os.path.expanduser(
-    "~/.config/opencode/skills/scientific-research/.venv"
-)
-_SKILL_VENV_PY = _bs_os.path.join(_SKILL_VENV, "bin", "python")
-_REQ_IMPORTS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "sklearn",
-    "httpx",
-)
-_REQ_INSTALLS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "scikit-learn",
-    "httpx",
-    "pytest",
-    "ruff",
-)
-if __name__ == "__main__" and not _bs_os.environ.get(
-    "SCIENTIFIC_RESEARCH_NO_SKILL_VENV"
-):
-    if not _bs_os.path.exists(_SKILL_VENV_PY) and not _bs_os.environ.get(
-        "SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"
-    ):
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(
-                "Bootstrapping scientific-research skill venv (one-time setup)...\n"
-            )
-            _bs_sp.run(
-                ["uv", "venv", _SKILL_VENV, "--python", "3.13"],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sys.stderr.write("scientific-research skill venv ready.\n")
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(
-                f"Failed to auto-bootstrap: {_bs_ex}\nManual: uv venv {_SKILL_VENV} --python 3.13 && uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-            )
-            _bs_sys.exit(2)
-    if _bs_os.path.exists(_SKILL_VENV_PY) and _bs_os.path.normpath(
-        _bs_sys.prefix
-    ) != _bs_os.path.normpath(_SKILL_VENV):
-        _bs_os.environ["SCIENTIFIC_RESEARCH_NO_SKILL_VENV"] = "1"
-        _bs_os.execv(
-            _SKILL_VENV_PY,
-            [_SKILL_VENV_PY, _bs_os.path.abspath(__file__)] + _bs_sys.argv[1:],
-        )
-    _missing = []
-    for _m in _REQ_IMPORTS:
-        try:
-            __import__(_m)
-        except ImportError:
-            _missing.append(_m)
-    if _missing and not _bs_os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):
-        # stale venv: auto-install missing deps once, then re-check
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(f"Installing missing deps: {', '.join(_missing)}\n")
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True,
-                capture_output=True,
-            )
-            _missing = []
-            for _m in _REQ_IMPORTS:
-                try:
-                    __import__(_m)
-                except ImportError:
-                    _missing.append(_m)
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(f"Auto-install failed: {_bs_ex}\n")
-    if _missing:
-        _bs_sys.stderr.write(
-            f"FATAL: missing required deps: {', '.join(_missing)}\nInstall: uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-        )
-        _bs_sys.exit(2)
+    _bootstrap.ensure_env()
 # --- End bootstrap ---
 
 
@@ -133,9 +43,13 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _render import render_forest_plot, render_forest_plot_png, render_funnel_plot_png  # noqa: E402
-from _sources import PaperRecord, load_corpus  # noqa: E402
-from _stats import (  # noqa: E402
+from _render import (
+    render_forest_plot,
+    render_forest_plot_png,
+    render_funnel_plot_png,
+)
+from _sources import PaperRecord, load_corpus
+from _stats import (
     cohens_d,
     confidence_interval,
     egger_test,
@@ -147,7 +61,6 @@ from _stats import (  # noqa: E402
     log_transform_rr,
     odds_ratio,
     pool_fixed,
-    pool_random,
     pool_random_advanced,
     risk_ratio,
     se_from_variance,
@@ -198,7 +111,7 @@ def collect_continuous_effects(
     by_id = {p.primary_id: p for p in papers}
     out: list[StudyEffect] = []
     for ex in extractions:
-        pid = ex.get("paper_id")
+        pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
         if not paper:
             continue
@@ -236,6 +149,8 @@ def collect_continuous_effects(
                         else None
                     )
                     outcome = g.get("outcome", "") or ""
+                    if m1 is None or m2 is None:
+                        continue  # means missing → no effect computable
 
                     # Determine subgroup: use outcome type if available, else year
                     subgroup = outcome[:40] if outcome else str(paper.year or "")
@@ -326,6 +241,8 @@ def collect_continuous_effects(
                     _safe_float(g2["sd1"]),
                     int(g2.get("n") or 0),
                 )
+                if m1 is None or m2 is None or sd1 is None or sd2 is None:
+                    continue  # incomplete stats → no effect computable
                 if n1 < 2 or n2 < 2:
                     continue
                 d = cohens_d(m1, sd1, n1, m2, sd2, n2)
@@ -368,7 +285,7 @@ def collect_single_measurements(
     by_id = {p.primary_id: p for p in papers}
     out: list[StudyEffect] = []
     for ex in extractions:
-        pid = ex.get("paper_id")
+        pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
         if not paper:
             continue
@@ -480,7 +397,7 @@ def collect_dichotomous_effects(
     by_id = {p.primary_id: p for p in papers}
     out: list[StudyEffect] = []
     for ex in extractions:
-        pid = ex.get("paper_id")
+        pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
         if not paper:
             continue
@@ -534,7 +451,7 @@ def collect_precomputed_effects(
     by_id = {p.primary_id: p for p in papers}
     out: list[StudyEffect] = []
     for ex in extractions:
-        pid = ex.get("paper_id")
+        pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
         if not paper:
             continue

@@ -73,9 +73,12 @@ Trigger when the user asks to:
 
 **Skill venv auto-bootstraps** on first run of any entry script. Creates
 `~/.config/opencode/skills/scientific-research/.venv` + installs habanero,
-pyalex, semanticscholar, arxiv, numpy, scipy, scikit-learn. Re-execs into
-skill venv on every subsequent run — works from any cwd without polluting
-project venvs.
+pyalex, semanticscholar, arxiv, numpy, scipy, scikit-learn, httpx, pytest,
+ruff. Re-execs into skill venv on every subsequent run — works from any cwd
+without polluting project venvs. Stale venv (missing dep) self-repairs via
+one auto-install. Bootstrap logic lives in ONE place: `scripts/_bootstrap.py`
+(entry scripts call `_bootstrap.ensure_env()`; `correlate.py` passes
+`networkx` extras).
 
 Opt-out env:
 - `SCIENTIFIC_RESEARCH_NO_SKILL_VENV=1` — force cwd venv (skip re-exec)
@@ -87,7 +90,13 @@ To pre-create (skip auto-bootstrap on first run):
 SKILL=~/.config/opencode/skills/scientific-research
 uv venv "$SKILL/.venv" --python 3.13
 uv pip install --python "$SKILL/.venv/bin/python" \
-    habanero pyalex semanticscholar arxiv numpy scipy scikit-learn
+    habanero pyalex semanticscholar arxiv numpy scipy scikit-learn \
+    httpx pytest ruff
+
+# Retraction Watch local index (optional but recommended — 109k DOIs):
+git clone https://gitlab.com/crossref/retraction-watch-data \
+    ~/.local/share/scientific-research/retraction-watch-data
+# auto-discovered at that path; update with `git pull` (daily upstream refresh)
 
 # Optional LLM extraction (requires Ollama with text-generation model)
 # Auto-detects smallest suitable model (excludes vision/embedding)

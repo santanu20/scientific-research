@@ -218,7 +218,7 @@ class TestLeaveOneOut:
         var = TestTau2Estimators.HET_VAR
         rows = leave_one_out(eff, var)
         assert len(rows) == 6
-        shifts = [abs(r["shift"]) for r in rows]
+        shifts = [abs(r["shift"] or 0.0) for r in rows]
         assert shifts == sorted(shifts, reverse=True)
 
     def test_influence_of_outlier_is_largest(self):

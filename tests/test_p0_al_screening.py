@@ -30,8 +30,8 @@ class TestActiveLearning:
     def test_relevant_papers_surface_early(self):
         relevant, noise = _corpus()
         papers = relevant + noise
-        labels = {p.doi: "include" for p in relevant[:6]}
-        labels.update({p.doi: "exclude" for p in noise[:6]})
+        labels = {str(p.doi): "include" for p in relevant[:6]}
+        labels.update({str(p.doi): "exclude" for p in noise[:6]})
         al = prioritize_active_learning(papers, labels)
         assert al.n_seed == 12
         assert al.n_unscreened == 18
@@ -44,8 +44,8 @@ class TestActiveLearning:
     def test_reorder_only_never_drops(self):
         relevant, noise = _corpus()
         papers = relevant + noise
-        labels = {p.doi: "include" for p in relevant[:6]}
-        labels.update({p.doi: "exclude" for p in noise[:6]})
+        labels = {str(p.doi): "include" for p in relevant[:6]}
+        labels.update({str(p.doi): "exclude" for p in noise[:6]})
         al = prioritize_active_learning(papers, labels)
         assert len(al.queue) == len(papers) - 12  # every unscreened paper queued
         assert all(not q["labeled"] for q in al.queue)
@@ -58,22 +58,22 @@ class TestActiveLearning:
 
     def test_single_class_seed_fails_loud(self):
         relevant, noise = _corpus()
-        labels = {p.doi: "include" for p in relevant[:8]}  # no excludes
+        labels = {str(p.doi): "include" for p in relevant[:8]}  # no excludes
         with pytest.raises(ValueError, match="exclude"):
             prioritize_active_learning(relevant + noise, labels)
 
     def test_maybe_labels_ignored(self):
         relevant, noise = _corpus()
-        labels = {p.doi: "include" for p in relevant[:6]}
-        labels.update({p.doi: "exclude" for p in noise[:6]})
+        labels = {str(p.doi): "include" for p in relevant[:6]}
+        labels.update({str(p.doi): "exclude" for p in noise[:6]})
         labels[relevant[7].doi] = "maybe"  # overridden: was unlabeled anyway
         al = prioritize_active_learning(relevant + noise, labels)
         assert al.n_seed == 12  # maybe not counted
 
     def test_recall_curve_monotone(self):
         relevant, noise = _corpus()
-        labels = {p.doi: "include" for p in relevant[:6]}
-        labels.update({p.doi: "exclude" for p in noise[:6]})
+        labels = {str(p.doi): "include" for p in relevant[:6]}
+        labels.update({str(p.doi): "exclude" for p in noise[:6]})
         al = prioritize_active_learning(relevant + noise, labels)
         found = [c["predicted_includes"] for c in al.recall_curve]
         assert found == sorted(found)

@@ -20,7 +20,7 @@ class TestEnsembleLogic:
     def test_majority_vote_include(self):
         import _llm_extract as lx
 
-        def fake_judge(paper, query, model=None, research_type=None):
+        def fake_judge(paper, query, model="m1", research_type=None):
             # two models say yes, one says no
             verdicts = {
                 "m1": (True, "relevant"),
@@ -46,7 +46,7 @@ class TestEnsembleLogic:
     def test_majority_vote_exclude(self):
         import _llm_extract as lx
 
-        def fake_judge(paper, query, model=None, research_type=None):
+        def fake_judge(paper, query, model="m1", research_type=None):
             verdicts = {"m1": (False, "off"), "m2": (False, "off"), "m3": (True, "on")}
             return verdicts.get(model)
 
@@ -71,7 +71,9 @@ class TestEnsembleLogic:
             patch.object(lx, "_detect_models", return_value=[]),
             patch.object(lx, "llm_screen_paper", return_value=(True, "relevant")),
         ):
-            decision, reason, votes = lx.llm_screen_paper_ensemble(_Paper(), "q")
+            result = lx.llm_screen_paper_ensemble(_Paper(), "q")
+            assert result is not None
+            decision, reason, votes = result
         assert decision is True
         assert "single judge" in reason and "ensemble unavailable" in reason
         assert len(votes) == 1
@@ -87,7 +89,7 @@ class TestEnsembleLogic:
     def test_vote_failure_excluded_not_fatal(self):
         import _llm_extract as lx
 
-        def fake_judge(paper, query, model=None, research_type=None):
+        def fake_judge(paper, query, model="m1", research_type=None):
             if model == "m2":
                 return None  # one judge down
             return (True, "ok")
@@ -99,7 +101,9 @@ class TestEnsembleLogic:
             ),
             patch.object(lx, "llm_screen_paper", side_effect=fake_judge),
         ):
-            decision, _reason, votes = lx.llm_screen_paper_ensemble(_Paper(), "q")
+            result = lx.llm_screen_paper_ensemble(_Paper(), "q")
+            assert result is not None
+            decision, _reason, votes = result
         assert decision is True
         assert len(votes) == 2
 

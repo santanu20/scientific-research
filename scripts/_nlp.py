@@ -257,7 +257,7 @@ from _lexicon import (
 from _lexicon import (
     BAD_ADJ as _JURGENS_BAD_ADJ,
 )
-from _lexicon import (  # noqa: E402
+from _lexicon import (
     CONTRAST_TERMS as _JURGENS_CONTRAST,
 )
 from _lexicon import (
@@ -634,42 +634,42 @@ _DESIGN_PATTERNS = {
     "RCT": re.compile(
         r"\b(randomi[sz]ed controlled trial|\bRCT\b|cluster[\s-]?randomi[sz]|"
         r"double[\s-]blind|placebo[\s-]controlled|parallel[\s-]group)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "systematic review": re.compile(
-        r"\b(systematic review|meta[\s-]?analysis|prisma|cochrane review)\b", re.I
+        r"\b(systematic review|meta[\s-]?analysis|prisma|cochrane review)\b", re.IGNORECASE
     ),
     "cohort": re.compile(
         r"\b((?:prospective|retrospective)\s+cohort|cohort\s+(?:study|analysis)|"
         r"longitudinal\s+study|follow[\s-]?up\s+study)\b",
-        re.I,
+        re.IGNORECASE,
     ),
-    "case-control": re.compile(r"\bcase[\s-]?control\b", re.I),
-    "cross-sectional": re.compile(r"\bcross[\s-]?sectional\b", re.I),
+    "case-control": re.compile(r"\bcase[\s-]?control\b", re.IGNORECASE),
+    "cross-sectional": re.compile(r"\bcross[\s-]?sectional\b", re.IGNORECASE),
     # Geological
     "field_study": re.compile(
         r"\b(field\s+(?:study|survey|mapping|investigation|campaign)|"
         r"fieldwork|field\s+area|geological\s+survey|outcrop|"
         r"field\s+samples?\s+(?:were|collected)|drilling\s+(?:site|program))\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "experimental_petrology": re.compile(
         r"\b(piston[\s-]?cylinder|multi[\s-]?anvil|diamond[\s-]?anvil|"
         r"experimental\s+(?:petrology|run|calibration|phase\s+equilibria)|"
         r"melting\s+experiment|crystalli[sz]ation\s+experiment)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "geochemical_survey": re.compile(
         r"\b(geochemical\s+(?:survey|mapping|analysis)|"
         r"whole[\s-]?rock\s+(?:analysis|composition)|"
         r"mineral\s+chemistry|trace\s+element\s+(?:analysis|data))\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "geochronology": re.compile(
         r"\b(U[\s-]?Pb|Ar[\s-]?Ar|40Ar/39Ar|Re[\s-]?Os|fission\s+track|"
         r"(?:cosmogenic|luminescence)\s+(?:dating|exposure)|"
         r"geochronolog|radiometric\s+dating|detrital\s+zircon)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     # Physics
     "theoretical": re.compile(
@@ -677,82 +677,82 @@ _DESIGN_PATTERNS = {
         r"analytical\s+(?:model|solution)|first[\s-]?principles|"
         r"ab\s+initio|density\s+functional\s+theory|\bDFT\b|"
         r"perturbation\s+theory|symmetry\s+analysis)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "computational": re.compile(
         r"\b(computational\s+(?:study|method|model|simulation)|"
         r"molecular\s+dynamics|\bMD\s+simulation|finite\s+element|"
         r"lattice\s+QCD|Monte\s+Carlo|numerical\s+model|"
         r"first[\s-]?principles\s+calculation)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "observational": re.compile(
         r"\b(observational\s+study|telescope\s+(?:data|observation)|"
         r"satellite\s+(?:data|observation)|survey\s+data|"
         r"natural\s+experiment)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     # Chemistry
     "synthetic": re.compile(
         r"\b(synthesis\s+of|synthesized|total\s+synthesis|"
         r"preparation\s+of|catalytic\s+synthesis|"
         r"multi[\s-]?step\s+synthesis)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "analytical_chemistry": re.compile(
         r"\b(HPLC|GC[\s-]?MS|NMR\s+(?:spectroscopy|analysis)|"
         r"mass\s+spectrometr|X[\s-]?ray\s+(?:crystallography|diffraction)|"
         r"elemental\s+analysis|titration)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     # Biology
-    "in_vitro": re.compile(r"\bin[\s\-]?vitro\b", re.I),
-    "in_vivo": re.compile(r"\bin[\s\-]?vivo\b", re.I),
+    "in_vitro": re.compile(r"\bin[\s\-]?vitro\b", re.IGNORECASE),
+    "in_vivo": re.compile(r"\bin[\s\-]?vivo\b", re.IGNORECASE),
     # CS
     "empirical": re.compile(
         r"\b(empirical\s+(?:study|evaluation|analysis|result)|"
         r"benchmark\s+(?:study|evaluation)|"
         r"ablation\s+study|controlled\s+experiment)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "algorithm_development": re.compile(
         r"\b(we\s+(?:propose|present|introduce|develop)\s+(?:a|an|the)\s+(?:new|novel)?\s*"
         r"(?:algorithm|method|architecture|framework|model|approach)|"
         r"algorithm\s+development)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     # General (kept from before)
     "experimental": re.compile(
         r"\b(laboratory\s+experiment|controlled\s+experiment|"
         r"experimental\s+(?:study|setup|design|measurement)|"
         r"we\s+(?:measured|prepared|fabricated|synthesized))\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "diagnostic": re.compile(
         r"\b(diagnostic\s+accuracy|sensitivity\s+and\s+specificity|receiver\s+operating|"
         r"roc\s+curve|positive\s+predictive\s+value)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "qualitative": re.compile(
         r"\b(qualitative\s+study|focus\s+group|semi[\s-]?structured\s+interview|"
         r"ethnograph|phenomenolog)\b",
-        re.I,
+        re.IGNORECASE,
     ),
-    "preprint": re.compile(r"\bpreprint\b", re.I),
+    "preprint": re.compile(r"\bpreprint\b", re.IGNORECASE),
     "modeling": re.compile(
         r"\b(numerical\s+model|molecular\s+dynamics|finite\s+element|simulation|"
         r"machine\s+learning|deep\s+learning|neural\s+network|computational\s+model)\b",
-        re.I,
+        re.IGNORECASE,
     ),
     "meta-analysis": re.compile(
-        r"\b(meta[\s-]?analysis|pooled\s+effect|forest\s+plot|heterogeneity|i[\s\^]?2)\b", re.I
+        r"\b(meta[\s-]?analysis|pooled\s+effect|forest\s+plot|heterogeneity|i[\s\^]?2)\b", re.IGNORECASE
     ),
     "review": re.compile(
         r"\b(this\s+(?:review|paper)\s+(?:reviews?|summarizes?|presents?)|"
         r"we\s+review|comprehensive\s+review|systematic\s+review|"
         r"this\s+(?:paper|study)\s+(?:provides?|presents?)\s+(?:an?\s+)?"
         r"(?:overview|review|survey|summary))\b",
-        re.I,
+        re.IGNORECASE,
     ),
 }
 
@@ -1183,8 +1183,6 @@ _FAKERAKE_STOPWORDS = {
     "may",
     "can",
     "one",
-    "two",
-    "three",
     "four",
     "five",
     "between",

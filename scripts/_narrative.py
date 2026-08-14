@@ -26,7 +26,7 @@ _SCRIPT_DIR = Path(__file__).parent.resolve()
 if str(_SCRIPT_DIR) not in _sys.path:
     _sys.path.insert(0, str(_SCRIPT_DIR))
 
-from _classifiers import detect_discipline  # noqa: E402
+from _classifiers import detect_discipline
 
 # ── Boundary normalizer (defense-in-depth) ─────────────────────────────────
 _NARR_STRING_FIELDS = (
@@ -122,7 +122,7 @@ def _sanitize_finding(text: str) -> str:
     text = _re.sub(r"([A-Za-z])O\s*(\d+)", r"\1O\2", text)
     text = _re.sub(r"([A-Za-z])\s*(\d+)\s*O\s*(\d+)", r"\1\2O\3", text)
     # Fix "fO 2 s" → "fO2s"
-    text = _re.sub(r"fO\s*2\s*s", "fO2", text, flags=_re.I)
+    text = _re.sub(r"fO\s*2\s*s", "fO2", text, flags=_re.IGNORECASE)
     # Remove KEY WORDS artifacts from journal formatting
     text = _re.sub(r"KEY WORDS?:.*", "", text, flags=_re.DOTALL)
     # Normalize whitespace
@@ -295,42 +295,42 @@ _METHOD_PATTERNS = [
         "Experimental petrology",
         re.compile(
             r"\b(?:experiment\w*|synthetic\s+(?:sample|run)|piston\s+cylinder|multi.anvil|diamond\s+anvil|high.pressure\s+experiment|phase\s+equilibrium\s+experiment)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Phase-equilibrium modeling",
         re.compile(
             r"\b(?:phase\s+equilibri\w*|pseudosection|THERMOCALC|Perple_X|activity.composition|a.x\s+model|solution\s+model|Gibbs\s+minimi\w*|bulk\s+composition|isopleth|Perplex|Theriak|Domino|BurnMan)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Conventional thermobarometry",
         re.compile(
             r"\b(?:Fe.Mg\s+(?:exchange|thermomet|partition)|garnet.biotite|garnet.clinopyroxene|garnet.orthopyroxene|garnet.hornblende|garnet.ilmenite|GASP|GB\s+thermomet|GEOPATH|solvus\s+thermomet|net.transfer|calibrat\w*\s+thermobar|exchange\s+thermomet|avJE?TT|TWQ)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Elastic thermobarometry",
         re.compile(
             r"\b(?:elastic\s+thermobar\w*|quartz\s+inclusion\w*|zircon\s+inclusion\w*|Raman\s+(?:spectroscop\w*|band\w*|peak\w*)|entrapment\s+(?:pressure\w*|P\b)|isotropic\s+strain|residual\s+pressure|host.?inclusion\w*|EoS|equation\s+of\s+state|Gruneisen|Gr\u00fcneisen)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Trace element thermometry",
         re.compile(
             r"\b(?:trace\s+element\s+thermomet|rare\s+earth|\bREE\b|\bLA.ICP.MS\b|\bSIMS\b|ion\s+microprobe|partition\s+coefficient|\bKd\b|zoning\s+(?:profile|pattern)|Ti.in.(?:zircon|quartz)|Zr.in.rutile|REE.in.garnet)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Diffusion chronometry",
         re.compile(
             r"\b(?:diffusion\w*|geospeedomet\w*|cooling\s+rate|Fe.Mg\s+interdiffusion|garnet\s+(?:diffusion|zoning)|diffusivity|Arrhenius)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Geochronology
@@ -338,7 +338,7 @@ _METHOD_PATTERNS = [
         "Geochronology",
         re.compile(
             r"\b(?:geochronolog\w*|\bU.Pb\b|\bAr.Ar\b|\b40Ar.39Ar\b|monazite\s+(?:age|dating)|zircon\s+(?:age|dating)|SHRIMP|ID.TIMS|fission\s+track|cosmogenic|\bRe.Os\b|\bSm.Nd\b|\bLu.Hf\b)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Geochemistry
@@ -346,14 +346,14 @@ _METHOD_PATTERNS = [
         "Isotope geochemistry",
         re.compile(
             r"\b(?:isotop\w*|\bSr.b.d\b|\bNd.b.d\b|\bPb.b.d\b|\bd18O\b|\bd13C\b|\bd34S\b|\bdD\b|\b87Sr\b|\b143Nd\b|stable\s+isotope|radiogen)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Whole-rock geochemistry",
         re.compile(
             r"\b(?:whole.rock\s+geochem|bulk\s+(?:rock|geochem)|major\s+element|\bXRF\b|\bICP.MS\b|\bEPMA\b|electron\s+microprobe|harker\s+diagram|spider\s+(?:diagram|plot))\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Structural geology
@@ -361,14 +361,14 @@ _METHOD_PATTERNS = [
         "Structural analysis",
         re.compile(
             r"\b(?:structural\s+(?:analysis|geolog)|stress\s+inversion|paleostress|strain\s+(?:analysis|ellipsoid|rate)|fracture\s+analysis|fold\s+(?:geometry|analysis)|fault\s+(?:geometry|kinematic|slip|displacement)|brittle|ductile\s+shear)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Rock magnetism / Paleomagnetism",
         re.compile(
             r"\b(?:paleomagnet\w*|magnetic\s+(?:susceptibility|fabric|anisotropy|mineralogy)|demagnetiz\w*|\bAMS\b|natural\s+remanent|\bNRM\b|\bARM\b|\bIRM\b)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Geophysics
@@ -376,21 +376,21 @@ _METHOD_PATTERNS = [
         "Seismology",
         re.compile(
             r"\b(?:seismic\s+(?:tomograph\w*|reflection|refraction|wave|velocity|attenuation)|receiver\s+function|earthquake\s+(?:location|mechanism|source)|\bVp\b|\bVs\b|\bMw\b|moment\s+magnitude|teleseismic)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Gravity / Magnetic survey",
         re.compile(
             r"\b(?:gravity\s+(?:survey|anomal|gradient)|Bouguer|free.air|magnetic\s+(?:anomal|survey)|aeromagnetic|magnetotellur\w*|\bMT\s+survey)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Heat flow / Thermal",
         re.compile(
             r"\b(?:heat\s+flow|geothermal\s+gradient|thermal\s+(?:conductivity|diffusivity|model)|surface\s+heat\s+flow)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Sedimentology / Stratigraphy
@@ -398,7 +398,7 @@ _METHOD_PATTERNS = [
         "Sedimentology",
         re.compile(
             r"\b(?:sedimentolog\w*|depositional\s+environment|facies\s+analysis|sequence\s+stratigraph|provenance|diagen\w*|sedimentary\s+structure)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Volcanology
@@ -406,7 +406,7 @@ _METHOD_PATTERNS = [
         "Volcanology",
         re.compile(
             r"\b(?:volcan\w*|eruption\w*|lava\s+flow|volcanic\s+(?:ash|gas|hazard|risk)|magma\s+(?:chamber|evolution|ascent|mixing|emplacement)|pyroclastic)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Remote sensing
@@ -414,7 +414,7 @@ _METHOD_PATTERNS = [
         "Remote sensing",
         re.compile(
             r"\b(?:\bInSAR\b|\bD.InSAR\b|\bLandsat\b|\bASTER\b|\bSentinel\b|\bMODIS\b|satellite\s+(?:imag|data)|airborne\s+(?:survey|magnetic)|hyperspectral|multispectral)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Numerical / analog modeling
@@ -422,14 +422,14 @@ _METHOD_PATTERNS = [
         "Numerical modeling",
         re.compile(
             r"\b(?:numerical\s+model|computer\s+simulation|finite\s+(?:element|difference|volume)|discrete\s+element|computational|thermodynamic\s+model|machine\s+learning|statistical\s+model|geodynamic\s+model)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Analog modeling",
         re.compile(
             r"\b(?:analog\s+(?:model|experiment)|sandbox\s+model|scaled\s+model|physical\s+model)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Field / Review
@@ -437,14 +437,14 @@ _METHOD_PATTERNS = [
         "Field study",
         re.compile(
             r"\b(?:field\s+(?:study|area|evidence|relation|sample)|outcrop|collected\s+from|fieldwork|mapped|mapping|regional\s+geolog)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Review / Synthesis",
         re.compile(
             r"\b(?:review\b|meta.analysis|systematic\s+review|overview|state.of.the.art|synthesi[sz]e|summari[sz]e)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Mineralogy / Crystallography
@@ -452,7 +452,7 @@ _METHOD_PATTERNS = [
         "Mineralogy",
         re.compile(
             r"\b(?:mineral\s+(?:chemistr|composition|assemblage|paragenesis)|crystal\s+(?:structure|chemistry)|X.ray\s+(?:diffraction|fluorescence)|\bXRD\b|Raman\s+spectroscop\w*|\bSEM\b|\bTEM\b|electron\s+backscatter)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Hydrogeology
@@ -460,7 +460,7 @@ _METHOD_PATTERNS = [
         "Hydrogeology",
         re.compile(
             r"\b(?:groundwater|aquifer|hydrogeolog|hydrolog|permeab|porosity|hydraulic\s+(?:conductivity|head)|water\s+(?:table|chemistry|rock\s+interaction))\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     # Ore geology
@@ -471,14 +471,14 @@ _METHOD_PATTERNS = [
             r"thermobarometr.*package|thermobarometr.*program|thermobarometr.*tool|"
             r"\bGCDkit\b|\bIgiPet\b|\bPetMod\b|\bRcrust\b|\bPTcalc\b)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
         "Ore geology",
         re.compile(
             r"\b(?:ore\s+(?:deposit|geolog|mineraliz)|mineraliz\w*|hydrothermal\s+(?:deposit|vein|alteration)|porphyry\s+(?:deposit|copper)|epithermal|orogenic\s+gold|\bVMS\b|\bSEDEX\b)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
 ]
@@ -1022,7 +1022,7 @@ _LIMITATION_CUES_RE = re.compile(
     r"caveat|warn|caution|"
     r"large\s+error|significant\s+uncertain|"
     r"not\s+well\s+constrain|poorly\s+constrain)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -1180,7 +1180,7 @@ _GEO_REGION_PATTERNS_RE = re.compile(
     r"\b(?:Antarctica|Greenland|Scandinavia|Alps|Himalaya|"
     r"Appalachian|Canadian\s+Shield|Baltic|Japan|China|"
     r"Africa|Australia|South\s+America|North\s+America)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -2085,7 +2085,7 @@ _GEO_REGION_PATTERNS_RE_V2 = re.compile(
     r"\b(?:Antarctica|Greenland|Scandinavia|Alps|Himalaya|"
     r"Appalachian|Canadian\s+Shield|Baltic|Japan|China|"
     r"Africa|Australia|South\s+America|North\s+America|Europe|Asia)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -2203,100 +2203,100 @@ def _build_research_gaps_v2(
 # Rock-type detection for contextual measurement grouping
 _ROCK_TYPE_PATTERNS = [
     # Metamorphic
-    ("metapelite", re.compile(r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.I)),
-    ("eclogite", re.compile(r"\b(?:eclogite|eclogitic)\b", re.I)),
-    ("granulite", re.compile(r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.I)),
-    ("amphibolite", re.compile(r"\b(?:amphibolite|amphibolitic)\b", re.I)),
+    ("metapelite", re.compile(r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.IGNORECASE)),
+    ("eclogite", re.compile(r"\b(?:eclogite|eclogitic)\b", re.IGNORECASE)),
+    ("granulite", re.compile(r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.IGNORECASE)),
+    ("amphibolite", re.compile(r"\b(?:amphibolite|amphibolitic)\b", re.IGNORECASE)),
     (
         "gneiss",
-        re.compile(r"\b(?:gn(?:e|†)iss(?:ic)?|orthogneiss|paragneiss|augen\s+gneiss)\b", re.I),
+        re.compile(r"\b(?:gn(?:e|†)iss(?:ic)?|orthogneiss|paragneiss|augen\s+gneiss)\b", re.IGNORECASE),
     ),
     (
         "schist",
-        re.compile(r"\b(?:schist(?:ose)?|mica\s+schist|garnet\s+schist|chlorite\s+schist)\b", re.I),
+        re.compile(r"\b(?:schist(?:ose)?|mica\s+schist|garnet\s+schist|chlorite\s+schist)\b", re.IGNORECASE),
     ),
-    ("skarn", re.compile(r"\b(?:skarn(?:s)?|tactite)\b", re.I)),
-    ("quartzite", re.compile(r"\b(?:quartzite|quartzitic)\b", re.I)),
-    ("marble", re.compile(r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.I)),
-    ("serpentinite", re.compile(r"\b(?:serpentin(?:ite|inite)|serpentiniz)\b", re.I)),
-    ("blueschist", re.compile(r"\b(?:blueschist|blue\s+schist|lawsonite)\b", re.I)),
-    ("migmatite", re.compile(r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.I)),
+    ("skarn", re.compile(r"\b(?:skarn(?:s)?|tactite)\b", re.IGNORECASE)),
+    ("quartzite", re.compile(r"\b(?:quartzite|quartzitic)\b", re.IGNORECASE)),
+    ("marble", re.compile(r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.IGNORECASE)),
+    ("serpentinite", re.compile(r"\b(?:serpentin(?:ite|inite)|serpentiniz)\b", re.IGNORECASE)),
+    ("blueschist", re.compile(r"\b(?:blueschist|blue\s+schist|lawsonite)\b", re.IGNORECASE)),
+    ("migmatite", re.compile(r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.IGNORECASE)),
     (
         "mylonite",
         re.compile(
-            r"\b(?:mylon(?:ite|itic)|ultramylon|cataclasite|fault\s+(?:rock|gouge|breccia))\b", re.I
+            r"\b(?:mylon(?:ite|itic)|ultramylon|cataclasite|fault\s+(?:rock|gouge|breccia))\b", re.IGNORECASE
         ),
     ),
-    ("hornfels", re.compile(r"\b(?:hornfels|contact\s+metamorph)\b", re.I)),
-    ("calc-silicate", re.compile(r"\b(?:calc.silicate|calc-silicate)\b", re.I)),
+    ("hornfels", re.compile(r"\b(?:hornfels|contact\s+metamorph)\b", re.IGNORECASE)),
+    ("calc-silicate", re.compile(r"\b(?:calc.silicate|calc-silicate)\b", re.IGNORECASE)),
     # Igneous — volcanic
     (
         "basalt",
-        re.compile(r"\b(?:basalt(?:ic)?|MORB|mid.ocean.ridge\s+basalt|OIB|flood\s+basalt)\b", re.I),
+        re.compile(r"\b(?:basalt(?:ic)?|MORB|mid.ocean.ridge\s+basalt|OIB|flood\s+basalt)\b", re.IGNORECASE),
     ),
-    ("rhyolite", re.compile(r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.I)),
-    ("andesite", re.compile(r"\b(?:andesite|andesitic)\b", re.I)),
-    ("dacite", re.compile(r"\b(?:dacite|dacitic)\b", re.I)),
-    ("komatiite", re.compile(r"\b(?:komatiite|komatiitic|boninite)\b", re.I)),
-    ("carbonatite", re.compile(r"\b(?:carbonatite|nephelinite|melilitite)\b", re.I)),
-    ("tuff", re.compile(r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.I)),
+    ("rhyolite", re.compile(r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.IGNORECASE)),
+    ("andesite", re.compile(r"\b(?:andesite|andesitic)\b", re.IGNORECASE)),
+    ("dacite", re.compile(r"\b(?:dacite|dacitic)\b", re.IGNORECASE)),
+    ("komatiite", re.compile(r"\b(?:komatiite|komatiitic|boninite)\b", re.IGNORECASE)),
+    ("carbonatite", re.compile(r"\b(?:carbonatite|nephelinite|melilitite)\b", re.IGNORECASE)),
+    ("tuff", re.compile(r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.IGNORECASE)),
     # Igneous — plutonic
     (
         "granite",
         re.compile(
-            r"\b(?:granite|granitic|granodiorite|tonalite|trondhjemite|monzonite|syenite)\b", re.I
+            r"\b(?:granite|granitic|granodiorite|tonalite|trondhjemite|monzonite|syenite)\b", re.IGNORECASE
         ),
     ),
-    ("gabbro", re.compile(r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.I)),
-    ("diorite", re.compile(r"\b(?:diorite|dioritic|monzodiorite)\b", re.I)),
+    ("gabbro", re.compile(r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.IGNORECASE)),
+    ("diorite", re.compile(r"\b(?:diorite|dioritic|monzodiorite)\b", re.IGNORECASE)),
     (
         "peridotite",
         re.compile(
             r"\b(?:peridotite|peridotitic|lherzolite|harzburgite|dunite|wehrlite|pyroxenite)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
-    ("pegmatite", re.compile(r"\b(?:pegmatite|pegmatitic|aplite)\b", re.I)),
+    ("pegmatite", re.compile(r"\b(?:pegmatite|pegmatitic|aplite)\b", re.IGNORECASE)),
     # Sedimentary
     (
         "sandstone",
-        re.compile(r"\b(?:sandstone|arenite|wacke|quartz\s+arenite|arkose|greywacke)\b", re.I),
+        re.compile(r"\b(?:sandstone|arenite|wacke|quartz\s+arenite|arkose|greywacke)\b", re.IGNORECASE),
     ),
-    ("shale", re.compile(r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.I)),
+    ("shale", re.compile(r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.IGNORECASE)),
     (
         "limestone",
         re.compile(
             r"\b(?:limestone|calcarenite|micrite|chalk|coquina|packstone|wackestone|grainstone)\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
-    ("dolomite", re.compile(r"\b(?:dolomite|dolostone|dolomit(?:e|ic))\b", re.I)),
-    ("chert", re.compile(r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.I)),
-    ("conglomerate", re.compile(r"\b(?:conglomerate|breccia|fanglomerate)\b", re.I)),
+    ("dolomite", re.compile(r"\b(?:dolomite|dolostone|dolomit(?:e|ic))\b", re.IGNORECASE)),
+    ("chert", re.compile(r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.IGNORECASE)),
+    ("conglomerate", re.compile(r"\b(?:conglomerate|breccia|fanglomerate)\b", re.IGNORECASE)),
     (
         "evaporite",
-        re.compile(r"\b(?:evaporite|halite|gypsum|anhydrite|salt\s+(?:dome|diapir))\b", re.I),
+        re.compile(r"\b(?:evaporite|halite|gypsum|anhydrite|salt\s+(?:dome|diapir))\b", re.IGNORECASE),
     ),
-    ("turbidite", re.compile(r"\b(?:turbidite|flysch|contourite|debris\s+flow)\b", re.I)),
-    ("BIF", re.compile(r"\b(?:banded\s+iron\s+formation|\bBIF\b|taconite|itabirite)\b", re.I)),
-    ("coal", re.compile(r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.I)),
+    ("turbidite", re.compile(r"\b(?:turbidite|flysch|contourite|debris\s+flow)\b", re.IGNORECASE)),
+    ("BIF", re.compile(r"\b(?:banded\s+iron\s+formation|\bBIF\b|taconite|itabirite)\b", re.IGNORECASE)),
+    ("coal", re.compile(r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.IGNORECASE)),
     # Mantle / deep Earth
     (
         "mantle xenolith",
         re.compile(
-            r"\b(?:mantle\s+(?:xenolith|section|nodule|peridotite)|ophiolite|ophiolitic)\b", re.I
+            r"\b(?:mantle\s+(?:xenolith|section|nodule|peridotite)|ophiolite|ophiolitic)\b", re.IGNORECASE
         ),
     ),
     # Ore deposits
     (
         "VMS",
         re.compile(
-            r"\b(?:volcanogenic\s+massive\s+sulfide|\bVMS\b|SEDEX|Mississippi\s+Valley)\b", re.I
+            r"\b(?:volcanogenic\s+massive\s+sulfide|\bVMS\b|SEDEX|Mississippi\s+Valley)\b", re.IGNORECASE
         ),
     ),
     (
         "porphyry deposit",
-        re.compile(r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.I),
+        re.compile(r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.IGNORECASE),
     ),
 ]
 
@@ -2322,7 +2322,7 @@ def _detect_rock_type(paper: dict) -> str:
                     r"quartz.+inclusion|\d{2,}\s*kbar|>\s*25\s*kbar|"
                     r"\d\.\d+\s*GPa)\b",
                     text,
-                    re.I,
+                    re.IGNORECASE,
                 ):
                     return "UHP eclogite"
             return rock_type
@@ -2464,7 +2464,7 @@ _STUDY_TYPE_PATTERNS = [
             r"high.pressure\s+experiment|crystalliz\w+\s+experiment|"
             r"hydrothermal\s+experiment|annealing\s+experiment)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2473,7 +2473,7 @@ _STUDY_TYPE_PATTERNS = [
             r"\b(?:calibrat\w*|standardi[sz]\w*|reference\s+material|"
             r"inter.laboratory|round.robin|re.producib|accuracy\s+assessment)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2485,7 +2485,7 @@ _STUDY_TYPE_PATTERNS = [
             r"regional\s+geolog|stratigraphic\s+(?:section|log|column)|"
             r"drill\s+core|core\s+sample|quarry|borehole|well\s+log)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2496,7 +2496,7 @@ _STUDY_TYPE_PATTERNS = [
             r"\bICP.MS\b|\bXRF\b|\bEPMA\b|electron\s+microprobe|"
             r"\bLA.ICP.MS\b|isotope\s+geochem|stable\s+isotope)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2508,7 +2508,7 @@ _STUDY_TYPE_PATTERNS = [
             r"radiocarbon|\b14C\b|\bRe.Os\b|\bSm.Nd\b|\bLu.Hf\b|"
             r"monazite\s+(?:age|dating)|zircon\s+(?:age|dating|\bU.Pb\b))"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2519,7 +2519,7 @@ _STUDY_TYPE_PATTERNS = [
             r"aeromagnetic|electrical\s+resistivity|self.potential|"
             r"ground.penetrating\s+radar|\bGPR\b|heat\s+flow\s+(?:measure|survey))"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2530,7 +2530,7 @@ _STUDY_TYPE_PATTERNS = [
             r"airborne\s+(?:survey|magnetic|EM)|\bLiDAR\b|\bSAR\b|"
             r"hyperspectral|multispectral|thermal\s+infrared)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2541,7 +2541,7 @@ _STUDY_TYPE_PATTERNS = [
             r"analog\s+model|sandbox\s+model|geodynamic\s+model|"
             r"subduction\s+model|convection\s+model)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2551,7 +2551,7 @@ _STUDY_TYPE_PATTERNS = [
             r"drill\s+core|coring|\bICDP\b|continental\s+drilling|"
             r"borehole\s+logging|wireline\s+logging)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
     (
@@ -2560,7 +2560,7 @@ _STUDY_TYPE_PATTERNS = [
             r"\b(?:review\b|meta.analysis|systematic\s+review|"
             r"overview|state.of.the.art|synthesi[sz]e|summari[sz]e)"
             r"\b",
-            re.I,
+            re.IGNORECASE,
         ),
     ),
 ]
@@ -2593,7 +2593,7 @@ _ADVANTAGE_CUES = re.compile(
     r"outperform|excel|surpass|enhance|optimi[sz]e|"
     r"internally\s+consistent|thermodynamically\s+consistent|"
     r"overcome|address|resolve\w*)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 
@@ -2885,43 +2885,43 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
 
 
 _VERB_MAP = [
-    (re.compile(r"^(?:we|our)\s+(?:found|find)\b", re.I), "found that"),
+    (re.compile(r"^(?:we|our)\s+(?:found|find)\b", re.IGNORECASE), "found that"),
     (
-        re.compile(r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.I),
+        re.compile(r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.IGNORECASE),
         "demonstrated that",
     ),
-    (re.compile(r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.I), "reported that"),
+    (re.compile(r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.IGNORECASE), "reported that"),
     (
-        re.compile(r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.I),
+        re.compile(r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.IGNORECASE),
         "proposed that",
     ),
-    (re.compile(r"^(?:we|our)\s+(?:conclude|concluded)\b", re.I), "concluded that"),
-    (re.compile(r"^(?:we|our)\s+(?:argue|argued)\b", re.I), "argued that"),
-    (re.compile(r"^(?:we|our)\s+(?:observ\w+|not\w+|detect\w+)\b", re.I), "observed that"),
+    (re.compile(r"^(?:we|our)\s+(?:conclude|concluded)\b", re.IGNORECASE), "concluded that"),
+    (re.compile(r"^(?:we|our)\s+(?:argue|argued)\b", re.IGNORECASE), "argued that"),
+    (re.compile(r"^(?:we|our)\s+(?:observ\w+|not\w+|detect\w+)\b", re.IGNORECASE), "observed that"),
     (
         re.compile(
             r"^(?:this|the)\s+(?:study|work|paper|research)\s+(?:show|showed|demonstrat\w+|found|report\w+|present\w+)\b",
-            re.I,
+            re.IGNORECASE,
         ),
         "showed that",
     ),
     (
         re.compile(
-            r"^(?:here|in this study)\s+we\s+(?:show|demonstrate|report|present|found)\b", re.I
+            r"^(?:here|in this study)\s+we\s+(?:show|demonstrate|report|present|found)\b", re.IGNORECASE
         ),
         "demonstrated that",
     ),
     (
         re.compile(
             r"^(?:our|these|the)\s+results\s+(?:show|showed|demonstrate|indicate|suggest|reveal)\b",
-            re.I,
+            re.IGNORECASE,
         ),
         "showed that",
     ),
     (
         re.compile(
             r"^(?:this|our)\s+(?:analysis|approach|method)\s+(?:allow\w*|enabl\w+|provid\w+)\b",
-            re.I,
+            re.IGNORECASE,
         ),
         "reported that",
     ),
@@ -2959,7 +2959,7 @@ _GARBLED_PATTERNS = re.compile(
     r"(?:damarlar|olumular|ierisinde|ncelme|alanndaki|barit-galenit)|"
     r"(?:self-gravitating|gravitational fugac)|"
     r"chapter\s+(?:also\s+)?(?:outlines?|discusses?)\s+key)",
-    re.I,
+    re.IGNORECASE,
 )
 
 # Significance inference: stance lexicon for inter-finding relationships
@@ -3352,14 +3352,14 @@ def _detect_paragraph_break(
 
 # Content-based verb enrichment — varies verb by finding content
 _CONTENT_VERB_MAP = [
-    (re.compile(r"\bfirst\b", re.I), "pioneered the demonstration that"),
-    (re.compile(r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.I), "modeled"),
-    (re.compile(r"\b(?:review|synthesi\w+|compil\w+)\b", re.I), "reviewed"),
-    (re.compile(r"\b(?:measure|determin\w+|quantif\w+)\b", re.I), "determined that"),
-    (re.compile(r"\b(?:argue| propos\w+|hypnoth\w+)\b", re.I), "argued that"),
-    (re.compile(r"\b(?:conclude|infer\w+)\b", re.I), "concluded that"),
-    (re.compile(r"\b(?:observ\w+|not\w+|detect\w+)\b", re.I), "observed that"),
-    (re.compile(r"\b(?:establish\w+|demonstrat\w+)\b", re.I), "established that"),
+    (re.compile(r"\bfirst\b", re.IGNORECASE), "pioneered the demonstration that"),
+    (re.compile(r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.IGNORECASE), "modeled"),
+    (re.compile(r"\b(?:review|synthesi\w+|compil\w+)\b", re.IGNORECASE), "reviewed"),
+    (re.compile(r"\b(?:measure|determin\w+|quantif\w+)\b", re.IGNORECASE), "determined that"),
+    (re.compile(r"\b(?:argue| propos\w+|hypnoth\w+)\b", re.IGNORECASE), "argued that"),
+    (re.compile(r"\b(?:conclude|infer\w+)\b", re.IGNORECASE), "concluded that"),
+    (re.compile(r"\b(?:observ\w+|not\w+|detect\w+)\b", re.IGNORECASE), "observed that"),
+    (re.compile(r"\b(?:establish\w+|demonstrat\w+)\b", re.IGNORECASE), "established that"),
 ]
 
 
@@ -3689,7 +3689,7 @@ def build_chronological_narrative(
         # Apply in descending order so [10]→[12] doesn't clobber [1]→[2].
         import re as _re
 
-        def _rewrite_citation(m: "_re.Match[str]") -> str:
+        def _rewrite_citation(m: _re.Match[str]) -> str:
             old = int(m.group(1))
             new = renumber_map.get(old, old)
             return f"[{new}]"

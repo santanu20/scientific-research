@@ -446,7 +446,7 @@ def _call_ollama(
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode())
-    except (urllib.error.URLError, ConnectionError, OSError) as e:
+    except (urllib.error.URLError, ConnectionError, OSError):
         _ollama_consecutive_failures += 1
         if (
             _ollama_consecutive_failures >= _OLLAMA_CIRCUIT_THRESHOLD

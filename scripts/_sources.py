@@ -1573,8 +1573,9 @@ def _epmc_to_record(it: dict) -> PaperRecord:
 @retry_with_backoff(max_attempts=3)
 def epmc_search(query: str, max_results: int = 25) -> list[PaperRecord]:
     """Search Europe PMC (REST, no key). PubMed + PMC + preprints + agricolA."""
-    import httpx
     from urllib.parse import quote_plus
+
+    import httpx
 
     url = (
         "https://www.ebi.ac.uk/europepmc/webservices/rest/search"

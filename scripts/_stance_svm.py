@@ -170,7 +170,7 @@ def _train_model() -> dict | None:
     model = {
         "vectorizer": vectorizer,
         "classifier": clf,
-        "labels": clf.classes_.tolist(),
+        "labels": [str(c) for c in (clf.classes_ or [])],
         "n_training": len(data),
     }
 
@@ -342,7 +342,7 @@ def combined_stance(
         )
 
     # Pick best
-    best_stance = max(combined, key=combined.get)
+    best_stance = max(combined, key=lambda k: combined[k])
     best_score = combined[best_stance]
 
     # Build reason

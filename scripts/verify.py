@@ -24,100 +24,11 @@ References:
 
 from __future__ import annotations
 
-# --- Self-contained skill venv bootstrap (mirrors pdf-ocr/web-search pattern) ---
-import os as _bs_os, sys as _bs_sys
+# --- Skill venv bootstrap (shared: see _bootstrap.py) ---
+if __name__ == "__main__":
+    import _bootstrap
 
-_SKILL_VENV = _bs_os.path.expanduser(
-    "~/.config/opencode/skills/scientific-research/.venv"
-)
-_SKILL_VENV_PY = _bs_os.path.join(_SKILL_VENV, "bin", "python")
-_REQ_IMPORTS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "sklearn",
-    "httpx",
-)
-_REQ_INSTALLS = (
-    "habanero",
-    "pyalex",
-    "semanticscholar",
-    "arxiv",
-    "numpy",
-    "scipy",
-    "scikit-learn",
-    "httpx",
-    "pytest",
-    "ruff",
-)
-if __name__ == "__main__" and not _bs_os.environ.get(
-    "SCIENTIFIC_RESEARCH_NO_SKILL_VENV"
-):
-    if not _bs_os.path.exists(_SKILL_VENV_PY) and not _bs_os.environ.get(
-        "SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"
-    ):
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(
-                "Bootstrapping scientific-research skill venv (one-time setup)...\n"
-            )
-            _bs_sp.run(
-                ["uv", "venv", _SKILL_VENV, "--python", "3.13"],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True,
-                capture_output=True,
-            )
-            _bs_sys.stderr.write("scientific-research skill venv ready.\n")
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(
-                f"Failed to auto-bootstrap: {_bs_ex}\nManual: uv venv {_SKILL_VENV} --python 3.13 && uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-            )
-            _bs_sys.exit(2)
-    if _bs_os.path.exists(_SKILL_VENV_PY) and _bs_os.path.normpath(
-        _bs_sys.prefix
-    ) != _bs_os.path.normpath(_SKILL_VENV):
-        _bs_os.environ["SCIENTIFIC_RESEARCH_NO_SKILL_VENV"] = "1"
-        _bs_os.execv(
-            _SKILL_VENV_PY,
-            [_SKILL_VENV_PY, _bs_os.path.abspath(__file__)] + _bs_sys.argv[1:],
-        )
-    _missing = []
-    for _m in _REQ_IMPORTS:
-        try:
-            __import__(_m)
-        except ImportError:
-            _missing.append(_m)
-    if _missing and not _bs_os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):
-        # stale venv: auto-install missing deps once, then re-check
-        import subprocess as _bs_sp
-
-        try:
-            _bs_sys.stderr.write(f"Installing missing deps: {', '.join(_missing)}\n")
-            _bs_sp.run(
-                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
-                check=True, capture_output=True,
-            )
-            _missing = []
-            for _m in _REQ_IMPORTS:
-                try:
-                    __import__(_m)
-                except ImportError:
-                    _missing.append(_m)
-        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
-            _bs_sys.stderr.write(f"Auto-install failed: {_bs_ex}\n")
-    if _missing:
-        _bs_sys.stderr.write(
-            f"FATAL: missing required deps: {', '.join(_missing)}\nInstall: uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
-        )
-        _bs_sys.exit(2)
+    _bootstrap.ensure_env()
 # --- End bootstrap ---
 
 
@@ -132,7 +43,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _sources import (  # noqa: E402
+from _sources import (
     PaperRecord,
     arxiv_search,
     cache_put,
@@ -512,6 +423,8 @@ def check_retraction(record: PaperRecord) -> tuple[str, str]:
 # Source (verified 2026-08-14): https://www.crossref.org/documentation/retrieve-metadata/retraction-watch/
 #   CSV dataset: git clone https://gitlab.com/crossref/retraction-watch-data
 #   (updated each working day; comma-separated, in-entry lists use ';')
+# Default install location (auto-discovered): ~/.local/share/scientific-research/
+#   retraction-watch-data/retraction_watch.csv — update with `git pull` there.
 # Also available via Crossref REST API: filter=update-type:retraction with
 # source=retraction-watch in the update-to field.
 # DESIGN: RW match downgrades to 'concern' (never auto-'retracted') because
@@ -519,21 +432,38 @@ def check_retraction(record: PaperRecord) -> tuple[str, str]:
 # nuance. Absent CSV → skipped with one log line (fail-open, never blocks
 # the §5 H20 gate on an optional local dataset).
 _RW_INDEX: set[str] | None = None
+_RW_DEFAULT_CSV = (
+    Path.home()
+    / ".local"
+    / "share"
+    / "scientific-research"
+    / "retraction-watch-data"
+    / "retraction_watch.csv"
+)
 
 
 def load_rw_index(csv_path: Path | None = None) -> set[str]:
-    """Load Retraction Watch DOIs from local CSV. Returns empty set if absent."""
+    """Load Retraction Watch DOIs from local CSV. Returns empty set if absent.
+
+    Resolution order: explicit csv_path → SCIENTIFIC_RESEARCH_RW_CSV env →
+    default install location (~/.local/share/scientific-research/
+    retraction-watch-data/retraction_watch.csv).
+    """
     global _RW_INDEX
     import csv as _csv
     import os as _os
 
     if _RW_INDEX is not None:
         return _RW_INDEX
-    path = csv_path or Path(_os.environ.get("SCIENTIFIC_RESEARCH_RW_CSV", ""))
+    path = csv_path or Path(
+        _os.environ.get("SCIENTIFIC_RESEARCH_RW_CSV", "") or _RW_DEFAULT_CSV
+    )
     if not path or not path.exists():
         log.info(
-            "Retraction Watch CSV not configured (set --rw-csv or "
-            "SCIENTIFIC_RESEARCH_RW_CSV); secondary retraction cross-check skipped"
+            "Retraction Watch CSV not found (looked at %s; install with: git clone "
+            "https://gitlab.com/crossref/retraction-watch-data into "
+            "~/.local/share/scientific-research/); secondary cross-check skipped",
+            path,
         )
         _RW_INDEX = set()
         return _RW_INDEX
@@ -548,8 +478,7 @@ def load_rw_index(csv_path: Path | None = None) -> set[str]:
         for row in reader:
             for col in doi_cols:
                 val = (row.get(col) or "").strip().lower()
-                if val.startswith("https://doi.org/"):
-                    val = val[len("https://doi.org/") :]
+                val = val.removeprefix("https://doi.org/")
                 if val:
                     dois.add(val)
     _RW_INDEX = dois
@@ -568,8 +497,7 @@ def check_retraction_watch(
     if not rw_index or not record.doi:
         return None
     doi = record.doi.strip().lower()
-    if doi.startswith("https://doi.org/"):
-        doi = doi[len("https://doi.org/") :]
+    doi = doi.removeprefix("https://doi.org/")
     if doi in rw_index:
         return (
             "concern",

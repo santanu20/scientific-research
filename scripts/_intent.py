@@ -920,14 +920,14 @@ _P3 = re.compile(
 )
 # Pattern 4: property-only queries like "oxygen fugacity" or "seismic anisotropy"
 _PROPERTY_PATTERNS = {
-    "fugacity": re.compile(r"\b(?:oxygen|sulfur|sulphur)\s+fugacit\w*\b", re.I),
-    "anisotropy": re.compile(r"\b(?:seismic|mantle)\s+anisotrop\w*\b", re.I),
-    "redox": re.compile(r"\b(?:redox\s+state|mantle\s+redox|oxidation\s+state)\b", re.I),
-    "ore": re.compile(r"\b(?:ore\s+deposit|mineralization|ore-forming)\b", re.I),
-    "volcanic_hazards": re.compile(r"\b(?:volcanic\s+hazard\w*|eruption\s+(?:dynamics|risk))\b", re.I),
-    "subduction": re.compile(r"\b(?:subduction|slab\s+(?:rollback|tear|detachment))\b", re.I),
-    "mantle_plume": re.compile(r"\b(?:mantle\s+plume|hotspot|large\s+igneous\s+province)\b", re.I),
-    "impact": re.compile(r"\b(?:impact\s+crater|meteorite\s+impact|shock\s+metamorph)\b", re.I),
+    "fugacity": re.compile(r"\b(?:oxygen|sulfur|sulphur)\s+fugacit\w*\b", re.IGNORECASE),
+    "anisotropy": re.compile(r"\b(?:seismic|mantle)\s+anisotrop\w*\b", re.IGNORECASE),
+    "redox": re.compile(r"\b(?:redox\s+state|mantle\s+redox|oxidation\s+state)\b", re.IGNORECASE),
+    "ore": re.compile(r"\b(?:ore\s+deposit|mineralization|ore-forming)\b", re.IGNORECASE),
+    "volcanic_hazards": re.compile(r"\b(?:volcanic\s+hazard\w*|eruption\s+(?:dynamics|risk))\b", re.IGNORECASE),
+    "subduction": re.compile(r"\b(?:subduction|slab\s+(?:rollback|tear|detachment))\b", re.IGNORECASE),
+    "mantle_plume": re.compile(r"\b(?:mantle\s+plume|hotspot|large\s+igneous\s+province)\b", re.IGNORECASE),
+    "impact": re.compile(r"\b(?:impact\s+crater|meteorite\s+impact|shock\s+metamorph)\b", re.IGNORECASE),
 }
 
 

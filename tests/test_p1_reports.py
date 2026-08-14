@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from report import render_prisma_s, render_prospero_draft  # noqa: E402
+from report import render_prisma_s, render_prospero_draft
 
 
 class TestPrismaS:

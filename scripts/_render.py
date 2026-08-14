@@ -343,8 +343,8 @@ def render_forest_plot_png(
     import matplotlib
 
     matplotlib.use("Agg")  # headless
-    import matplotlib.patches as patches
     import matplotlib.pyplot as plt
+    from matplotlib import patches
 
     n = len(studies)
     fig_h = max(2.0, 1.0 + 0.4 * (n + (2 if pooled else 1)))

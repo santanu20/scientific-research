@@ -191,12 +191,7 @@ def verify_citation_alignment(
 # strict_word_overlap=True). Kept conservative to minimize false positives.
 _LOOSE_STOPWORDS = frozenset(
     w.strip()
-    for w in """
-about which these those their would could should study paper research
-results show shows shown demonstrate demonstrates report reports found
-findings suggest suggests indicate indicates confirm confirms establish
-establishes document documents support supports provide provides
-""".split()
+    for w in ["about", "which", "these", "those", "their", "would", "could", "should", "study", "paper", "research", "results", "show", "shows", "shown", "demonstrate", "demonstrates", "report", "reports", "found", "findings", "suggest", "suggests", "indicate", "indicates", "confirm", "confirms", "establish", "establishes", "document", "documents", "support", "supports", "provide", "provides"]
     if w.strip()
 )
 

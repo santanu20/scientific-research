@@ -631,8 +631,11 @@ def egger_test(effects: list[float], variances: list[float]) -> PublicationBias:
     # Begg's rank correlation (Kendall's tau between standardized effect and variance)
     try:
         standardized = (eff - eff.mean()) / max(eff.std(), 1e-12)
-        tau, begg_p = sp_stats.kendalltau(standardized, variances)
-        tau = float(tau) if not math.isnan(tau) else 0.0
+        kt = sp_stats.kendalltau(standardized, variances)
+        tau_raw: float = float(
+            kt[0]
+        )  # index 0 = statistic (2-tuple always for 1-D input)
+        tau = tau_raw if not math.isnan(tau_raw) else 0.0
     except Exception:
         tau = 0.0
     # Interpretation

@@ -1,0 +1,927 @@
+{"text": "Our results confirm the findings of Smith et al.", "label": "supporting", "field": "geology"}
+{"text": "These data are consistent with a mantle plume origin for the basalts.", "label": "supporting", "field": "geology"}
+{"text": "The oxygen isotope values agree with previous measurements by Johnson et al.", "label": "supporting", "field": "geology"}
+{"text": "Our Fe3+/SigmaFe ratios corroborate the redox estimates of Berry et al.", "label": "supporting", "field": "geology"}
+{"text": "These results support the hypothesis that the mantle source is depleted.", "label": "supporting", "field": "geology"}
+{"text": "The age data validate the model proposed by Condie.", "label": "supporting", "field": "geology"}
+{"text": "This is in agreement with the compilation of Cottrell and Kelley.", "label": "supporting", "field": "geology"}
+{"text": "Our measurements confirm the pressure estimates from the experimental calibration.", "label": "supporting", "field": "geology"}
+{"text": "The trace element patterns match those of typical MORB compositions.", "label": "supporting", "field": "geology"}
+{"text": "These observations substantiate the claim that subduction initiated at 45 Ma.", "label": "supporting", "field": "geology"}
+{"text": "Our geochronology data affirm the stratigraphic correlation proposed by Smith.", "label": "supporting", "field": "geology"}
+{"text": "The isotopic signature demonstrates a depleted mantle source as predicted.", "label": "supporting", "field": "geology"}
+{"text": "We find excellent agreement with the mantle temperatures of Lee et al.", "label": "supporting", "field": "geology"}
+{"text": "This provides direct evidence for crustal assimilation as suggested by Hildreth.", "label": "supporting", "field": "geology"}
+{"text": "The mineral chemistry aligns with the experimental data of Ulmer and Luetgert.", "label": "supporting", "field": "geology"}
+{"text": "Our seismic velocities reproduce those reported in the previous tomographic study.", "label": "supporting", "field": "geology"}
+{"text": "These results lend strong support to the plume model of Courtillot et al.", "label": "supporting", "field": "geology"}
+{"text": "The pressure-temperature path we determined confirms the burial history of the terrane.", "label": "supporting", "field": "geology"}
+{"text": "This finding bolsters the interpretation that the basement is Precambrian.", "label": "supporting", "field": "geology"}
+{"text": "Our paleomagnetic data verify the plate reconstruction of Torsvik et al.", "label": "supporting", "field": "geology"}
+{"text": "Our results confirm the theoretical prediction of the standard model.", "label": "supporting", "field": "physics"}
+{"text": "These measurements are consistent with quantum mechanical calculations.", "label": "supporting", "field": "physics"}
+{"text": "The observed transition temperature agrees with the BCS theory prediction.", "label": "supporting", "field": "physics"}
+{"text": "Our data validate the computational model proposed by Anderson.", "label": "supporting", "field": "physics"}
+{"text": "The measured cross-sections support the strong interaction hypothesis.", "label": "supporting", "field": "physics"}
+{"text": "These findings confirm the existence of the predicted top quark.", "label": "supporting", "field": "physics"}
+{"text": "The spectral data agree with predictions from density functional theory.", "label": "supporting", "field": "physics"}
+{"text": "Our measurements reproduce the Hall effect reported by Zhang et al.", "label": "supporting", "field": "physics"}
+{"text": "The scattering pattern matches the Bragg diffraction prediction precisely.", "label": "supporting", "field": "physics"}
+{"text": "Our lattice calculations substantiate the continuum limit extrapolation.", "label": "supporting", "field": "physics"}
+{"text": "The decay rate we measured affirms the standard model prediction.", "label": "supporting", "field": "physics"}
+{"text": "These results demonstrate the expected symmetry breaking as proposed by Nambu.", "label": "supporting", "field": "physics"}
+{"text": "We observe excellent agreement with the perturbative QCD calculations.", "label": "supporting", "field": "physics"}
+{"text": "This provides direct evidence for the Higgs mechanism as predicted by Higgs.", "label": "supporting", "field": "physics"}
+{"text": "The magnetization data align with the mean-field theory predictions.", "label": "supporting", "field": "physics"}
+{"text": "Our spectroscopic measurements verify the energy level scheme of Bethe.", "label": "supporting", "field": "physics"}
+{"text": "These results lend strong support to the inflationary universe model.", "label": "supporting", "field": "physics"}
+{"text": "The entanglement we measured confirms the Bell inequality violation.", "label": "supporting", "field": "physics"}
+{"text": "This finding strengthens the case for supersymmetry as proposed by Wess and Zumino.", "label": "supporting", "field": "physics"}
+{"text": "Our neutron scattering data corroborate the phonon dispersion calculated by Kresse.", "label": "supporting", "field": "physics"}
+{"text": "Our yield of 85 percent confirms the efficiency of the new catalyst.", "label": "supporting", "field": "chemistry"}
+{"text": "These results are consistent with the proposed concerted reaction mechanism.", "label": "supporting", "field": "chemistry"}
+{"text": "The selectivity data agree with the computational predictions by Houk.", "label": "supporting", "field": "chemistry"}
+{"text": "Our spectroscopic data validate the molecular structure proposed by NMR analysis.", "label": "supporting", "field": "chemistry"}
+{"text": "The conversion rates support the hypothesis of cooperative bimetallic catalysis.", "label": "supporting", "field": "chemistry"}
+{"text": "The crystal structure confirms the predicted octahedral coordination geometry.", "label": "supporting", "field": "chemistry"}
+{"text": "Our kinetic data corroborate the rate law proposed by Michaelis and Menten.", "label": "supporting", "field": "chemistry"}
+{"text": "The binding constants reproduce those reported in the literature.", "label": "supporting", "field": "chemistry"}
+{"text": "The NMR spectrum matches the simulated spectrum perfectly.", "label": "supporting", "field": "chemistry"}
+{"text": "Our DFT calculations substantiate the proposed transition state geometry.", "label": "supporting", "field": "chemistry"}
+{"text": "The XRD pattern affirms the formation of the expected crystalline phase.", "label": "supporting", "field": "chemistry"}
+{"text": "These results demonstrate the predicted selectivity for the ortho product.", "label": "supporting", "field": "chemistry"}
+{"text": "We find good agreement with the solubility product reported by Ksp.", "label": "supporting", "field": "chemistry"}
+{"text": "This provides direct evidence for the radical intermediate as suggested by Kochi.", "label": "supporting", "field": "chemistry"}
+{"text": "The electrochemical data align with the reversible redox behavior predicted.", "label": "supporting", "field": "chemistry"}
+{"text": "Our thermodynamic measurements verify the enthalpy of formation from literature.", "label": "supporting", "field": "chemistry"}
+{"text": "These results lend strong support to the Marcus theory of electron transfer.", "label": "supporting", "field": "chemistry"}
+{"text": "The reaction rate we measured confirms the activation energy barrier.", "label": "supporting", "field": "chemistry"}
+{"text": "This finding strengthens the case for hydrogen bonding in the active site.", "label": "supporting", "field": "chemistry"}
+{"text": "Our chiral HPLC data corroborate the enantiomeric excess reported by Jacobsen.", "label": "supporting", "field": "chemistry"}
+{"text": "Our results confirm the tumor suppressor role of p53 as proposed by Levine.", "label": "supporting", "field": "biology"}
+{"text": "These data are consistent with the apoptotic pathway regulated by Bcl-2.", "label": "supporting", "field": "biology"}
+{"text": "The gene expression profiles agree with previous RNA-seq results.", "label": "supporting", "field": "biology"}
+{"text": "Our findings validate the CRISPR specificity data of Tsai et al.", "label": "supporting", "field": "biology"}
+{"text": "The phenotype data support the hypothesis of haploinsufficiency in this disorder.", "label": "supporting", "field": "biology"}
+{"text": "Our phylogenetic analysis confirms the monophyletic origin of placental mammals.", "label": "supporting", "field": "biology"}
+{"text": "The ecological data corroborate the competitive exclusion principle of Gause.", "label": "supporting", "field": "biology"}
+{"text": "Our Western blot results reproduce those of the original characterization study.", "label": "supporting", "field": "biology"}
+{"text": "The immunofluorescence pattern matches the expected subcellular localization.", "label": "supporting", "field": "biology"}
+{"text": "Our qPCR data substantiate the upregulation reported in the microarray study.", "label": "supporting", "field": "biology"}
+{"text": "The growth curve affirms the predicted logistic model for this population.", "label": "supporting", "field": "biology"}
+{"text": "These results demonstrate the expected Mendelian inheritance ratio of 3:1.", "label": "supporting", "field": "biology"}
+{"text": "We find excellent agreement with the enzyme kinetics of the Michaelis-Menten model.", "label": "supporting", "field": "biology"}
+{"text": "This provides direct evidence for endosymbiosis as proposed by Margulis.", "label": "supporting", "field": "biology"}
+{"text": "The protein folding data align with the funnel-shaped energy landscape model.", "label": "supporting", "field": "biology"}
+{"text": "Our FACS analysis verifies the cell surface marker expression reported previously.", "label": "supporting", "field": "biology"}
+{"text": "These results lend strong support to the clonal selection theory of Burnet.", "label": "supporting", "field": "biology"}
+{"text": "The mutation rate we measured confirms the molecular clock hypothesis.", "label": "supporting", "field": "biology"}
+{"text": "This finding strengthens the case for horizontal gene transfer in this lineage.", "label": "supporting", "field": "biology"}
+{"text": "Our electron microscopy data corroborate the membrane structure proposed by Singer.", "label": "supporting", "field": "biology"}
+{"text": "Our results demonstrate the superiority of the proposed neural architecture.", "label": "supporting", "field": "computer_science"}
+{"text": "These performance metrics are consistent with our theoretical analysis.", "label": "supporting", "field": "computer_science"}
+{"text": "The accuracy improvements validate our feature representation hypothesis.", "label": "supporting", "field": "computer_science"}
+{"text": "Our benchmark results agree with those reported by He et al. on ImageNet.", "label": "supporting", "field": "computer_science"}
+{"text": "The convergence data support the claim that our optimizer is more efficient.", "label": "supporting", "field": "computer_science"}
+{"text": "Our experiments confirm the scalability of the distributed algorithm.", "label": "supporting", "field": "computer_science"}
+{"text": "The latency measurements reproduce those in the original transformer paper.", "label": "supporting", "field": "computer_science"}
+{"text": "Our F1 scores corroborate the effectiveness of multi-head attention.", "label": "supporting", "field": "computer_science"}
+{"text": "The inference speed matches the theoretical lower bound for this complexity class.", "label": "supporting", "field": "computer_science"}
+{"text": "Our ablation studies substantiate the importance of residual connections.", "label": "supporting", "field": "computer_science"}
+{"text": "The generalization performance affirms the regularization strategy we proposed.", "label": "supporting", "field": "computer_science"}
+{"text": "These results demonstrate the expected improvement from data augmentation.", "label": "supporting", "field": "computer_science"}
+{"text": "We find excellent agreement with the PAC learning bound of Valiant.", "label": "supporting", "field": "computer_science"}
+{"text": "This provides direct evidence for the information bottleneck principle.", "label": "supporting", "field": "computer_science"}
+{"text": "The gradient flow analysis aligns with the batch normalization predictions.", "label": "supporting", "field": "computer_science"}
+{"text": "Our compression results verify the pruning theory of Han et al.", "label": "supporting", "field": "computer_science"}
+{"text": "These results lend strong support to the universal approximation theorem.", "label": "supporting", "field": "computer_science"}
+{"text": "The reward curve we obtained confirms the convergence of Q-learning.", "label": "supporting", "field": "computer_science"}
+{"text": "This finding strengthens the case for self-supervised representation learning.", "label": "supporting", "field": "computer_science"}
+{"text": "Our empirical data corroborate the VC dimension bound for this model class.", "label": "supporting", "field": "computer_science"}
+{"text": "However, our results contradict the claim that the source is enriched.", "label": "contrasting", "field": "geology"}
+{"text": "In contrast to previous studies, we find no evidence for crustal contamination.", "label": "contrasting", "field": "geology"}
+{"text": "The delta18O values differ significantly from those reported by Wang et al.", "label": "contrasting", "field": "geology"}
+{"text": "Contrary to the model of Smith, our data show a much lower oxygen fugacity.", "label": "contrasting", "field": "geology"}
+{"text": "We did not confirm the presence of subducted sediment in the mantle source.", "label": "contrasting", "field": "geology"}
+{"text": "Our results are inconsistent with the hypothesis of a homogeneous mantle.", "label": "contrasting", "field": "geology"}
+{"text": "These findings challenge the conventional interpretation of the seismic tomography data.", "label": "contrasting", "field": "geology"}
+{"text": "The temperatures we obtained are notably lower than those of the previous geothermometer.", "label": "contrasting", "field": "geology"}
+{"text": "Our pressure estimates dispute the ultra-high pressure metamorphic interpretation.", "label": "contrasting", "field": "geology"}
+{"text": "The age spectrum conflicts with the assumed depositional age of the formation.", "label": "contrasting", "field": "geology"}
+{"text": "We failed to replicate the melt inclusion compositions reported by Maclennan.", "label": "contrasting", "field": "geology"}
+{"text": "These results refute the slab window hypothesis previously proposed for this region.", "label": "contrasting", "field": "geology"}
+{"text": "Our Sr-Nd isotope data argue against an ocean island basalt source.", "label": "contrasting", "field": "geology"}
+{"text": "The mineral assemblage we observe is inconsistent with the granulite facies interpretation.", "label": "contrasting", "field": "geology"}
+{"text": "Unlike the findings of previous workers, we observe no progressive fractionation trend.", "label": "contrasting", "field": "geology"}
+{"text": "Our detrital zircon ages disagree with the proposed provenance from the North craton.", "label": "contrasting", "field": "geology"}
+{"text": "The paleomagnetic pole we determined differs from the apparent polar wander path.", "label": "contrasting", "field": "geology"}
+{"text": "Despite claims of systematic variation, our data show no clear depth-dependent trend.", "label": "contrasting", "field": "geology"}
+{"text": "The geochemical signature questions the slab melting model for arc magmatism.", "label": "contrasting", "field": "geology"}
+{"text": "We cannot confirm the trace element enrichment reported in the earlier survey.", "label": "contrasting", "field": "geology"}
+{"text": "However, our measurements contradict the standard cosmological model prediction.", "label": "contrasting", "field": "physics"}
+{"text": "In contrast to earlier measurements, we find a substantially lower decay rate.", "label": "contrasting", "field": "physics"}
+{"text": "The observed scattering signal differs significantly from theoretical predictions.", "label": "contrasting", "field": "physics"}
+{"text": "Contrary to the model of Chen et al., our data show no superconducting transition.", "label": "contrasting", "field": "physics"}
+{"text": "We did not confirm the predicted graviton signature in our detector data.", "label": "contrasting", "field": "physics"}
+{"text": "Our results disagree with the claim that dark matter interacts via the weak force.", "label": "contrasting", "field": "physics"}
+{"text": "The measured conductivity is inconsistent with the ballistic transport model.", "label": "contrasting", "field": "physics"}
+{"text": "These findings question the validity of perturbation theory in this coupling regime.", "label": "contrasting", "field": "physics"}
+{"text": "The band gap we measure disputes the predicted topological insulator behavior.", "label": "contrasting", "field": "physics"}
+{"text": "Our lattice calculations conflict with the continuum extrapolation of the BMW collaboration.", "label": "contrasting", "field": "physics"}
+{"text": "We failed to reproduce the Majorana zero-bias peak reported by previous groups.", "label": "contrasting", "field": "physics"}
+{"text": "These results refute the classical interpretation of the double-slit experiment.", "label": "contrasting", "field": "physics"}
+{"text": "Our magnetization data argue against the ferromagnetic ground state prediction.", "label": "contrasting", "field": "physics"}
+{"text": "The Hall coefficient we observe is inconsistent with the single-band model.", "label": "contrasting", "field": "physics"}
+{"text": "Unlike the previous report, our sample shows no Meissner effect above 30 K.", "label": "contrasting", "field": "physics"}
+{"text": "Our spectroscopic data disagree with the Rydberg series predicted by the model.", "label": "contrasting", "field": "physics"}
+{"text": "The neutron cross-section we determined differs from the evaluated nuclear data file.", "label": "contrasting", "field": "physics"}
+{"text": "Despite theoretical predictions, our experiment shows no Casimir force at this distance.", "label": "contrasting", "field": "physics"}
+{"text": "The entanglement measure questions the local hidden variable hypothesis.", "label": "contrasting", "field": "physics"}
+{"text": "We cannot confirm the anomalous magnetic moment reported in the recent preprint.", "label": "contrasting", "field": "physics"}
+{"text": "However, our yield contradicts the claim that higher temperatures improve selectivity.", "label": "contrasting", "field": "chemistry"}
+{"text": "In contrast to the report by Smith, we find no enantioselectivity in this system.", "label": "contrasting", "field": "chemistry"}
+{"text": "The reaction rate differs significantly from that reported by previous kinetic studies.", "label": "contrasting", "field": "chemistry"}
+{"text": "Contrary to the mechanism proposed by Jones, we observe no radical intermediate.", "label": "contrasting", "field": "chemistry"}
+{"text": "We did not confirm the catalytic activity reported for the iridium complex.", "label": "contrasting", "field": "chemistry"}
+{"text": "Our results are inconsistent with the computational study by Chen and coworkers.", "label": "contrasting", "field": "chemistry"}
+{"text": "The UV-Vis spectrum questions the assumed conjugated pi-electron structure.", "label": "contrasting", "field": "chemistry"}
+{"text": "The electrochemical data dispute the claimed reversible redox cycling mechanism.", "label": "contrasting", "field": "chemistry"}
+{"text": "The NMR spectra conflict with the previously assigned connectivity of the molecule.", "label": "contrasting", "field": "chemistry"}
+{"text": "We failed to reproduce the turnover number reported by the original catalyst study.", "label": "contrasting", "field": "chemistry"}
+{"text": "These results refute the SN2 pathway previously proposed for this substrate class.", "label": "contrasting", "field": "chemistry"}
+{"text": "Our kinetic isotope effects argue against the concerted mechanism hypothesis.", "label": "contrasting", "field": "chemistry"}
+{"text": "The binding affinity we measure is inconsistent with the docking prediction.", "label": "contrasting", "field": "chemistry"}
+{"text": "Unlike previous reports, our crystals show no photochromic behavior upon irradiation.", "label": "contrasting", "field": "chemistry"}
+{"text": "Our XRD results disagree with the claimed zeolite framework topology.", "label": "contrasting", "field": "chemistry"}
+{"text": "The pKa we determined differs from the value reported in the standard reference table.", "label": "contrasting", "field": "chemistry"}
+{"text": "Despite computational predictions, our synthesis yields only the thermodynamic product.", "label": "contrasting", "field": "chemistry"}
+{"text": "The IR spectrum questions the assigned carbonyl stretching frequency.", "label": "contrasting", "field": "chemistry"}
+{"text": "We cannot confirm the stereoselectivity reported in the patent literature.", "label": "contrasting", "field": "chemistry"}
+{"text": "However, our results contradict the claim that the gene is essential for viability.", "label": "contrasting", "field": "biology"}
+{"text": "In contrast to previous reports, we find no effect on cell proliferation rate.", "label": "contrasting", "field": "biology"}
+{"text": "The mutation frequency differs significantly from that reported by Drake.", "label": "contrasting", "field": "biology"}
+{"text": "Contrary to the model of Hanahan and Weinberg, our data show no metastatic potential.", "label": "contrasting", "field": "biology"}
+{"text": "We did not confirm the reported protein-protein interaction in our co-IP assay.", "label": "contrasting", "field": "biology"}
+{"text": "Our CRISPR specificity results are inconsistent with the claims of zero off-targets.", "label": "contrasting", "field": "biology"}
+{"text": "The expression pattern challenges the tissue-specific promoter model.", "label": "contrasting", "field": "biology"}
+{"text": "The evolutionary rate we calculate disputes the molecular clock calibration.", "label": "contrasting", "field": "biology"}
+{"text": "Our phylogenetic tree conflicts with the morphology-based classification.", "label": "contrasting", "field": "biology"}
+{"text": "We failed to replicate the drug response reported in the original clinical trial.", "label": "contrasting", "field": "biology"}
+{"text": "These results refute the amyloid cascade hypothesis of Alzheimer disease pathogenesis.", "label": "contrasting", "field": "biology"}
+{"text": "Our ChIP-seq data argue against the direct transcription factor binding model.", "label": "contrasting", "field": "biology"}
+{"text": "The survival curve is inconsistent with the p53-dependent apoptosis prediction.", "label": "contrasting", "field": "biology"}
+{"text": "Unlike the wild-type control, our knockout shows no behavioral phenotype.", "label": "contrasting", "field": "biology"}
+{"text": "Our metabolic labeling data disagree with the proposed biosynthetic pathway.", "label": "contrasting", "field": "biology"}
+{"text": "The enzyme kinetics we observe differ from the published Michaelis constant.", "label": "contrasting", "field": "biology"}
+{"text": "Despite previous reports, our RNAi knockdown produces no observable phenotype.", "label": "contrasting", "field": "biology"}
+{"text": "The immunostaining pattern questions the assumed subcellular localization.", "label": "contrasting", "field": "biology"}
+{"text": "We cannot confirm the epistatic interaction reported in the original genetic screen.", "label": "contrasting", "field": "biology"}
+{"text": "However, our results contradict the claim that deeper networks always perform better.", "label": "contrasting", "field": "computer_science"}
+{"text": "In contrast to previous work, we find no improvement from aggressive data augmentation.", "label": "contrasting", "field": "computer_science"}
+{"text": "The inference time differs significantly from that reported by the original authors.", "label": "contrasting", "field": "computer_science"}
+{"text": "Contrary to the transformer model of Vaswani, our data show overfitting at scale.", "label": "contrasting", "field": "computer_science"}
+{"text": "We did not confirm the speedup claimed by the post-training quantization method.", "label": "contrasting", "field": "computer_science"}
+{"text": "Our results disagree with the finding that batch normalization is universally beneficial.", "label": "contrasting", "field": "computer_science"}
+{"text": "The accuracy we observe challenges the supremacy of large pretrained models.", "label": "contrasting", "field": "computer_science"}
+{"text": "The generalization gap disputes the usefulness of dropout in this architecture.", "label": "contrasting", "field": "computer_science"}
+{"text": "Our loss curve conflicts with the reported fast convergence of the optimizer.", "label": "contrasting", "field": "computer_science"}
+{"text": "We failed to reproduce the state-of-the-art benchmark score reported recently.", "label": "contrasting", "field": "computer_science"}
+{"text": "These results refute the claim that attention weights are interpretable.", "label": "contrasting", "field": "computer_science"}
+{"text": "Our gradient analysis argues against the vanishing gradient explanation.", "label": "contrasting", "field": "computer_science"}
+{"text": "The compression ratio is inconsistent with the lossless pruning prediction.", "label": "contrasting", "field": "computer_science"}
+{"text": "Unlike the published results, our implementation shows no benefit from distillation.", "label": "contrasting", "field": "computer_science"}
+{"text": "Our complexity analysis disagrees with the claimed polynomial time bound.", "label": "contrasting", "field": "computer_science"}
+{"text": "The memory footprint we measure differs from the theoretical space complexity.", "label": "contrasting", "field": "computer_science"}
+{"text": "Despite theoretical guarantees, our online algorithm shows no sublinear regret.", "label": "contrasting", "field": "computer_science"}
+{"text": "The robustness evaluation questions the adversarial defense claims.", "label": "contrasting", "field": "computer_science"}
+{"text": "We cannot confirm the sample efficiency reported in the reinforcement learning study.", "label": "contrasting", "field": "computer_science"}
+{"text": "Our seismic tomography confirms the subducting slab geometry proposed by Hayes.", "label": "supporting", "field": "geophysics"}
+{"text": "The gravity anomaly data are consistent with a dense mafic intrusion at depth.", "label": "supporting", "field": "geophysics"}
+{"text": "Our magnetic susceptibility measurements agree with the modeled magnetic basement.", "label": "supporting", "field": "geophysics"}
+{"text": "The heat flow values corroborate the thermal model of Pollack et al.", "label": "supporting", "field": "geophysics"}
+{"text": "These VP/VS ratios support the presence of hydrated mantle as proposed by Kawakatsu.", "label": "supporting", "field": "geophysics"}
+{"text": "Our receiver function analysis validates the crustal thickness estimate of Laske.", "label": "supporting", "field": "geophysics"}
+{"text": "The shear wave splitting data match the predicted mantle flow pattern.", "label": "supporting", "field": "geophysics"}
+{"text": "Our magnetotelluric results confirm the conductivity anomaly reported by Evans.", "label": "supporting", "field": "geophysics"}
+{"text": "The earthquake focal mechanisms substantiate the stress inversion of Townend.", "label": "supporting", "field": "geophysics"}
+{"text": "These GPS velocities reproduce the plate motion model of DeMets et al.", "label": "supporting", "field": "geophysics"}
+{"text": "Our petrographic analysis confirms the subgreenschist facies interpretation.", "label": "supporting", "field": "petrology"}
+{"text": "The phase equilibrium modeling is consistent with the garnet growth zoning data.", "label": "supporting", "field": "petrology"}
+{"text": "Our melt inclusion data agree with the primitive magma composition of Kamenetsky.", "label": "supporting", "field": "petrology"}
+{"text": "The mineral chemistry corroborates the experimental phase diagram of Falloon.", "label": "supporting", "field": "petrology"}
+{"text": "These bulk rock compositions support the fractionation model of Grove and Bryan.", "label": "supporting", "field": "petrology"}
+{"text": "Our cathodoluminescence imaging validates the growth zone interpretation.", "label": "supporting", "field": "petrology"}
+{"text": "The cumulate textures match the predicted crystal settling model.", "label": "supporting", "field": "petrology"}
+{"text": "Our experimental run products substantiate the liquidus surface calculation.", "label": "supporting", "field": "petrology"}
+{"text": "These P-T pseudosections reproduce the metamorphic evolution of White et al.", "label": "supporting", "field": "petrology"}
+{"text": "The mineral assemblage confirms the eclogite facies conditions proposed by Coleman.", "label": "supporting", "field": "petrology"}
+{"text": "Our fault slip data confirm the dextral transpression model of Tikoff.", "label": "supporting", "field": "structural_geology"}
+{"text": "The strain ellipse data are consistent with the predicted wrench fault geometry.", "label": "supporting", "field": "structural_geology"}
+{"text": "Our fold axis measurements agree with the structural model of Suppe.", "label": "supporting", "field": "structural_geology"}
+{"text": "The crystal preferred orientation data corroborate the olivine flow law of Zhang.", "label": "supporting", "field": "structural_geology"}
+{"text": "These microstructural observations support the dislocation creep regime map of Hirth.", "label": "supporting", "field": "structural_geology"}
+{"text": "Our paleostress inversion validates the fault-valve model of Sibson.", "label": "supporting", "field": "structural_geology"}
+{"text": "The balanced cross-section matches the structural restoration of Dahlstrom.", "label": "supporting", "field": "structural_geology"}
+{"text": "Our fluid inclusion data confirm the crack-seal mechanism of Ramsay.", "label": "supporting", "field": "structural_geology"}
+{"text": "These shear zone fabrics substantiate the simple shear model of Ramsay and Graham.", "label": "supporting", "field": "structural_geology"}
+{"text": "The vorticity analysis we performed corroborates the general shear model.", "label": "supporting", "field": "structural_geology"}
+{"text": "Our stratigraphic sections confirm the sequence stratigraphic framework of Vail.", "label": "supporting", "field": "sedimentology"}
+{"text": "The facies analysis data are consistent with the depositional model of Reading.", "label": "supporting", "field": "sedimentology"}
+{"text": "Our provenance data agree with the paleocurrent reconstruction of Pettijohn.", "label": "supporting", "field": "sedimentology"}
+{"text": "The ichnofabric index corroborates the oxygenation model of Savrda.", "label": "supporting", "field": "sedimentology"}
+{"text": "These grain size distributions support the turbidity current model of Bouma.", "label": "supporting", "field": "sedimentology"}
+{"text": "Our diagenetic study validates the cementation history of Worden and Morad.", "label": "supporting", "field": "sedimentology"}
+{"text": "The sequence boundaries match the global sea level curve of Haq.", "label": "supporting", "field": "sedimentology"}
+{"text": "Our chemostratigraphy data confirm the carbon isotope excursion of Saltzman.", "label": "supporting", "field": "sedimentology"}
+{"text": "These cyclostratigraphic analyses substantiate the Milankovitch cycle interpretation.", "label": "supporting", "field": "sedimentology"}
+{"text": "The evaporite mineralogy we report corroborates the sabkha model of Warren.", "label": "supporting", "field": "sedimentology"}
+{"text": "Our volcanic gas emissions confirm the degassing model of Wallace and Anderson.", "label": "supporting", "field": "volcanology"}
+{"text": "The plinian eruption column height data agree with the model of Carey and Sparks.", "label": "supporting", "field": "volcanology"}
+{"text": "Our lava flow dimensions corroborate the rheology model of Hulme.", "label": "supporting", "field": "volcanology"}
+{"text": "The ash dispersal isopachs support the wind field reconstruction of Carey.", "label": "supporting", "field": "volcanology"}
+{"text": "These infrasound signals validate the eruption detection algorithm of Matoza.", "label": "supporting", "field": "volcanology"}
+{"text": "Our plume height observations match the buoyant plume model of Morton.", "label": "supporting", "field": "volcanology"}
+{"text": "The lahar deposits confirm the remobilization mechanism of Vallance.", "label": "supporting", "field": "volcanology"}
+{"text": "Our melt embayment diffusion data substantiate the ascent rate estimate.", "label": "supporting", "field": "volcanology"}
+{"text": "These seismic tremor analyses corroborate the magma resonance model of Chouet.", "label": "supporting", "field": "volcanology"}
+{"text": "The SO2 flux measurements we report reproduce the OMI satellite retrievals.", "label": "supporting", "field": "volcanology"}
+{"text": "Our fossil assemblage data confirm the biostratigraphic zonation of Gradstein.", "label": "supporting", "field": "paleontology"}
+{"text": "The morphometric analysis is consistent with the evolutionary trend of Gould.", "label": "supporting", "field": "paleontology"}
+{"text": "Our stable isotope data from teeth agree with the paleodiet reconstruction of Lee-Thorp.", "label": "supporting", "field": "paleontology"}
+{"text": "The taphonomic evidence corroborates the mass death interpretation of Shipman.", "label": "supporting", "field": "paleontology"}
+{"text": "These palynological data support the vegetation reconstruction of Traverse.", "label": "supporting", "field": "paleontology"}
+{"text": "Our radiolarian biostratigraphy validates the radiolarian zone scheme of Nigrini.", "label": "supporting", "field": "paleontology"}
+{"text": "The conodont color alteration index matches the thermal maturity model.", "label": "supporting", "field": "paleontology"}
+{"text": "Our shell chemistry data confirm the seawater temperature reconstruction.", "label": "supporting", "field": "paleontology"}
+{"text": "These trace fossil assemblages substantiate the Scoyenia ichnofacies interpretation.", "label": "supporting", "field": "paleontology"}
+{"text": "The foraminiferal oxygen isotope record corroborates the ice volume reconstruction.", "label": "supporting", "field": "paleontology"}
+{"text": "Our groundwater chemistry data confirm the recharge model of Toth.", "label": "supporting", "field": "hydrogeology"}
+{"text": "The hydraulic head measurements are consistent with the numerical flow model.", "label": "supporting", "field": "hydrogeology"}
+{"text": "Our tracer test data agree with the advective-dispersive transport equation.", "label": "supporting", "field": "hydrogeology"}
+{"text": "The aquifer transmissivity values corroborate the pumping test analysis of Theis.", "label": "supporting", "field": "hydrogeology"}
+{"text": "These isotopic tracers support the dual-porosity flow model of Barenblatt.", "label": "supporting", "field": "hydrogeology"}
+{"text": "Our contaminant plume mapping validates the retardation factor calculation.", "label": "supporting", "field": "hydrogeology"}
+{"text": "The residence time estimates match the 14C groundwater dating of Plummer.", "label": "supporting", "field": "hydrogeology"}
+{"text": "Our Darcy flux calculations confirm the permeability measurements of Freeze.", "label": "supporting", "field": "hydrogeology"}
+{"text": "These unsaturated flow data substantiate the Richards equation solution.", "label": "supporting", "field": "hydrogeology"}
+{"text": "The fracture flow modeling we present corroborates the cubic law of Witherspoon.", "label": "supporting", "field": "hydrogeology"}
+{"text": "Our ore mineralogy confirms the magmatic sulfide deposit model of Naldrett.", "label": "supporting", "field": "economic_geology"}
+{"text": "The fluid inclusion data are consistent with the orogenic gold model of Groves.", "label": "supporting", "field": "economic_geology"}
+{"text": "Our alteration mineral assemblages agree with the porphyry copper model of Sillitoe.", "label": "supporting", "field": "economic_geology"}
+{"text": "The sulfur isotope data corroborate the sedex deposit model of Leach.", "label": "supporting", "field": "economic_geology"}
+{"text": "These PGE concentrations support the Bushveld-type layered intrusion model.", "label": "supporting", "field": "economic_geology"}
+{"text": "Our gamma-ray log data validate the uranium roll-front deposit model.", "label": "supporting", "field": "economic_geology"}
+{"text": "The heavy mineral assemblages match the diamond indicator mineral model of Gurney.", "label": "supporting", "field": "economic_geology"}
+{"text": "Our REE patterns confirm the carbonatite source model of Wall and Mariano.", "label": "supporting", "field": "economic_geology"}
+{"text": "These metal ratios substantiate the volcanogenic massive sulfide classification.", "label": "supporting", "field": "economic_geology"}
+{"text": "The soil geochemical anomaly we report corroborates the buried mineralization model.", "label": "supporting", "field": "economic_geology"}
+{"text": "Our 40Ar/39Ar plateau age confirms the eruption chronology of Renne.", "label": "supporting", "field": "geochronology"}
+{"text": "The U-Pb concordia data are consistent with the zircon crystallization age.", "label": "supporting", "field": "geochronology"}
+{"text": "Our cosmogenic 10Be exposure dating agrees with the glacial retreat timing of Putkonen.", "label": "supporting", "field": "geochronology"}
+{"text": "The fission track ages corroborate the denudation history model of Gallagher.", "label": "supporting", "field": "geochronology"}
+{"text": "These luminescence dating results support the dune activation chronology.", "label": "supporting", "field": "geochronology"}
+{"text": "Our Re-Os isochron validates the mantle extraction age of Walker et al.", "label": "supporting", "field": "geochronology"}
+{"text": "The Rb-Sr whole rock isochron matches the metamorphic crystallization age.", "label": "supporting", "field": "geochronology"}
+{"text": "Our K-Ar dating results confirm the volcanic stratigraphy of the previous study.", "label": "supporting", "field": "geochronology"}
+{"text": "These radiocarbon ages substantiate the Holocene sea level curve.", "label": "supporting", "field": "geochronology"}
+{"text": "The detrital zircon age spectra we present corroborate the provenance model.", "label": "supporting", "field": "geochronology"}
+{"text": "Our remote sensing data confirm the alteration mineral mapping of Rowan.", "label": "supporting", "field": "remote_sensing"}
+{"text": "The satellite gravity data are consistent with the GRACE-derived mass change model.", "label": "supporting", "field": "remote_sensing"}
+{"text": "Our InSAR deformation measurements agree with the Mogi point source model.", "label": "supporting", "field": "remote_sensing"}
+{"text": "The multispectral classification corroborates the lithological map of the survey.", "label": "supporting", "field": "remote_sensing"}
+{"text": "These hyperspectral data support the iron oxide mapping algorithm of Clark.", "label": "supporting", "field": "remote_sensing"}
+{"text": "Our thermal infrared emissivity spectra validate the quartz index calculation.", "label": "supporting", "field": "remote_sensing"}
+{"text": "The LiDAR-derived digital elevation model matches the topographic survey data.", "label": "supporting", "field": "remote_sensing"}
+{"text": "Our radar backscatter coefficients confirm the soil moisture retrieval of Wagner.", "label": "supporting", "field": "remote_sensing"}
+{"text": "These NDVI time series substantiate the vegetation phenology model.", "label": "supporting", "field": "remote_sensing"}
+{"text": "The microwave radiometer data we report corroborate the sea ice concentration retrieval.", "label": "supporting", "field": "remote_sensing"}
+{"text": "Our paleoclimate proxy data confirm the Milankovitch orbital forcing theory.", "label": "supporting", "field": "paleoclimate"}
+{"text": "The ice core CO2 record is consistent with the Antarctic temperature curve of Petit.", "label": "supporting", "field": "paleoclimate"}
+{"text": "Our speleothem oxygen isotope data agree with the monsoon reconstruction of Wang.", "label": "supporting", "field": "paleoclimate"}
+{"text": "The marine sediment Sr/Ca ratios corroborate the sea surface temperature estimate.", "label": "supporting", "field": "paleoclimate"}
+{"text": "These tree-ring width chronologies support the drought reconstruction of Cook.", "label": "supporting", "field": "paleoclimate"}
+{"text": "Our borehole temperature logs validate the surface temperature history reconstruction.", "label": "supporting", "field": "paleoclimate"}
+{"text": "The varve thickness record matches the solar activity proxy of Stuiver.", "label": "supporting", "field": "paleoclimate"}
+{"text": "Our pollen assemblage data confirm the vegetation migration pattern of Prentice.", "label": "supporting", "field": "paleoclimate"}
+{"text": "These loess-paleosol sequences substantiate the glacial-interglacial cycle model.", "label": "supporting", "field": "paleoclimate"}
+{"text": "The coral Sr/Ca thermometry we present corroborates the ENSO reconstruction.", "label": "supporting", "field": "paleoclimate"}
+{"text": "Our ocean circulation model confirms the AMOC weakening signal of Rahmstorf.", "label": "supporting", "field": "oceanography"}
+{"text": "The CTD salinity data are consistent with the thermohaline circulation model.", "label": "supporting", "field": "oceanography"}
+{"text": "Our nutrient concentration profiles agree with the biological pump parameterization.", "label": "supporting", "field": "oceanography"}
+{"text": "The carbonate chemistry data corroborate the ocean acidification trend of Feely.", "label": "supporting", "field": "oceanography"}
+{"text": "These dissolved oxygen measurements support the oxygen minimum zone model.", "label": "supporting", "field": "oceanography"}
+{"text": "Our trace metal distributions validate the micronutrient cycling model of Morel.", "label": "supporting", "field": "oceanography"}
+{"text": "The helium isotope ratios match the mantle helium flux estimate of Lupton.", "label": "supporting", "field": "oceanography"}
+{"text": "Our sediment trap flux data confirm the export productivity estimate of Honjo.", "label": "supporting", "field": "oceanography"}
+{"text": "These 14C ventilation ages substantiate the deep water formation rate model.", "label": "supporting", "field": "oceanography"}
+{"text": "The near-inertial wave measurements we report corroborate the wind energy input calculation.", "label": "supporting", "field": "oceanography"}
+{"text": "However, our seismic data contradict the flat slab geometry proposed for this region.", "label": "contrasting", "field": "geophysics"}
+{"text": "Unlike the gravity model, our new data reveal no dense body beneath the basin.", "label": "contrasting", "field": "geophysics"}
+{"text": "Our magnetic anomaly map differs significantly from the previous aeromagnetic survey.", "label": "contrasting", "field": "geophysics"}
+{"text": "Contrary to the heat flow compilation, we measure substantially lower values offshore.", "label": "contrasting", "field": "geophysics"}
+{"text": "We did not confirm the mantle transition zone discontinuity reported by previous studies.", "label": "contrasting", "field": "geophysics"}
+{"text": "Our VP/VS ratios are inconsistent with the hydrated mantle wedge hypothesis.", "label": "contrasting", "field": "geophysics"}
+{"text": "The crustal thickness we estimate disputes the isostatic model of Lachenbruch.", "label": "contrasting", "field": "geophysics"}
+{"text": "Despite previous claims, our anisotropy measurements show no preferred fast direction.", "label": "contrasting", "field": "geophysics"}
+{"text": "Our magnetotelluric data argue against the connected melt layer model.", "label": "contrasting", "field": "geophysics"}
+{"text": "We cannot confirm the slab tear hypothesized from the previous tomography model.", "label": "contrasting", "field": "geophysics"}
+{"text": "However, our phase diagram results contradict the garnet stability field proposed.", "label": "contrasting", "field": "petrology"}
+{"text": "Unlike previous studies, we find no evidence for cumulate recycling in the source.", "label": "contrasting", "field": "petrology"}
+{"text": "Our melt inclusion compositions differ from those reported by the earlier campaign.", "label": "contrasting", "field": "petrology"}
+{"text": "Contrary to the experimental calibration, our natural samples show lower pressures.", "label": "contrasting", "field": "petrology"}
+{"text": "We did not confirm the presence of primary carbonatite in the lava sequence.", "label": "contrasting", "field": "petrology"}
+{"text": "Our pseudosection results are inconsistent with the Barrovian metamorphic facies series.", "label": "contrasting", "field": "petrology"}
+{"text": "The mineral chemistry we report disputes the liquidus temperature of the earlier model.", "label": "contrasting", "field": "petrology"}
+{"text": "Despite prior interpretations, our cathodoluminescence data reveal complex resorption.", "label": "contrasting", "field": "petrology"}
+{"text": "Our experimental results argue against the incongruent melting reaction proposed.", "label": "contrasting", "field": "petrology"}
+{"text": "We cannot confirm the UHP condition claimed for the country gneiss.", "label": "contrasting", "field": "petrology"}
+{"text": "However, our kinematic data contradict the pure shear model for this shear zone.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Unlike the previous structural model, our vein data show no systematic overprinting.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Our vorticity values differ from the predicted simple shear ratio of 1.0.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Contrary to the critical taper model, our balanced section shows lower taper angles.", "label": "contrasting", "field": "structural_geology"}
+{"text": "We did not confirm the fracture connectivity assumed in the reservoir model.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Our paleostress results are inconsistent with the Anderson faulting theory prediction.", "label": "contrasting", "field": "structural_geology"}
+{"text": "The AMS fabric data dispute the dextral shear sense interpreted from the field.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Despite previous reports, our EBSD data show no lattice preferred orientation.", "label": "contrasting", "field": "structural_geology"}
+{"text": "Our fold geometry analyses argue against the fault-propagation fold model.", "label": "contrasting", "field": "structural_geology"}
+{"text": "We cannot confirm the layer-parallel shortening previously inferred from strain data.", "label": "contrasting", "field": "structural_geology"}
+{"text": "However, our sequence stratigraphic analysis contradicts the type-1 unconformity interpretation.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Unlike the previous facies model, our new sections show no evidence of storm deposits.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Our detrital modes differ significantly from the predicted provenance signature.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Contrary to the transgressive systems tract model, we observe shallowing upward.", "label": "contrasting", "field": "sedimentology"}
+{"text": "We did not confirm the hardground surface reported from the type section.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Our ichnofabric data are inconsistent with the fully marine interpretation.", "label": "contrasting", "field": "sedimentology"}
+{"text": "The diagenetic history we reconstruct disputes the early cementation model.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Despite prior assumptions, our chemostratigraphic data show no carbon isotope excursion.", "label": "contrasting", "field": "sedimentology"}
+{"text": "Our cyclostratigraphic analysis argues against the 40 kyr obliquity cycle dominance.", "label": "contrasting", "field": "sedimentology"}
+{"text": "We cannot confirm the tsunami origin proposed for the breccia layer.", "label": "contrasting", "field": "sedimentology"}
+{"text": "However, our eruption column modeling contradicts the sub-Plinian classification.", "label": "contrasting", "field": "volcanology"}
+{"text": "Unlike the previous lava flow model, our thermal data suggest much faster cooling.", "label": "contrasting", "field": "volcanology"}
+{"text": "Our melt embayment diffusion rates differ from those of the reference study.", "label": "contrasting", "field": "volcanology"}
+{"text": "Contrary to the degassing model, our volatiles show much lower H2O content.", "label": "contrasting", "field": "volcanology"}
+{"text": "We did not confirm the Strombolian eruption mechanism from our pressure data.", "label": "contrasting", "field": "volcanology"}
+{"text": "Our infrasound records are inconsistent with the explosion source depth estimate.", "label": "contrasting", "field": "volcanology"}
+{"text": "The lahar deposit grain size distribution disputes the cohesive debris flow model.", "label": "contrasting", "field": "volcanology"}
+{"text": "Despite earlier reports, our seismic tremor shows no gliding spectral lines.", "label": "contrasting", "field": "volcanology"}
+{"text": "Our gas flux measurements argue against the steady-state degassing assumption.", "label": "contrasting", "field": "volcanology"}
+{"text": "We cannot confirm the caldera collapse model proposed for the recent eruption.", "label": "contrasting", "field": "volcanology"}
+{"text": "However, our biostratigraphic data contradict the proposed age for this formation.", "label": "contrasting", "field": "paleontology"}
+{"text": "Unlike previous taxonomic assignments, our morphometric analysis separates two species.", "label": "contrasting", "field": "paleontology"}
+{"text": "Our isotope paleodiet data differ from the carnivore inference based on dental morphology.", "label": "contrasting", "field": "paleontology"}
+{"text": "Contrary to the Lagerstatte interpretation, our taphonomic evidence suggests transport.", "label": "contrasting", "field": "paleontology"}
+{"text": "We did not confirm the transitional fossil status claimed for the new specimen.", "label": "contrasting", "field": "paleontology"}
+{"text": "Our palynological record is inconsistent with the rapid vegetation turnover hypothesis.", "label": "contrasting", "field": "paleontology"}
+{"text": "The conodont alteration index disputes the burial depth estimate for this unit.", "label": "contrasting", "field": "paleontology"}
+{"text": "Despite earlier claims, our foraminiferal data show no ocean acidification signal.", "label": "contrasting", "field": "paleontology"}
+{"text": "Our trace fossil analysis argues against the shallow marine depositional environment.", "label": "contrasting", "field": "paleontology"}
+{"text": "We cannot confirm the恐龙 extinction asteroid impact winter scenario from our record.", "label": "contrasting", "field": "paleontology"}
+{"text": "However, our flow model results contradict the homogeneous aquifer assumption.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Unlike the previous model, our tracer test data show strong matrix diffusion.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Our residence time estimates differ from the recharge age of the previous study.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Contrary to the confined aquifer interpretation, our heads show unconfined behavior.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "We did not confirm the denitrification pathway inferred from the nitrate data.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Our fracture flow data are inconsistent with the parallel plate model prediction.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "The contaminant retardation factors we measure dispute the linear sorption assumption.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Despite prior expectations, our temperature logs show no geothermal anomaly.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "Our unsaturated flow measurements argue against the unit gradient assumption.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "We cannot confirm the saltwater intrusion extent mapped in the previous survey.", "label": "contrasting", "field": "hydrogeology"}
+{"text": "However, our metal zoning data contradict the simple magmatic model.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Unlike the epithermal model, our fluid inclusion data indicate much higher salinity.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Our sulfur isotope values differ from the magmatic signature of the reference deposit.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Contrary to the SEDEX classification, our textures suggest syngenetic replacement.", "label": "contrasting", "field": "economic_geology"}
+{"text": "We did not confirm the IOCG signature claimed for this prospect.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Our alteration mineralogy is inconsistent with the potassic zone definition.", "label": "contrasting", "field": "economic_geology"}
+{"text": "The heavy mineral data dispute the diamond indicator mineral interpretation.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Despite earlier reports, our soil geochemistry shows no pathfinder element anomaly.", "label": "contrasting", "field": "economic_geology"}
+{"text": "Our PGE partitioning data argue against the R-factor model of the deposit.", "label": "contrasting", "field": "economic_geology"}
+{"text": "We cannot confirm the orogenic gold model for this vein system.", "label": "contrasting", "field": "economic_geology"}
+{"text": "However, our age results contradict the published eruption age of this ash bed.", "label": "contrasting", "field": "geochronology"}
+{"text": "Unlike the previous U-Pb data, our new analyses show significant Pb loss.", "label": "contrasting", "field": "geochronology"}
+{"text": "Our 10Be exposure ages differ from the glacial chronology of the reference study.", "label": "contrasting", "field": "geochronology"}
+{"text": "Contrary to the fission track model, our samples show no annealing at this depth.", "label": "contrasting", "field": "geochronology"}
+{"text": "We did not confirm the luminescence age of the underlying fluvial deposit.", "label": "contrasting", "field": "geochronology"}
+{"text": "Our Re-Os data are inconsistent with the mantle model age of the previous study.", "label": "contrasting", "field": "geochronology"}
+{"text": "The K-Ar ages we report dispute the Ar loss interpretation of earlier workers.", "label": "contrasting", "field": "geochronology"}
+{"text": "Despite prior dating, our 14C results show the samples are much younger than expected.", "label": "contrasting", "field": "geochronology"}
+{"text": "Our detrital zircon spectra argue against the Laurentian provenance model.", "label": "contrasting", "field": "geochronology"}
+{"text": "We cannot confirm the 40Ar/39Ar plateau age reported for this tuff.", "label": "contrasting", "field": "geochronology"}
+{"text": "However, our remote sensing data contradict the alteration map of the previous survey.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Unlike the hyperspectral mapping, our field verification found no kaolinite.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Our InSAR deformation signal differs from the modeled Mogi source prediction.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Contrary to the NDVI trend, our field data show no woody encroachment.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "We did not confirm the thermal anomaly detected by the ASTER satellite.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Our classification accuracy is inconsistent with the published mapping result.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "The LiDAR canopy height disputes the old-growth forest classification.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Despite prior reports, our SAR data show no surface subsidence in this area.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "Our emissivity spectra argue against the quartzite mapping from the previous study.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "We cannot confirm the glacier retreat rate derived from the Landsat time series.", "label": "contrasting", "field": "remote_sensing"}
+{"text": "However, our paleoclimate data contradict the Milankovitch timing for this interval.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Unlike the ice core record, our speleothem data show a different temporal pattern.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Our Mg/Ca temperature estimates differ from the foraminiferal reconstruction.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Contrary to the bipolar seesaw model, our record shows synchronous warming.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "We did not confirm the Younger Dryas cooling signal in our terrestrial record.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Our tree-ring drought reconstruction is inconsistent with the PDSI model output.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "The borehole temperature inversion disputes the Medieval Climate Anomaly warming.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Despite prior claims, our varve record shows no 1500-year Bond cycle.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "Our coral Sr/Ca data argue against the ENSO amplitude increase interpretation.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "We cannot confirm the Dansgaard-Oeschger event 8 in our deep sea record.", "label": "contrasting", "field": "paleoclimate"}
+{"text": "However, our ocean chemistry data contradict the model-predicted acidification rate.", "label": "contrasting", "field": "oceanography"}
+{"text": "Unlike the previous circulation model, our tracer data show a different deep water pathway.", "label": "contrasting", "field": "oceanography"}
+{"text": "Our nutrient profiles differ from the climatology of the World Ocean Atlas.", "label": "contrasting", "field": "oceanography"}
+{"text": "Contrary to the biological pump model, our export flux data show much lower efficiency.", "label": "contrasting", "field": "oceanography"}
+{"text": "We did not confirm the oxygen minimum zone expansion reported in the synthesis.", "label": "contrasting", "field": "oceanography"}
+{"text": "Our helium isotope ratios are inconsistent with the mantle helium flux estimate.", "label": "contrasting", "field": "oceanography"}
+{"text": "The sediment trap flux disputes the ballast mineral hypothesis of the previous study.", "label": "contrasting", "field": "oceanography"}
+{"text": "Despite earlier measurements, our 14C ventilation ages indicate much older water.", "label": "contrasting", "field": "oceanography"}
+{"text": "Our dissolved iron data argue against the dust-borne iron fertilization model.", "label": "contrasting", "field": "oceanography"}
+{"text": "We cannot confirm the AMOC slowdown signal from our repeated hydrographic section.", "label": "contrasting", "field": "oceanography"}
+{"text": "We extend the seismic tomography model to include higher frequency P-wave data.", "label": "extending", "field": "geophysics"}
+{"text": "Building on the gravity model of Blakely, we incorporate new marine data.", "label": "extending", "field": "geophysics"}
+{"text": "Our analysis expands the paleomagnetic database to include previously unsampled regions.", "label": "extending", "field": "geophysics"}
+{"text": "We apply the receiver function method of Zhu and Kanamori to ocean bottom seismometers.", "label": "extending", "field": "geophysics"}
+{"text": "This work advances the magnetotelluric method to deeper crustal penetration.", "label": "extending", "field": "geophysics"}
+{"text": "We generalize the stress inversion method to non-double-couple earthquake mechanisms.", "label": "extending", "field": "geophysics"}
+{"text": "Our InSAR analysis extends the deformation time series to cover a full seismic cycle.", "label": "extending", "field": "geophysics"}
+{"text": "We build upon the waveform inversion approach of Nolet to image mantle plumes.", "label": "extending", "field": "geophysics"}
+{"text": "This study broadens the scope of heat flow measurements to the Arctic Ocean floor.", "label": "extending", "field": "geophysics"}
+{"text": "We complement the previous GPS velocity field with new continuous station data.", "label": "extending", "field": "geophysics"}
+{"text": "We extend the experimental phase diagram of Falloon to higher H2O contents.", "label": "extending", "field": "petrology"}
+{"text": "Building on the pseudosection approach of Powell, we model open-system behavior.", "label": "extending", "field": "petrology"}
+{"text": "Our study expands the melt inclusion database to rare alkaline basalt provinces.", "label": "extending", "field": "petrology"}
+{"text": "We apply the titanium-in-quartz thermobarometer to granulite facies rocks.", "label": "extending", "field": "petrology"}
+{"text": "This work advances the understanding of magma differentiation to volatile-rich systems.", "label": "extending", "field": "petrology"}
+{"text": "We generalize the cumulate theory to layered intrusions with variable trapped liquid.", "label": "extending", "field": "petrology"}
+{"text": "Our trace element partitioning data extend the calibration range to 10 GPa.", "label": "extending", "field": "petrology"}
+{"text": "We build upon the REE modeling of McKenzie to include garnet stability effects.", "label": "extending", "field": "petrology"}
+{"text": "This study broadens the metamorphic P-T-t path analysis to polydeformed terranes.", "label": "extending", "field": "petrology"}
+{"text": "We complement the experimental liquidus data with new piston cylinder runs.", "label": "extending", "field": "petrology"}
+{"text": "We extend the balanced cross-section method to thick-skinned tectonic settings.", "label": "extending", "field": "structural_geology"}
+{"text": "Building on the strain analysis of Fossen, we incorporate 3D vorticity data.", "label": "extending", "field": "structural_geology"}
+{"text": "Our study expands the structural database to include offshore seismic reflection data.", "label": "extending", "field": "structural_geology"}
+{"text": "We apply the fault-slip inversion of Angelier to neotectonic fault populations.", "label": "extending", "field": "structural_geology"}
+{"text": "This work advances the understanding of fault damage zones to depth.", "label": "extending", "field": "structural_geology"}
+{"text": "We generalize the critical Coulomb wedge theory to include surface processes.", "label": "extending", "field": "structural_geology"}
+{"text": "Our EBSD data extend the quartz CPO analysis to naturally deformed shear zones.", "label": "extending", "field": "structural_geology"}
+{"text": "We build upon the fold kinematics of Suppe to include fault-bend fold interference.", "label": "extending", "field": "structural_geology"}
+{"text": "This study broadens the paleopiezometer calibration to lower amphibolite facies.", "label": "extending", "field": "structural_geology"}
+{"text": "We complement the field structural data with new drone-based photogrammetry.", "label": "extending", "field": "structural_geology"}
+{"text": "We extend the sequence stratigraphic framework to the deep-water environment.", "label": "extending", "field": "sedimentology"}
+{"text": "Building on the facies model of Walker, we incorporate ichnological data.", "label": "extending", "field": "sedimentology"}
+{"text": "Our study expands the provenance database using detrital zircon age populations.", "label": "extending", "field": "sedimentology"}
+{"text": "We apply the bedform stability diagram of Southard to ancient turbidite sequences.", "label": "extending", "field": "sedimentology"}
+{"text": "This work advances the cyclostratigraphic analysis to evaporite successions.", "label": "extending", "field": "sedimentology"}
+{"text": "We generalize the Bouma sequence model to include hybrid event beds.", "label": "extending", "field": "sedimentology"}
+{"text": "Our chemostratigraphic data extend the carbon isotope curve to the Ordovician.", "label": "extending", "field": "sedimentology"}
+{"text": "We build upon the Walther's law application to include strike-slip basins.", "label": "extending", "field": "sedimentology"}
+{"text": "This study broadens the diagenetic model to basaltic petroleum reservoirs.", "label": "extending", "field": "sedimentology"}
+{"text": "We complement the ichnofabric analysis with new taphonomic data.", "label": "extending", "field": "sedimentology"}
+{"text": "We extend the eruption column model to include wind shearing effects.", "label": "extending", "field": "volcanology"}
+{"text": "Building on the conduit flow model of Woods, we incorporate crystal growth kinetics.", "label": "extending", "field": "volcanology"}
+{"text": "Our study expands the volcanic gas database to include rhyolitic systems.", "label": "extending", "field": "volcanology"}
+{"text": "We apply the melt embayment diffusion speedometer to silicic eruptions.", "label": "extending", "field": "volcanology"}
+{"text": "This work advances the lahar modeling to channelized urban flow paths.", "label": "extending", "field": "volcanology"}
+{"text": "We generalize the plume rise model to include tropical atmospheric conditions.", "label": "extending", "field": "volcanology"}
+{"text": "Our infrasound data extend the eruption detection to remote subaerial volcanoes.", "label": "extending", "field": "volcanology"}
+{"text": "We build upon the seismic tremor model of Chouet to include longer-period signals.", "label": "extending", "field": "volcanology"}
+{"text": "This study broadens the tephra dispersal model to include aggregate settling.", "label": "extending", "field": "volcanology"}
+{"text": "We complement the SO2 flux monitoring with ground-based DOAS data.", "label": "extending", "field": "volcanology"}
+{"text": "We extend the biostratigraphic framework to abyssal radiolarian zones.", "label": "extending", "field": "paleontology"}
+{"text": "Building on the morphometric approach of Bookstein, we apply geometric morphometrics to ammonites.", "label": "extending", "field": "paleontology"}
+{"text": "Our study expands the isotope paleodiet database to Mesozoic marine reptiles.", "label": "extending", "field": "paleontology"}
+{"text": "We apply the taphonomic model of Behrensmeyer to volcaniclastic bone beds.", "label": "extending", "field": "paleontology"}
+{"text": "This work advances the palynological record to Permian-Triassic boundary sections.", "label": "extending", "field": "paleontology"}
+{"text": "We generalize the conodont biofacies model to include deep-water pelagic settings.", "label": "extending", "field": "paleontology"}
+{"text": "Our foraminiferal data extend the proxy calibration to high-latitude settings.", "label": "extending", "field": "paleontology"}
+{"text": "We build upon the molecular clock calibration to include fossil calibration points.", "label": "extending", "field": "paleontology"}
+{"text": "This study broadens the trace fossil database to deep-marine Nereites ichnofacies.", "label": "extending", "field": "paleontology"}
+{"text": "We complement the macrofossil record with new molecular divergence estimates.", "label": "extending", "field": "paleontology"}
+{"text": "We extend the numerical flow model to include density-dependent variable conditions.", "label": "extending", "field": "hydrogeology"}
+{"text": "Building on the dual-porosity model of Barenblatt, we incorporate matrix diffusion effects.", "label": "extending", "field": "hydrogeology"}
+{"text": "Our study expands the tracer test database to fractured crystalline rock aquifers.", "label": "extending", "field": "hydrogeology"}
+{"text": "We apply the inverse modeling approach of Carrera to transient pumping test data.", "label": "extending", "field": "hydrogeology"}
+{"text": "This work advances the vadose zone modeling to heterogeneous arid systems.", "label": "extending", "field": "hydrogeology"}
+{"text": "We generalize the fracture flow cubic law to rough-walled natural fractures.", "label": "extending", "field": "hydrogeology"}
+{"text": "Our isotope hydrology data extend the 3H-3He dating method to karst aquifers.", "label": "extending", "field": "hydrogeology"}
+{"text": "We build upon the contaminant transport model of Bear to include nonlinear sorption.", "label": "extending", "field": "hydrogeology"}
+{"text": "This study broadens the saltwater intrusion modeling to layered coastal aquifers.", "label": "extending", "field": "hydrogeology"}
+{"text": "We complement the numerical model with new heat tracer test data.", "label": "extending", "field": "hydrogeology"}
+{"text": "We extend the magmatic sulfide model to include crustal sulfur assimilation.", "label": "extending", "field": "economic_geology"}
+{"text": "Building on the orogenic gold model of Groves, we incorporate metamorphic devolatilization.", "label": "extending", "field": "economic_geology"}
+{"text": "Our study expands the porphyry copper database to post-collisional settings.", "label": "extending", "field": "economic_geology"}
+{"text": "We apply the alteration mineral mapping tool of Rowan to hyperspectral core logging.", "label": "extending", "field": "economic_geology"}
+{"text": "This work advances the heavy mineral exploration to deeply weathered terrains.", "label": "extending", "field": "economic_geology"}
+{"text": "We generalize the IOCG model to include magnetite-apatite mineralization.", "label": "extending", "field": "economic_geology"}
+{"text": "Our isotope tracer data extend the metal source identification to Archean deposits.", "label": "extending", "field": "economic_geology"}
+{"text": "We build upon the SEDEX model to include vent-proximal sub-seafloor replacement.", "label": "extending", "field": "economic_geology"}
+{"text": "This study broadens the exploration geochemistry to transported overburden settings.", "label": "extending", "field": "economic_geology"}
+{"text": "We complement the soil geochemistry with new selective leach extraction data.", "label": "extending", "field": "economic_geology"}
+{"text": "We extend the 40Ar/39Ar dating method to年轻 volcanic ash deposits.", "label": "extending", "field": "geochronology"}
+{"text": "Building on the zircon CA-TIMS method of Schoene, we date single ash beds.", "label": "extending", "field": "geochronology"}
+{"text": "Our study expands the cosmogenic 21Ne database to extra-terrestrial samples.", "label": "extending", "field": "geochronology"}
+{"text": "We apply the (U-Th)/He thermochronometer to apatite from the craton margin.", "label": "extending", "field": "geochronology"}
+{"text": "This work advances the fission track dating to include confined track length data.", "label": "extending", "field": "geochronology"}
+{"text": "We generalize the Re-Os isochron method to include spinel peridotite xenoliths.", "label": "extending", "field": "geochronology"}
+{"text": "Our luminescence dating data extend the age range to 200 ka.", "label": "extending", "field": "geochronology"}
+{"text": "We build upon the monazite dating approach to include allanite geochronology.", "label": "extending", "field": "geochronology"}
+{"text": "This study broadens the detrital zircon provenance analysis to Precambrian basins.", "label": "extending", "field": "geochronology"}
+{"text": "We complement the U-Pb zircon data with new Hf isotope analyses.", "label": "extending", "field": "geochronology"}
+{"text": "We extend the hyperspectral alteration mapping to shortwave infrared wavelengths.", "label": "extending", "field": "remote_sensing"}
+{"text": "Building on the ASTER mineral index approach, we incorporate Sentinel-2 data.", "label": "extending", "field": "remote_sensing"}
+{"text": "Our study expands the InSAR deformation archive to include slow-moving landslides.", "label": "extending", "field": "remote_sensing"}
+{"text": "We apply the cloud computing framework of Google Earth Engine to continental-scale analysis.", "label": "extending", "field": "remote_sensing"}
+{"text": "This work advances the LiDAR canopy analysis to sub-meter vertical resolution.", "label": "extending", "field": "remote_sensing"}
+{"text": "We generalize the NDVI drought index to include red-edge band information.", "label": "extending", "field": "remote_sensing"}
+{"text": "Our SAR interferometry data extend the time series analysis to vegetated terrain.", "label": "extending", "field": "remote_sensing"}
+{"text": "We build upon the thermal anomaly detection to include low-temperature geothermal systems.", "label": "extending", "field": "remote_sensing"}
+{"text": "This study broadens the ocean color retrieval to optically complex coastal waters.", "label": "extending", "field": "remote_sensing"}
+{"text": "We complement the multispectral mapping with new UAV-based photogrammetry data.", "label": "extending", "field": "remote_sensing"}
+{"text": "We extend the paleoclimate reconstruction to the Pliocene using alkenone paleothermometry.", "label": "extending", "field": "paleoclimate"}
+{"text": "Building on the ice core framework of EPICA, we analyze new Antarctic outcrops.", "label": "extending", "field": "paleoclimate"}
+{"text": "Our study expands the speleothem database to the Southern Hemisphere tropics.", "label": "extending", "field": "paleoclimate"}
+{"text": "We apply the TEX86 paleothermometer to Arctic Ocean sediments.", "label": "extending", "field": "paleoclimate"}
+{"text": "This work advances the paleo-CO2 reconstruction using stomatal index data.", "label": "extending", "field": "paleoclimate"}
+{"text": "We generalize the Milankovitch cycle analysis to include obliquity modulation effects.", "label": "extending", "field": "paleoclimate"}
+{"text": "Our borehole temperature data extend the surface temperature inversion to 2 km depth.", "label": "extending", "field": "paleoclimate"}
+{"text": "We build upon the tree-ring network of Mann to include the Southern Hemisphere.", "label": "extending", "field": "paleoclimate"}
+{"text": "This study broadens the coral proxy calibration to include rare earth element ratios.", "label": "extending", "field": "paleoclimate"}
+{"text": "We complement the ice core record with new cave deposit U-Th dating data.", "label": "extending", "field": "paleoclimate"}
+{"text": "We extend the biogeochemical cycling model to include hydrothermal iron input.", "label": "extending", "field": "oceanography"}
+{"text": "Building on the WOCE hydrographic survey, we incorporate Argo float profiles.", "label": "extending", "field": "oceanography"}
+{"text": "Our study expands the carbonate chemistry database to high-latitude polar oceans.", "label": "extending", "field": "oceanography"}
+{"text": "We apply the eddy correlation method to air-sea CO2 flux measurements.", "label": "extending", "field": "oceanography"}
+{"text": "This work advances the trace metal clean sampling to the GEOTRACES program standards.", "label": "extending", "field": "oceanography"}
+{"text": "We generalize the nutrient limitation model to include co-limitation effects.", "label": "extending", "field": "oceanography"}
+{"text": "Our helium isotope data extend the mantle helium database to the Indian Ocean ridge.", "label": "extending", "field": "oceanography"}
+{"text": "We build upon the export production model to include zooplankton vertical migration.", "label": "extending", "field": "oceanography"}
+{"text": "This study broadens the thermohaline circulation model to include mesoscale eddies.", "label": "extending", "field": "oceanography"}
+{"text": "We complement the hydrographic data with new deep-sea 14C measurements.", "label": "extending", "field": "oceanography"}
+{"text": "We used a broadband seismic array with 30 stations following the USArray transportable deployment.", "label": "methodology", "field": "geophysics"}
+{"text": "Gravity data were collected using a LaCoste and Romberg air-sea gravimeter.", "label": "methodology", "field": "geophysics"}
+{"text": "We employed the two-layer seismic refraction model of Mooney.", "label": "methodology", "field": "geophysics"}
+{"text": "Magnetotelluric soundings were performed following the impedance tensor decomposition of Caldwell.", "label": "methodology", "field": "geophysics"}
+{"text": "We applied the ambient noise cross-correlation method of Shapiro et al.", "label": "methodology", "field": "geophysics"}
+{"text": "Heat flow measurements were conducted using a violin-bow type probe of Lister.", "label": "methodology", "field": "geophysics"}
+{"text": "We utilized the SAC software for seismic waveform analysis following Goldstein.", "label": "methodology", "field": "geophysics"}
+{"text": "GPS data were processed using GAMIT/GLOBK following the method of Herring.", "label": "methodology", "field": "geophysics"}
+{"text": "We carried out the shear wave splitting analysis using the method of Silver and Chan.", "label": "methodology", "field": "geophysics"}
+{"text": "Finite element modeling was performed using ASPECT following the approach of Kronbichler.", "label": "methodology", "field": "geophysics"}
+{"text": "We used the electron microprobe for mineral chemistry following the ZAF correction method.", "label": "methodology", "field": "petrology"}
+{"text": "Phase equilibria modeling was conducted using THERMOCALC version 3.45 following Holland.", "label": "methodology", "field": "petrology"}
+{"text": "We employed the piston-cylinder apparatus at 1.5 GPa following the procedure of Boyd.", "label": "methodology", "field": "petrology"}
+{"text": "Melt inclusions were analyzed by SIMS following the rehomogenization protocol of Kamenetsky.", "label": "methodology", "field": "petrology"}
+{"text": "We applied the titanium-in-quartz thermobarometer of Thomas et al.", "label": "methodology", "field": "petrology"}
+{"text": "Laser ablation ICP-MS was used for trace elements following the method of Longerich.", "label": "methodology", "field": "petrology"}
+{"text": "We utilized the crystal fractionation model of Grove using the MELTS algorithm.", "label": "methodology", "field": "petrology"}
+{"text": "Cathodoluminescence imaging was performed on a CITL CL8200 MK5 instrument.", "label": "methodology", "field": "petrology"}
+{"text": "We carried out the P-T pseudosection calculations in the NCKFMASHTO system.", "label": "methodology", "field": "petrology"}
+{"text": "The multi-equilibria geothermobarometry was applied following the method of Powell and Holland.", "label": "methodology", "field": "petrology"}
+{"text": "We used a Brunton compass and_clinometer for field structural measurements.", "label": "methodology", "field": "structural_geology"}
+{"text": "Strain analysis was conducted using the Rf/phi method of Ramsay and Huber.", "label": "methodology", "field": "structural_geology"}
+{"text": "We employed the Fry method for strain analysis following the center-to-center technique.", "label": "methodology", "field": "structural_geology"}
+{"text": "Paleostress inversion was performed using the multiple inverse method of Yamaji.", "label": "methodology", "field": "structural_geology"}
+{"text": "We applied the balanced cross-section technique of Dahlstrom with fault-bend folding.", "label": "methodology", "field": "structural_geology"}
+{"text": "Electron backscatter diffraction was used for quartz CPO analysis following Prior.", "label": "methodology", "field": "structural_geology"}
+{"text": "We utilized the vorticity gauge of Wallis for general shear zones.", "label": "methodology", "field": "structural_geology"}
+{"text": "Anisotropy of magnetic susceptibility was measured following the method of Tarling.", "label": "methodology", "field": "structural_geology"}
+{"text": "We carried out the kinematic vorticity analysis using the rigid porphyroclast method of Passchier.", "label": "methodology", "field": "structural_geology"}
+{"text": "3D structural modeling was performed in Move following the workflow of Midland Valley.", "label": "methodology", "field": "structural_geology"}
+{"text": "We measured stratigraphic sections using a Jacobs staff following the method of Kottlowski.", "label": "methodology", "field": "sedimentology"}
+{"text": "Grain size analysis was conducted using a Malvern Mastersizer 3000 laser diffraction.", "label": "methodology", "field": "sedimentology"}
+{"text": "We employed the Gazzi-Dickinson point counting method for provenance analysis.", "label": "methodology", "field": "sedimentology"}
+{"text": "Sequence stratigraphic analysis was performed following the approach of Catuneanu.", "label": "methodology", "field": "sedimentology"}
+{"text": "We applied the ichnofabric index method of Bottier and Droser.", "label": "methodology", "field": "sedimentology"}
+{"text": "Carbon isotope stratigraphy was conducted following the method of Saltzman.", "label": "methodology", "field": "sedimentology"}
+{"text": "We utilized the cyclostratigraphic analysis software Acycle of Li et al.", "label": "methodology", "field": "sedimentology"}
+{"text": "Heavy mineral separations were performed using lithium metatungstate following Mange.", "label": "methodology", "field": "sedimentology"}
+{"text": "We carried out XRD analysis on bulk powder following the method of Moore and Reynolds.", "label": "methodology", "field": "sedimentology"}
+{"text": "Core logging was performed following the IODP visual core description standard.", "label": "methodology", "field": "sedimentology"}
+{"text": "We used a scanning electron microscope for ash particle morphology following Heiken.", "label": "methodology", "field": "volcanology"}
+{"text": "Volcanic gas sampling was conducted using a multi-GAS instrument following Shinohara.", "label": "methodology", "field": "volcanology"}
+{"text": "We employed the Fourier transform infrared spectroscopy method for volatile analysis.", "label": "methodology", "field": "volcanology"}
+{"text": "Melt embayment diffusion chronometry was performed following the method of Liu et al.", "label": "methodology", "field": "volcanology"}
+{"text": "We applied the 1D volcanic plume model of Bursik for column height estimation.", "label": "methodology", "field": "volcanology"}
+{"text": "Lava flow thermal modeling was conducted using the method of Harris and Rowland.", "label": "methodology", "field": "volcanology"}
+{"text": "We utilized the infrasound array processing of Cervelli for eruption detection.", "label": "methodology", "field": "volcanology"}
+{"text": "Tephra fall modeling was performed using TEPHRA2 following the method of Bonadonna.", "label": "methodology", "field": "volcanology"}
+{"text": "We carried out SO2 flux measurements using a scanning DOAS instrument.", "label": "methodology", "field": "volcanology"}
+{"text": "Seismic tremor analysis was conducted using the spectral method of Chouet and Matoza.", "label": "methodology", "field": "volcanology"}
+{"text": "We used SEM imaging for microfossil identification following the method of Hemleben.", "label": "methodology", "field": "paleontology"}
+{"text": "Stable isotope analysis of fossil teeth was conducted following the method of Lee-Thorp.", "label": "methodology", "field": "paleontology"}
+{"text": "We employed geometric morphometrics following the sliding landmark method of Bookstein.", "label": "methodology", "field": "paleontology"}
+{"text": "Palynological preparation followed the standard HCl-HF extraction of Traverse.", "label": "methodology", "field": "paleontology"}
+{"text": "We applied the conodont color alteration index of Epstein et al.", "label": "methodology", "field": "paleontology"}
+{"text": "Foraminiferal census counts were performed on the greater than 150 micron fraction.", "label": "methodology", "field": "paleontology"}
+{"text": "We utilized the CLAMP method of Wolfe for paleoclimate estimation from leaf fossils.", "label": "methodology", "field": "paleontology"}
+{"text": "Taphonomic analysis was conducted following the classification scheme of Shipman.", "label": "methodology", "field": "paleontology"}
+{"text": "We carried out X-ray micro-CT scanning following the method of Cunningham et al.", "label": "methodology", "field": "paleontology"}
+{"text": "Biostratigraphic correlation was performed using the CONOP9 program of Sadler.", "label": "methodology", "field": "paleontology"}
+{"text": "Slug tests were performed following the Hvorslev method for aquifer transmissivity.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We used MODFLOW for groundwater flow modeling following the method of Harbaugh.", "label": "methodology", "field": "hydrogeology"}
+{"text": "Tracer tests were conducted using fluorescein dye following the method of Field.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We employed the analytical solution of Theis for pumping test interpretation.", "label": "methodology", "field": "hydrogeology"}
+{"text": "Fluid inclusion analysis was performed on vein quartz following the method of Goldstein.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We applied the 3H-3He dating method of Torgersen for groundwater residence time.", "label": "methodology", "field": "hydrogeology"}
+{"text": "Contaminant transport modeling was conducted using MT3DMS following Zheng.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We utilized the TOUGH2 simulator for variably saturated fractured rock flow.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We carried out the borehole temperature logging using a high-resolution fiber optic DTS.", "label": "methodology", "field": "hydrogeology"}
+{"text": "Hydraulic fracture characterization was performed using the approach of Barton et al.", "label": "methodology", "field": "hydrogeology"}
+{"text": "We used a portable XRF analyzer for soil geochemistry following the method of Hall.", "label": "methodology", "field": "economic_geology"}
+{"text": "Fluid inclusion microthermometry was conducted on a Linkam THMSG600 stage.", "label": "methodology", "field": "economic_geology"}
+{"text": "We employed the sulfide sulfur isotope method of Coleman for metal source tracing.", "label": "methodology", "field": "economic_geology"}
+{"text": "Heavy mineral separation was performed using a Frantz magnetic separator.", "label": "methodology", "field": "economic_geology"}
+{"text": "We applied the molar ratio plot of Large for sedimentary exhalative deposit classification.", "label": "methodology", "field": "economic_geology"}
+{"text": "LA-ICP-MS was used for sulfide trace element analysis following the method of Large.", "label": "methodology", "field": "economic_geology"}
+{"text": "We utilized the Gresens mass balance computation for alteration mass transfer.", "label": "methodology", "field": "economic_geology"}
+{"text": "Soil gas radon surveying was conducted following the method of Dyck.", "label": "methodology", "field": "economic_geology"}
+{"text": "We carried out 3D resource estimation using SGeMS following the sequential Gaussian simulation.", "label": "methodology", "field": "economic_geology"}
+{"text": "Petrographic thin sections were prepared following the standard method of Hutchison.", "label": "methodology", "field": "economic_geology"}
+{"text": "We used a MAP 215-50 mass spectrometer for 40Ar/39Ar dating following Renne.", "label": "methodology", "field": "geochronology"}
+{"text": "U-Pb zircon dating was conducted by LA-ICP-MS following the method of Gehrels.", "label": "methodology", "field": "geochronology"}
+{"text": "We employed the ID-TIMS method of Schoene for high-precision zircon dating.", "label": "methodology", "field": "geochronology"}
+{"text": "Cosmogenic 10Be exposure dating was performed following the protocol of Gosse.", "label": "methodology", "field": "geochronology"}
+{"text": "We applied the external detector fission track method of Hurford and Green.", "label": "methodology", "field": "geochronology"}
+{"text": "OSL dating was conducted on quartz using the SAR protocol of Murray and Wintle.", "label": "methodology", "field": "geochronology"}
+{"text": "We utilized the NTIMS method of Creaser for Re-Os isotopic analysis.", "label": "methodology", "field": "geochronology"}
+{"text": "(U-Th)/He thermochronometry was performed following the method of Farley.", "label": "methodology", "field": "geochronology"}
+{"text": "We carried out AMS 14C dating using a MICADAS instrument following the method of Synal.", "label": "methodology", "field": "geochronology"}
+{"text": "Detrital zircon analysis was performed by LA-ICP-MS using the method of Gehrels.", "label": "methodology", "field": "geochronology"}
+{"text": "We used Landsat 8 OLI data for multispectral analysis following the method of USGS.", "label": "methodology", "field": "remote_sensing"}
+{"text": "ASTER imagery processing was conducted using the band ratio method of Rowan.", "label": "methodology", "field": "remote_sensing"}
+{"text": "We employed InSAR processing using GMTSAR following the method of Sandwell.", "label": "methodology", "field": "remote_sensing"}
+{"text": "Hyperspectral analysis was performed using ENVI following the matched filtering method.", "label": "methodology", "field": "remote_sensing"}
+{"text": "We applied the NDVI calculation of Tucker for vegetation monitoring from MODIS.", "label": "methodology", "field": "remote_sensing"}
+{"text": "LiDAR data processing was conducted using LAStools following the method of Isenburg.", "label": "methodology", "field": "remote_sensing"}
+{"text": "We utilized the Google Earth Engine platform for cloud-based image processing.", "label": "methodology", "field": "remote_sensing"}
+{"text": "SAR backscatter analysis was performed using Sentinel-1 IW data following ESA.", "label": "methodology", "field": "remote_sensing"}
+{"text": "We carried out drone-based photogrammetry using Pix4D following the SfM workflow.", "label": "methodology", "field": "remote_sensing"}
+{"text": "Thermal anomaly detection was performed using ASTER TIR data following the method of Vaughn.", "label": "methodology", "field": "remote_sensing"}
+{"text": "We used an ice core sampled from the WAIS Divide following the method of Brook.", "label": "methodology", "field": "paleoclimate"}
+{"text": "Speleothem U-Th dating was conducted using MC-ICP-MS following the method of Cheng.", "label": "methodology", "field": "paleoclimate"}
+{"text": "We employed the Mg/Ca paleothermometry method of Elderfield for SST estimation.", "label": "methodology", "field": "paleoclimate"}
+{"text": "Tree-ring width measurement was performed using COFECHA following the method of Holmes.", "label": "methodology", "field": "paleoclimate"}
+{"text": "We applied the TEX86 paleothermometer of Schouten using GDGT biomarkers.", "label": "methodology", "field": "paleoclimate"}
+{"text": "Borehole temperature inversion was conducted following the method of Pollack.", "label": "methodology", "field": "paleoclimate"}
+{"text": "We utilized the pollen assemblage analysis of Prentice for paleovegetation reconstruction.", "label": "methodology", "field": "paleoclimate"}
+{"text": "Coral Sr/Ca analysis was performed by ICP-OES following the method of Correge.", "label": "methodology", "field": "paleoclimate"}
+{"text": "We carried out varve counting following the method of Zolitschak for chronological control.", "label": "methodology", "field": "paleoclimate"}
+{"text": "Loess grain size analysis was conducted using the laser diffraction method of Nugteren.", "label": "methodology", "field": "paleoclimate"}
+{"text": "We used CTD rosette sampling following the GO-SHIP protocol for ocean hydrography.", "label": "methodology", "field": "oceanography"}
+{"text": "Nutrient concentration analysis was performed using a SEAL AA3 autoanalyzer.", "label": "methodology", "field": "oceanography"}
+{"text": "We employed the Winkler titration method for dissolved oxygen determination.", "label": "methodology", "field": "oceanography"}
+{"text": "Carbonate chemistry was analyzed using a VINDTA 3C following the method of Dickson.", "label": "methodology", "field": "oceanography"}
+{"text": "We applied the trace metal clean sampling protocol of Cutter for GEOTRACES.", "label": "methodology", "field": "oceanography"}
+{"text": "Helium isotope analysis was conducted using a MAP 215-50 following the method of Lupton.", "label": "methodology", "field": "oceanography"}
+{"text": "We utilized the sediment trap mooring of Honjo for particle flux measurement.", "label": "methodology", "field": "oceanography"}
+{"text": "14C measurement of dissolved inorganic carbon was performed by AMS following the method of McNichol.", "label": "methodology", "field": "oceanography"}
+{"text": "We carried out underway pCO2 measurement using a General Oceanics system following Feely.", "label": "methodology", "field": "oceanography"}
+{"text": "Ocean circulation modeling was performed using MITgcm following the setup of Marshall.", "label": "methodology", "field": "oceanography"}
+{"text": "Our Mars spectral data confirm the basaltic crust model of McSween.", "label": "supporting", "field": "planetary_geology"}
+{"text": "The lunar regolith noble gas data are consistent with the solar wind implantation model.", "label": "supporting", "field": "planetary_geology"}
+{"text": "Our meteorite oxygen isotope data corroborate the mixing line of Clayton.", "label": "supporting", "field": "planetary_geology"}
+{"text": "These crater size-frequency distributions agree with the lunar chronology of Neukum.", "label": "supporting", "field": "planetary_geology"}
+{"text": "Our soil clay mineral data confirm the hydrothermal alteration model of Chevrier.", "label": "supporting", "field": "soil_science"}
+{"text": "The cation exchange capacity measurements are consistent with the smectite dominance model.", "label": "supporting", "field": "soil_science"}
+{"text": "Our soil organic carbon stocks agree with the Harmonized World Soil Database.", "label": "supporting", "field": "soil_science"}
+{"text": "The denitrification rate data corroborate the biogeochemical model of Parton.", "label": "supporting", "field": "soil_science"}
+{"text": "However, our Mars crater count contradicts the proposed age of the Tharsis plateau.", "label": "contrasting", "field": "planetary_geology"}
+{"text": "Unlike the previous model, our lunar regolith data show no evidence for solar wind strip.", "label": "contrasting", "field": "planetary_geology"}
+{"text": "Our chondrule oxygen isotope data differ from the canonical carbonaceous chondrite value.", "label": "contrasting", "field": "planetary_geology"}
+{"text": "We did not confirm the subsurface ice layer detected by the previous radar survey.", "label": "contrasting", "field": "planetary_geology"}
+{"text": "However, our soil redox data contradict the well-drained classification.", "label": "contrasting", "field": "soil_science"}
+{"text": "Unlike the map unit classification, our field data show extensive colluvium.", "label": "contrasting", "field": "soil_science"}
+{"text": "Our CO2 flux measurements differ from the eddy covariance tower data.", "label": "contrasting", "field": "soil_science"}
+{"text": "We did not confirm the preferential flow pathway inferred from the dye tracer study.", "label": "contrasting", "field": "soil_science"}
+{"text": "We extend the crater counting method to the Martian polar layered deposits.", "label": "extending", "field": "planetary_geology"}
+{"text": "Building on the planetary differentiation model, we apply it to Mercury.", "label": "extending", "field": "planetary_geology"}
+{"text": "Our chondrule study expands the oxygen isotope database to CR chondrites.", "label": "extending", "field": "planetary_geology"}
+{"text": "We apply the weathering index of Bibring to Vesta using Dawn mission data.", "label": "extending", "field": "planetary_geology"}
+{"text": "We extend the digital soil mapping approach to include topographic derivatives.", "label": "extending", "field": "soil_science"}
+{"text": "Building on the CENTURY model, we incorporate phosphorus cycling for tropical soils.", "label": "extending", "field": "soil_science"}
+{"text": "Our study expands the soil carbon database to permafrost-affected regions.", "label": "extending", "field": "soil_science"}
+{"text": "We apply the X-ray computed tomography method of Taina to undisturbed soil cores.", "label": "extending", "field": "soil_science"}
+{"text": "We used CRISM hyperspectral data from Mars following the method of Murchie.", "label": "methodology", "field": "planetary_geology"}
+{"text": "We employed the noble gas mass spectrometry method of Ott for meteorite analysis.", "label": "methodology", "field": "planetary_geology"}
+{"text": "Crater counting was performed following the chronology function of Hartmann and Neukum.", "label": "methodology", "field": "planetary_geology"}
+{"text": "We used the Shallow Radar sounder data of Seu for subsurface ice mapping.", "label": "methodology", "field": "planetary_geology"}
+{"text": "Soil samples were analyzed by XRD following the method of Moore and Reynolds.", "label": "methodology", "field": "soil_science"}
+{"text": "We employed the saturated hydraulic conductivity method of Klute and Dirksen.", "label": "methodology", "field": "soil_science"}
+{"text": "Soil organic carbon was measured by dry combustion following the method of Nelson.", "label": "methodology", "field": "soil_science"}
+{"text": "We applied the sequential soil extraction method of Tessier for trace elements.", "label": "methodology", "field": "soil_science"}
+{"text": "As cited by Pollack and Chapman, the plate tectonic paradigm remains debated.", "label": "mentioning", "field": "geophysics"}
+{"text": "For comparison, see the global seismic model of Ritsema.", "label": "mentioning", "field": "geophysics"}
+{"text": "As reviewed by Schubert, mantle convection drives plate tectonics.", "label": "mentioning", "field": "geophysics"}
+{"text": "For background on lithospheric flexure, see the classic work of Turcotte and Schubert.", "label": "mentioning", "field": "geophysics"}
+{"text": "The geothermal gradient was previously reported by Chapman and Furlong.", "label": "mentioning", "field": "geophysics"}
+{"text": "As cited by Wilson, mantle plumes remain controversial.", "label": "mentioning", "field": "petrology"}
+{"text": "For a comprehensive review of partial melting, see the text of Winter.", "label": "mentioning", "field": "petrology"}
+{"text": "As reviewed by Rollinson, trace element modeling of basalts is well established.", "label": "mentioning", "field": "petrology"}
+{"text": "For background on metamorphic phase equilibria, see Vernon and Clarke.", "label": "mentioning", "field": "petrology"}
+{"text": "The experimental approach of Green and Ringwood is still foundational.", "label": "mentioning", "field": "petrology"}
+{"text": "As noted by Twiss and Moores, structural analysis requires careful field work.", "label": "mentioning", "field": "structural_geology"}
+{"text": "For comparison, see the balanced cross-section method of Dahlstrom.", "label": "mentioning", "field": "structural_geology"}
+{"text": "As reviewed by Fossen, strain analysis is fundamental to structural geology.", "label": "mentioning", "field": "structural_geology"}
+{"text": "For background on fold mechanics, refer to Suppe.", "label": "mentioning", "field": "structural_geology"}
+{"text": "The Riedel shear model of Tchalenko has been applied extensively.", "label": "mentioning", "field": "structural_geology"}
+{"text": "As cited by Reading, facies models continue to evolve.", "label": "mentioning", "field": "sedimentology"}
+{"text": "For a recent review of sequence stratigraphy, see Catuneanu.", "label": "mentioning", "field": "sedimentology"}
+{"text": "As noted by Bouma, turbidite facies are well documented.", "label": "mentioning", "field": "sedimentology"}
+{"text": "For background on carbonate sedimentology, refer to Flugel.", "label": "mentioning", "field": "sedimentology"}
+{"text": "The Walther's law concept is described in most stratigraphy textbooks.", "label": "mentioning", "field": "sedimentology"}
+{"text": "As cited by Sparks, eruption dynamics is a complex field.", "label": "mentioning", "field": "volcanology"}
+{"text": "For a comprehensive review of volcanic hazards, see Scarth.", "label": "mentioning", "field": "volcanology"}
+{"text": "As reviewed by Houghton and Wilson, pyroclastic deposits vary widely.", "label": "mentioning", "field": "volcanology"}
+{"text": "For background on magma dynamics, see the review of Marsh.", "label": "mentioning", "field": "volcanology"}
+{"text": "The conduit flow model of Woods remains widely used.", "label": "mentioning", "field": "volcanology"}
+{"text": "As cited by Benton, the fossil record is inherently incomplete.", "label": "mentioning", "field": "paleontology"}
+{"text": "For comparison, see the Sepkoski compendium of marine diversity.", "label": "mentioning", "field": "paleontology"}
+{"text": "As reviewed by Kidwell, taphonomy is essential for fossil interpretation.", "label": "mentioning", "field": "paleontology"}
+{"text": "For background on conodont biostratigraphy, refer to Sweet.", "label": "mentioning", "field": "paleontology"}
+{"text": "The Neogene mammal biochronology of Tedford is widely applied.", "label": "mentioning", "field": "paleontology"}
+{"text": "As cited by Freeze and Cherry, groundwater flow follows Darcy's law.", "label": "mentioning", "field": "hydrogeology"}
+{"text": "For a comprehensive review of contaminant hydrogeology, see Fetter.", "label": "mentioning", "field": "hydrogeology"}
+{"text": "As reviewed by Schwartz and Zhang, numerical modeling is standard practice.", "label": "mentioning", "field": "hydrogeology"}
+{"text": "For background on karst hydrogeology, refer to Ford and Williams.", "label": "mentioning", "field": "hydrogeology"}
+{"text": "The Barenblatt dual-porosity model is described in most hydrogeology texts.", "label": "mentioning", "field": "hydrogeology"}
+{"text": "As cited by Robb, ore deposit types are classified by their genesis.", "label": "mentioning", "field": "economic_geology"}
+{"text": "For comparison, see the mineral deposit models of Cox and Singer.", "label": "mentioning", "field": "economic_geology"}
+{"text": "As reviewed by Kesler and Simon, global metal resources are limited.", "label": "mentioning", "field": "economic_geology"}
+{"text": "For background on hydrothermal alteration, refer to the classic text of Pirajno.", "label": "mentioning", "field": "economic_geology"}
+{"text": "The Lindgren classification of hypogene deposits remains influential.", "label": "mentioning", "field": "economic_geology"}
+{"text": "As cited by Faure, radiometric dating is the foundation of geochronology.", "label": "mentioning", "field": "geochronology"}
+{"text": "For a comprehensive review of geochronology, see the text of Dickin.", "label": "mentioning", "field": "geochronology"}
+{"text": "As reviewed by Schaefer and Spencer, thermochronology reveals denudation history.", "label": "mentioning", "field": "geochronology"}
+{"text": "For background on cosmogenic nuclides, refer to Gosse and Phillips.", "label": "mentioning", "field": "geochronology"}
+{"text": "The concordia diagram of Wetherill is a fundamental geochronology tool.", "label": "mentioning", "field": "geochronology"}
+{"text": "As cited by Lillesand, remote sensing principles are well established.", "label": "mentioning", "field": "remote_sensing"}
+{"text": "For comparison, see the spectral library of Clark et al.", "label": "mentioning", "field": "remote_sensing"}
+{"text": "As reviewed by Jensen, digital image processing is essential for satellite data.", "label": "mentioning", "field": "remote_sensing"}
+{"text": "For background on SAR interferometry, refer to Burgmann et al.", "label": "mentioning", "field": "remote_sensing"}
+{"text": "The spectral angle mapper of Kruse remains widely used.", "label": "mentioning", "field": "remote_sensing"}
+{"text": "As cited by Bradley, paleoclimatology relies on multiple proxies.", "label": "mentioning", "field": "paleoclimate"}
+{"text": "For a comprehensive review of ice core science, see the text of Alley.", "label": "mentioning", "field": "paleoclimate"}
+{"text": "As reviewed by Ruddiman, orbital forcing drives climate cycles.", "label": "mentioning", "field": "paleoclimate"}
+{"text": "For background on speleothem paleoclimate, refer to Fairchild et al.", "label": "mentioning", "field": "paleoclimate"}
+{"text": "The Dansgaard-Oeschger events are described in most paleoclimate texts.", "label": "mentioning", "field": "paleoclimate"}
+{"text": "As cited by Talley, ocean circulation drives global climate.", "label": "mentioning", "field": "oceanography"}
+{"text": "For a comprehensive review of physical oceanography, see the text of Pond and Pickard.", "label": "mentioning", "field": "oceanography"}
+{"text": "As reviewed by Sarmiento and Gruber, the biological pump is critical for carbon.", "label": "mentioning", "field": "oceanography"}
+{"text": "For background on ocean carbonate chemistry, refer to Zeebe and Wolf-Gladrow.", "label": "mentioning", "field": "oceanography"}
+{"text": "The Redfield ratio of 106:16:1 remains a foundational concept.", "label": "mentioning", "field": "oceanography"}
+{"text": "As cited by Taylor and McLennan, the composition of the continental crust is well constrained.", "label": "mentioning", "field": "planetary_geology"}
+{"text": "For comparison, see the lunar sample database of Meyer.", "label": "mentioning", "field": "planetary_geology"}
+{"text": "As reviewed by McSween, Martian meteorites provide insights into Mars geology.", "label": "mentioning", "field": "planetary_geology"}
+{"text": "For background on meteorite classification, refer to Weisberg et al.", "label": "mentioning", "field": "planetary_geology"}
+{"text": "As cited by Brady and Weil, soil forming factors are interrelated.", "label": "mentioning", "field": "soil_science"}
+{"text": "For a comprehensive review of pedology, see the textbook of Schaetzl and Anderson.", "label": "mentioning", "field": "soil_science"}
+{"text": "As reviewed by Stockmann, soil carbon dynamics affect global climate.", "label": "mentioning", "field": "soil_science"}
+{"text": "For background on soil classification, refer to the WRB system of IUSS.", "label": "mentioning", "field": "soil_science"}
+{"text": "We extend the CRISPR toolbox by engineering a new Cas variant for larger deletions.", "label": "extending", "field": "biology"}
+{"text": "Building on the GFP labeling method, we developed a dual-color reporter system.", "label": "extending", "field": "biology"}
+{"text": "Our study expands the single-cell RNA-seq atlas to include rare immune cell populations.", "label": "extending", "field": "biology"}
+{"text": "We apply the optogenetic method of Deisseroth to study neural circuit dynamics.", "label": "extending", "field": "biology"}
+{"text": "This work advances the organoid model to include vascularization for drug screening.", "label": "extending", "field": "biology"}
+{"text": "We generalize the phylogenetic comparative method to account for horizontal gene transfer.", "label": "extending", "field": "biology"}
+{"text": "Our cryo-EM pipeline extends the resolution limit to 1.5 angstrom for membrane proteins.", "label": "extending", "field": "biology"}
+{"text": "We build upon the gene editing framework of Doudna to develop prime editing.", "label": "extending", "field": "biology"}
+{"text": "This study broadens the ecological niche model to include climate-driven range shifts.", "label": "extending", "field": "biology"}
+{"text": "We complement the transcriptomic data with new proteomic analysis of the same cells.", "label": "extending", "field": "biology"}
+{"text": "We extend the catalytic scope to include late-stage C-H functionalization of complex molecules.", "label": "extending", "field": "chemistry"}
+{"text": "Building on the photoredox catalysis platform, we developed a dual-catalytic cycle.", "label": "extending", "field": "chemistry"}
+{"text": "Our study expands the substrate scope of the Suzuki coupling to aryl chlorides.", "label": "extending", "field": "chemistry"}
+{"text": "We apply the flow chemistry method of Ley to hazardous nitration reactions.", "label": "extending", "field": "chemistry"}
+{"text": "This work advances the electrochemical synthesis to gram-scale preparation.", "label": "extending", "field": "chemistry"}
+{"text": "We generalize the asymmetric hydrogenation to include tetrasubstituted olefins.", "label": "extending", "field": "chemistry"}
+{"text": "Our computational screening extends the catalyst library to base metal complexes.", "label": "extending", "field": "chemistry"}
+{"text": "We build upon the click chemistry platform to develop bioorthogonal protein labeling.", "label": "extending", "field": "chemistry"}
+{"text": "This study broadens the supramolecular assembly to include stimuli-responsive hydrogels.", "label": "extending", "field": "chemistry"}
+{"text": "We complement the synthetic route with new in operando spectroscopic monitoring.", "label": "extending", "field": "chemistry"}
+{"text": "We extend the transformer architecture to process audio and video simultaneously.", "label": "extending", "field": "computer_science"}
+{"text": "Building on the contrastive learning framework, we developed a multi-modal pretraining method.", "label": "extending", "field": "computer_science"}
+{"text": "Our study expands the GLUE benchmark to include low-resource African languages.", "label": "extending", "field": "computer_science"}
+{"text": "We apply the differential privacy framework of Dwork to federated learning systems.", "label": "extending", "field": "computer_science"}
+{"text": "This work advances the neural architecture search to hardware-aware optimization.", "label": "extending", "field": "computer_science"}
+{"text": "We generalize the graph neural network to heterogeneous graphs with edge attributes.", "label": "extending", "field": "computer_science"}
+{"text": "Our reinforcement learning approach extends the sample efficiency via world models.", "label": "extending", "field": "computer_science"}
+{"text": "We build upon the diffusion model framework to develop controllable image generation.", "label": "extending", "field": "computer_science"}
+{"text": "This study broadens the interpretability analysis to large language model internals.", "label": "extending", "field": "computer_science"}
+{"text": "We complement the benchmark evaluation with new adversarial robustness tests.", "label": "extending", "field": "computer_science"}
+{"text": "We extend the isotope fractionation model to include triple oxygen isotopes.", "label": "extending", "field": "geology"}
+{"text": "Building on the mantle tomography of Ritsema, we incorporate seismic anisotropy.", "label": "extending", "field": "geology"}
+{"text": "Our study expands the MORB glass database to include back-arc basin samples.", "label": "extending", "field": "geology"}
+{"text": "We apply the clinopyroxene geobarometer of Nimis to ultramafic systems.", "label": "extending", "field": "geology"}
+{"text": "This work advances the mantle melting model to include volatile-rich conditions.", "label": "extending", "field": "geology"}
+{"text": "We generalize the plate reconstruction model to include true polar wander.", "label": "extending", "field": "geology"}
+{"text": "Our Fe3+/SigmaFe data extend the oxygen barometer calibration to arc lavas.", "label": "extending", "field": "geology"}
+{"text": "We build upon the slab dehydration model to include serpentine stability.", "label": "extending", "field": "geology"}
+{"text": "This study broadens the geochemical reservoir model to include plume interaction.", "label": "extending", "field": "geology"}
+{"text": "We complement the radiogenic isotope data with new stable isotope measurements.", "label": "extending", "field": "geology"}
+{"text": "We extend the lattice QCD calculations to include dynamical fermions at physical masses.", "label": "extending", "field": "physics"}
+{"text": "Building on the cold atom platform, we developed a quantum gas microscope for fermions.", "label": "extending", "field": "physics"}
+{"text": "Our study expands the gravitational wave detector to lower frequency ranges.", "label": "extending", "field": "physics"}
+{"text": "We apply the Kitaev chain model to engineered superconductor-semiconductor devices.", "label": "extending", "field": "physics"}
+{"text": "This work advances the quantum error correction to surface code with distance 7.", "label": "extending", "field": "physics"}
+{"text": "We generalize the AdS/CFT correspondence to include finite temperature field theories.", "label": "extending", "field": "physics"}
+{"text": "Our ultrafast spectroscopy data extend the charge transfer mechanism to the femtosecond regime.", "label": "extending", "field": "physics"}
+{"text": "We build upon the optomechanical framework to develop room-temperature quantum squeezing.", "label": "extending", "field": "physics"}
+{"text": "This study broadens the condensed matter database to include moire superlattice systems.", "label": "extending", "field": "physics"}
+{"text": "We complement the scattering data with new inelastic neutron measurement results.", "label": "extending", "field": "physics"}
+{"text": "We used CRISPR-Cas9 gene editing with the pX459 vector following the Zhang protocol.", "label": "methodology", "field": "biology"}
+{"text": "Western blotting was performed using the Li-Cor Odyssey system following the manufacturer.", "label": "methodology", "field": "biology"}
+{"text": "We employed single-cell RNA-seq using the 10x Genomics Chromium platform.", "label": "methodology", "field": "biology"}
+{"text": "Flow cytometry was performed on a BD FACSAria III following the gating strategy of Herzenberg.", "label": "methodology", "field": "biology"}
+{"text": "We applied the immunohistochemistry protocol of Saper using the ABC detection system.", "label": "methodology", "field": "biology"}
+{"text": "Protein crystallization was conducted using the vapor diffusion method of McPherson.", "label": "methodology", "field": "biology"}
+{"text": "We utilized the cryo-EM method of Frank using a Titan Krios at 300 kV.", "label": "methodology", "field": "biology"}
+{"text": "Phylogenetic trees were constructed using RAxML following the method of Stamatakis.", "label": "methodology", "field": "biology"}
+{"text": "We carried out the Luciferase reporter assay following the Promega protocol.", "label": "methodology", "field": "biology"}
+{"text": "ChIP-seq was performed using the ENCODE pipeline of Landt et al.", "label": "methodology", "field": "biology"}
+{"text": "We used a Buchi rotary evaporator for solvent removal following standard organic chemistry practice.", "label": "methodology", "field": "chemistry"}
+{"text": "Column chromatography was performed using silica gel 60 following the method of Still.", "label": "methodology", "field": "chemistry"}
+{"text": "We employed HPLC analysis using a chiral AD-H column following the Daicel protocol.", "label": "methodology", "field": "chemistry"}
+{"text": "NMR spectra were recorded on a Bruker Avance 600 following the manufacturer.", "label": "methodology", "field": "chemistry"}
+{"text": "We applied the Schlenk line technique for air-sensitive reactions following Shriver.", "label": "methodology", "field": "chemistry"}
+{"text": "X-ray crystallography was performed using a Bruker D8 Venture following the method of Sheldrick.", "label": "methodology", "field": "chemistry"}
+{"text": "We utilized the DFT calculation method using Gaussian 16 at the M06-2X level.", "label": "methodology", "field": "chemistry"}
+{"text": "Cyclic voltammetry was performed using a CH Instruments 760E potentiostat.", "label": "methodology", "field": "chemistry"}
+{"text": "We carried out the microplate reader assay following the method of Simeonov.", "label": "methodology", "field": "chemistry"}
+{"text": "ICP-MS analysis was performed following the EPA Method 200.8 protocol.", "label": "methodology", "field": "chemistry"}
+{"text": "We used PyTorch with mixed precision training following the method of Micikevicius.", "label": "methodology", "field": "computer_science"}
+{"text": "Model evaluation was performed using the Hugging Face evaluate library.", "label": "methodology", "field": "computer_science"}
+{"text": "We employed the AdamW optimizer with cosine annealing following the method of Loshchilov.", "label": "methodology", "field": "computer_science"}
+{"text": "Bayesian hyperparameter optimization was conducted using Optuna following the method of Akiba.", "label": "methodology", "field": "computer_science"}
+{"text": "We applied the 5-fold stratified cross-validation method of Kohavi.", "label": "methodology", "field": "computer_science"}
+{"text": "Distributed training was performed using DeepSpeed following the method of Rasley.", "label": "methodology", "field": "computer_science"}
+{"text": "We utilized the NVIDIA DALI pipeline for data loading following the method of Natykin.", "label": "methodology", "field": "computer_science"}
+{"text": "Gradient analysis was conducted using TensorBoard following the method of Abadi.", "label": "methodology", "field": "computer_science"}
+{"text": "We carried out the inference benchmark using MLPerf following the method of Mattson.", "label": "methodology", "field": "computer_science"}
+{"text": "Quantization-aware training was performed following the method of Jacob et al.", "label": "methodology", "field": "computer_science"}
+{"text": "We used SIMS for oxygen isotope analysis following the method of Valley.", "label": "methodology", "field": "geology"}
+{"text": "Electron microprobe analysis was conducted on a JEOL JXA-8230 following the ZAF method.", "label": "methodology", "field": "geology"}
+{"text": "We employed LA-ICP-MS for trace elements following the method of Longerich.", "label": "methodology", "field": "geology"}
+{"text": "X-ray fluorescence analysis was performed using a PANalytical Axios following the method of Willis.", "label": "methodology", "field": "geology"}
+{"text": "We applied the 40Ar/39Ar step-heating method of Renne on sanidine separates.", "label": "methodology", "field": "geology"}
+{"text": "Thermodynamic modeling was conducted using MELTS following the method of Ghiorso.", "label": "methodology", "field": "geology"}
+{"text": "We utilized the INVE mineral separation technique following the method of Herzig.", "label": "methodology", "field": "geology"}
+{"text": "Sr-Nd-Pb isotope analysis was performed by TIMS following the method of White.", "label": "methodology", "field": "geology"}
+{"text": "We carried out fluid inclusion microthermometry using a Linkam THMSG600 stage.", "label": "methodology", "field": "geology"}
+{"text": "X-ray diffraction was performed on powdered bulk rock following the method of Moore.", "label": "methodology", "field": "geology"}
+{"text": "We used neutron diffraction at the ISIS facility following the method of Hannon.", "label": "methodology", "field": "physics"}
+{"text": "Angle-resolved photoemission spectroscopy was performed at the ALS following the method of Hussain.", "label": "methodology", "field": "physics"}
+{"text": "We employed the magneto-optical Kerr effect measurement following the method of Qiu.", "label": "methodology", "field": "physics"}
+{"text": "Muon spin relaxation was conducted at the PSI following the method of Blundell.", "label": "methodology", "field": "physics"}
+{"text": "We applied the four-probe resistivity measurement following the method of van der Pauw.", "label": "methodology", "field": "physics"}
+{"text": "Nuclear magnetic resonance was performed using a 400 MHz Bruker following the method of Ernst.", "label": "methodology", "field": "physics"}
+{"text": "We utilized the optical tweezer setup following the method of Ashkin.", "label": "methodology", "field": "physics"}
+{"text": "Scanning tunneling microscopy was conducted following the method of Binnig.", "label": "methodology", "field": "physics"}
+{"text": "We carried out the noise spectroscopy measurement following the method of Koch.", "label": "methodology", "field": "physics"}
+{"text": "Hall effect measurement was performed in a 9 T magnet following the method of Hall.", "label": "methodology", "field": "physics"}
+{"text": "As cited by Watson and Crick, the double helix structure is foundational to molecular biology.", "label": "mentioning", "field": "biology"}
+{"text": "For comparison, see the comprehensive CRISPR review by Doudna and Charpentier.", "label": "mentioning", "field": "biology"}
+{"text": "As reviewed by Nurse, the cell cycle is regulated by cyclin-dependent kinases.", "label": "mentioning", "field": "biology"}
+{"text": "For background on next-generation sequencing, refer to the review of Metzker.", "label": "mentioning", "field": "biology"}
+{"text": "The central dogma of biology as described by Crick remains valid.", "label": "mentioning", "field": "biology"}
+{"text": "For a comprehensive review of CRISPR-Cas systems, see the work of Makarova et al.", "label": "mentioning", "field": "biology"}
+{"text": "As noted by Jacob and Monod, gene regulation is fundamental to biology.", "label": "mentioning", "field": "biology"}
+{"text": "The ChIP-seq protocol is described in detail in the ENCODE guidelines.", "label": "mentioning", "field": "biology"}
+{"text": "We refer the reader to the Supplementary Table S2 for primer sequences.", "label": "mentioning", "field": "biology"}
+{"text": "The phylogenetic framework follows the classification of Woese et al.", "label": "mentioning", "field": "biology"}
+{"text": "As cited by Sharpless, click chemistry has revolutionized chemical biology.", "label": "mentioning", "field": "chemistry"}
+{"text": "For comparison, see the comprehensive review of asymmetric catalysis by Noyori.", "label": "mentioning", "field": "chemistry"}
+{"text": "As reviewed by Corey, retrosynthetic analysis guides complex molecule synthesis.", "label": "mentioning", "field": "chemistry"}
+{"text": "For background on palladium-catalyzed coupling, refer to the review of Heck.", "label": "mentioning", "field": "chemistry"}
+{"text": "The Woodward-Hoffmann rules remain fundamental to pericyclic chemistry.", "label": "mentioning", "field": "chemistry"}
+{"text": "For a comprehensive review of organocatalysis, see the work of MacMillan.", "label": "mentioning", "field": "chemistry"}
+{"text": "As noted by Pauling, electronegativity governs chemical bonding.", "label": "mentioning", "field": "chemistry"}
+{"text": "The IUPAC nomenclature is used throughout this work.", "label": "mentioning", "field": "chemistry"}
+{"text": "We refer the reader to the SI for detailed characterization data.", "label": "mentioning", "field": "chemistry"}
+{"text": "The reaction conditions are described in the Supporting Information.", "label": "mentioning", "field": "chemistry"}
+{"text": "As cited by LeCun et al., deep learning has transformed computer vision.", "label": "mentioning", "field": "computer_science"}
+{"text": "For comparison, see the comprehensive transformer survey by Vaswani et al.", "label": "mentioning", "field": "computer_science"}
+{"text": "As reviewed by Sutton and Barto, reinforcement learning is based on Markov decision processes.", "label": "mentioning", "field": "computer_science"}
+{"text": "For background on generative adversarial networks, refer to the work of Goodfellow.", "label": "mentioning", "field": "computer_science"}
+{"text": "The backpropagation algorithm of Rumelhart remains the standard for neural network training.", "label": "mentioning", "field": "computer_science"}
+{"text": "For a comprehensive review of graph neural networks, see the work of Zhou et al.", "label": "mentioning", "field": "computer_science"}
+{"text": "As noted by Turing, the question of machine intelligence remains profound.", "label": "mentioning", "field": "computer_science"}
+{"text": "The ImageNet classification benchmark of Deng et al. is used for evaluation.", "label": "mentioning", "field": "computer_science"}
+{"text": "We refer the reader to Appendix A for the full hyperparameter configuration.", "label": "mentioning", "field": "computer_science"}
+{"text": "The evaluation protocol follows the GLUE benchmark standard.", "label": "mentioning", "field": "computer_science"}
+{"text": "As cited by Hutton, the concept of deep time revolutionized geology.", "label": "mentioning", "field": "geology"}
+{"text": "For comparison, see the global basalt compilation of Gale et al.", "label": "mentioning", "field": "geology"}
+{"text": "As reviewed by Putirka, mantle potential temperature is a key parameter.", "label": "mentioning", "field": "geology"}
+{"text": "For background on mantle geochemistry, refer to the text of White.", "label": "mentioning", "field": "geology"}
+{"text": "The mantle array of Hart et al. is used for isotopic comparison.", "label": "mentioning", "field": "geology"}
+{"text": "For a comprehensive review of MORB geochemistry, see the work of Hofmann.", "label": "mentioning", "field": "geology"}
+{"text": "As noted by Wegener, continental drift laid the foundation for plate tectonics.", "label": "mentioning", "field": "geology"}
+{"text": "The magma series classification of Irvine and Baragar is used throughout.", "label": "mentioning", "field": "geology"}
+{"text": "We refer the reader to Supplementary Table S1 for the full sample list.", "label": "mentioning", "field": "geology"}
+{"text": "The geological timescale follows the International Chronostratigraphic Chart.", "label": "mentioning", "field": "geology"}
+{"text": "As cited by Feynman, quantum mechanics defies classical intuition.", "label": "mentioning", "field": "physics"}
+{"text": "For comparison, see the Particle Data Group review of Nakamura et al.", "label": "mentioning", "field": "physics"}
+{"text": "As reviewed by Weinberg, the standard model unifies electromagnetic and weak forces.", "label": "mentioning", "field": "physics"}
+{"text": "For background on general relativity, refer to the classic text of Misner, Thorne, and Wheeler.", "label": "mentioning", "field": "physics"}
+{"text": "The Heisenberg uncertainty principle is fundamental to quantum mechanics.", "label": "mentioning", "field": "physics"}
+{"text": "For a comprehensive review of condensed matter physics, see the text of Ashcroft and Mermin.", "label": "mentioning", "field": "physics"}
+{"text": "As noted by Bohr, complementarity is central to quantum interpretation.", "label": "mentioning", "field": "physics"}
+{"text": "The Planck constant is used throughout the calculations.", "label": "mentioning", "field": "physics"}
+{"text": "We refer the reader to the supplementary material for full error analysis.", "label": "mentioning", "field": "physics"}
+{"text": "The data analysis follows the ROOT framework of Brun and Rademakers.", "label": "mentioning", "field": "physics"}

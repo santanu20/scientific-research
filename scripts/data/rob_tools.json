@@ -1,0 +1,368 @@
+{
+  "RoB 2": {
+    "indication": "Randomized controlled trials",
+    "reference": "Sterne JAC et al. BMJ 2019;366:l4898. Cochrane Handbook Ch 8.",
+    "url": "https://training.cochrane.org/handbook/current/chapter-08",
+    "domains": [
+      {
+        "name": "D1: Randomization process",
+        "signaling_questions": [
+          "Was allocation sequence random?",
+          "Was allocation sequence concealed until participants recruited and assigned?",
+          "Were there baseline imbalances suggesting problems with randomization?"
+        ],
+        "response_options": [
+          "Low risk",
+          "Some concerns",
+          "High risk",
+          "No information"
+        ]
+      },
+      {
+        "name": "D2: Deviations from intended interventions",
+        "signaling_questions": [
+          "Were participants aware of their assigned intervention during the trial?",
+          "Were carers and trial personnel aware of participants' assigned intervention?",
+          "Were there deviations from intended intervention due to trial context?",
+          "Were these deviations likely to impact outcome?",
+          "Was an analysis appropriate to estimate the effect of assignment to intervention?"
+        ],
+        "response_options": [
+          "Low risk",
+          "Some concerns",
+          "High risk",
+          "No information"
+        ]
+      },
+      {
+        "name": "D3: Missing outcome data",
+        "signaling_questions": [
+          "Were data for this outcome available for all, or nearly all, participants randomized?",
+          "Were there no or small differences in amount of missing data across groups?",
+          "Were missing data reasons unrelated to outcome?",
+          "Were there no imbalances in missing data across groups?"
+        ],
+        "response_options": [
+          "Low risk",
+          "Some concerns",
+          "High risk",
+          "No information"
+        ]
+      },
+      {
+        "name": "D4: Measurement of outcome",
+        "signaling_questions": [
+          "Was method of measuring outcome appropriate?",
+          "Could measurement or ascertainment of outcome differ between groups?",
+          "Were outcome assessors aware of intervention received?",
+          "Were assessors blinded (for subjective outcomes)?"
+        ],
+        "response_options": [
+          "Low risk",
+          "Some concerns",
+          "High risk",
+          "No information"
+        ]
+      },
+      {
+        "name": "D5: Selection of reported result",
+        "signaling_questions": [
+          "Were data in accordance with pre-specified analysis plan?",
+          "Is the reported effect estimate unlikely to be selected from multiple analyses?",
+          "Was trial registered before recruitment started?"
+        ],
+        "response_options": [
+          "Low risk",
+          "Some concerns",
+          "High risk",
+          "No information"
+        ]
+      }
+    ],
+    "overall_algorithm": "Highest domain risk → overall (with D1/D3 able to downgrade alone)."
+  },
+  "ROBINS-I": {
+    "indication": "Non-randomized studies of interventions (cohort, case-control, controlled before-after)",
+    "reference": "Sterne JAC et al. Ann Intern Med 2016. Cochrane Handbook Ch 25.",
+    "url": "https://training.cochrane.org/handbook/current/chapter-25",
+    "domains": [
+      {
+        "name": "D1: Bias due to confounding",
+        "signaling_questions": [
+          "Was confounding modeled appropriately?",
+          "Did the authors use appropriate method to control for confounding?",
+          "Were all important confounders measured?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D2: Bias in selection of participants",
+        "signaling_questions": [
+          "Was selection of participants into the study (or analysis) inappropriate?",
+          "Were start of follow-up and start of intervention the same for all participants?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D3: Bias in classification of interventions",
+        "signaling_questions": [
+          "Were intervention groups clearly defined?",
+          "Could classification of intervention status have been affected by knowledge of outcome?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D4: Bias due to deviations from intended interventions",
+        "signaling_questions": [
+          "Were there deviations from intended interventions beyond what would be expected?",
+          "Were these deviations imbalanced across groups and related to outcomes?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D5: Bias due to missing data",
+        "signaling_questions": [
+          "Were outcome data reasonably complete?",
+          "Was loss-to-follow-up imbalanced across groups?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D6: Bias in measurement of outcomes",
+        "signaling_questions": [
+          "Could outcome measure have been influenced by intervention knowledge?",
+          "Were outcome assessors blinded?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      },
+      {
+        "name": "D7: Bias in selection of the reported result",
+        "signaling_questions": [
+          "Is the reported estimate selected from multiple measurements or analyses?",
+          "Was protocol pre-registered?"
+        ],
+        "response_options": [
+          "Low",
+          "Moderate",
+          "Serious",
+          "Critical",
+          "No information"
+        ]
+      }
+    ],
+    "overall_algorithm": "Highest domain risk → overall. D1 alone can reach Critical."
+  },
+  "QUADAS-2": {
+    "indication": "Diagnostic accuracy studies",
+    "reference": "Whiting PF et al. Ann Intern Med 2011;155:529-536.",
+    "url": "https://www.bristol.ac.uk/population-health-sciences/projects/quadas/",
+    "domains": [
+      {
+        "name": "Patient selection",
+        "signaling_questions": [
+          "Was consecutive/random sampling used?",
+          "Was case-control design avoided?",
+          "Were inappropriate exclusions avoided?"
+        ],
+        "concerns": [
+          "Low",
+          "High",
+          "Unclear"
+        ],
+        "applicability": [
+          "Low",
+          "High",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "Index test",
+        "signaling_questions": [
+          "Were index test results interpreted without knowledge of reference standard?",
+          "Was pre-specified threshold used?"
+        ],
+        "concerns": [
+          "Low",
+          "High",
+          "Unclear"
+        ],
+        "applicability": [
+          "Low",
+          "High",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "Reference standard",
+        "signaling_questions": [
+          "Is reference standard likely to correctly classify target condition?",
+          "Were reference standard results interpreted without index test knowledge?"
+        ],
+        "concerns": [
+          "Low",
+          "High",
+          "Unclear"
+        ],
+        "applicability": [
+          "Low",
+          "High",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "Flow and timing",
+        "signaling_questions": [
+          "Was there appropriate interval between index test and reference standard?",
+          "Did all patients receive same reference standard?",
+          "Were all patients included in analysis?"
+        ],
+        "concerns": [
+          "Low",
+          "High",
+          "Unclear"
+        ]
+      }
+    ]
+  },
+  "Newcastle-Ottawa": {
+    "indication": "Observational studies (cohort, case-control)",
+    "reference": "Wells GA et al. https://www.ohri.ca/programs/clinical_epidemiology/oxford.htm",
+    "url": "https://www.ohri.ca/programs/clinical_epidemiology/oxford.htm",
+    "domains": [
+      {
+        "name": "Selection (max 4 stars)",
+        "items_cohort": [
+          "Representativeness of exposed cohort",
+          "Selection of non-exposed cohort",
+          "Ascertainment of exposure",
+          "Outcome not present at start"
+        ],
+        "items_case_control": [
+          "Case definition adequate",
+          "Representativeness of cases",
+          "Selection of controls",
+          "Definition of controls"
+        ]
+      },
+      {
+        "name": "Comparability (max 2 stars)",
+        "items": [
+          "Comparability based on design/control for most important factor",
+          "Comparability for additional factor"
+        ]
+      },
+      {
+        "name": "Outcome (cohort, max 3 stars) / Exposure (case-control, max 3 stars)",
+        "items_cohort": [
+          "Assessment of outcome (record linkage/independent blind)",
+          "Follow-up long enough",
+          "Adequacy of follow-up"
+        ],
+        "items_case_control": [
+          "Ascertainment of exposure (same method)",
+          "Same non-response rate",
+          "Blinded ascertainment"
+        ]
+      }
+    ],
+    "scoring": "Star-based (0-9 total). ≥7 = good, 4-6 = fair, ≤3 = poor."
+  },
+  "PROBAST": {
+    "indication": "Prediction model studies (diagnostic / prognostic)",
+    "reference": "Moons KGM et al. Ann Intern Med 2019;170:51-58. 20 signaling questions across 4 domains; each domain judged for risk of bias AND applicability.",
+    "url": "https://www.probast.org",
+    "domains": [
+      {
+        "name": "participants",
+        "signaling_questions": [
+          "Were appropriate data sources used?",
+          "Were participants in the data source appropriate for the review question?"
+        ],
+        "response_options": [
+          "Low risk",
+          "High risk",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "predictors",
+        "signaling_questions": [
+          "Were predictors defined and assessed appropriately?"
+        ],
+        "response_options": [
+          "Low risk",
+          "High risk",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "outcome",
+        "signaling_questions": [
+          "Was the outcome defined and determined appropriately?"
+        ],
+        "response_options": [
+          "Low risk",
+          "High risk",
+          "Unclear"
+        ]
+      },
+      {
+        "name": "analysis",
+        "signaling_questions": [
+          "Were there a reasonable amount of data unavailable? Were missing data handled appropriately?",
+          "Was the analysis appropriate given the study design?",
+          "Were complex/overfitted models evaluated sensibly?"
+        ],
+        "response_options": [
+          "Low risk",
+          "High risk",
+          "Unclear"
+        ]
+      }
+    ],
+    "note": "Domain names verified from two independent sources 2026-08-14 ('participants, predictors, outcome, and analysis'). Signaling questions here are SUMMARIES, not verbatim PROBAST items — consult probast.org for the official instrument."
+  },
+  "ROBINS-E": {
+    "indication": "Non-randomized studies of exposures (environmental/occupational)",
+    "reference": "ROBINS-E = Risk Of Bias In Non-randomised Studies - of Exposures; 7 bias domains via signaling questions (verified count, 2026-08-14). Critical appraisal: Bero L et al. Syst Rev 2018;7(1) doi:10.1186/s13643-018-0915-2.",
+    "url": "https://www.riskofbias.info",
+    "domains": [],
+    "note": "Seven domains confirmed (count verified 2026-08-14 via multiple sources); domain NAMES not yet verified against the official instrument in this environment — deliberately left empty rather than guessed (anti-fabrication). Fetch riskofbias.info and fill before use."
+  }
+}

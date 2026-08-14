@@ -1,0 +1,10 @@
+{
+  "risk_of_bias": "Does NOT lower (RoB tool assessed minimal) | Serious (-1) | Very serious (-2)",
+  "inconsistency": "Does NOT lower | Serious (-1) | Very serious (-2) — based on I² and direction",
+  "indirectness": "Does NOT lower | Serious (-1) | Very serious (-2) — population/intervention/outcome",
+  "imprecision": "Does NOT lower | Serious (-1) | Very serious (-2) — based on optimal information size + CI",
+  "publication_bias": "Does NOT lower | Suspected (-1) | Very likely (-2)",
+  "large_effect": "Raise (+1) | Very large (+2)",
+  "dose_response": "Raise (+1) if demonstrable",
+  "plausible_confounding": "Raise (+1) if would reduce observed effect"
+}

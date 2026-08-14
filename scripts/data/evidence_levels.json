@@ -1,0 +1,35 @@
+{
+  "EVIDENCE_LEVELS": {
+    "I": "Systematic review / meta-analysis of randomized trials",
+    "II": "Randomized controlled trial",
+    "III": "Non-randomized controlled cohort / follow-up study",
+    "IV": "Case-series / case-control / historically controlled",
+    "V": "Mechanism-based reasoning / expert opinion",
+    "VI": "Preprint / non-peer-reviewed",
+    "VII": "Editorial / comment / erratum / retraction notice"
+  },
+  "TYPE_TO_LEVEL": {
+    "journal-article": "III",
+    "review": "I",
+    "article": "III",
+    "preprint": "VI",
+    "posted-content": "VI",
+    "book": "V",
+    "book-chapter": "V",
+    "monograph": "V",
+    "report": "V",
+    "report-item": "V",
+    "proceedings-article": "V",
+    "proceedings": "V",
+    "conference-paper": "V",
+    "dataset": "V",
+    "editorial": "VII",
+    "comment": "VII",
+    "letter": "VII",
+    "erratum": "VII",
+    "correction": "VII",
+    "retraction": "VII",
+    "metadata": "VII",
+    "creative-work": "V"
+  }
+}

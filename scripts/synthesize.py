@@ -1,0 +1,1151 @@
+#!/usr/bin/env python3
+"""Phase 5: Narrative synthesis — orchestrator + CLI.
+
+Produces research_brief.md from extracted.json + correlation.json + meta.json.
+NON-LLM DEFAULT: template stitching (reproducible, deterministic).
+--use-llm OPT-IN: Ollama rewrites templates into smoother prose.
+
+Five research types drive output structure:
+  verification:     yes/no question → verdict + stance evidence summary
+  survey:           broad topic → chronological narrative paragraphs
+  subtopic:         specific focus → focused narrative + measurement summary
+  comparative:      compare X vs Y → side-by-side grouping by approach
+  data_compilation: compile values → data table + statistical summary
+
+Usage:
+  uv run python scripts/synthesize.py \\
+      --query "latest research on basalt geochemistry" \\
+      --extracted research_outputs/extracted.json \\
+      --verified  research_outputs/verified.json \\
+      --correlation research_outputs/correlation.json \\
+      -o research_outputs/research_brief.md
+"""
+
+from __future__ import annotations
+
+# --- Self-contained skill venv bootstrap (mirrors pdf-ocr/web-search pattern) ---
+import os as _bs_os, sys as _bs_sys
+
+_SKILL_VENV = _bs_os.path.expanduser(
+    "~/.config/opencode/skills/scientific-research/.venv"
+)
+_SKILL_VENV_PY = _bs_os.path.join(_SKILL_VENV, "bin", "python")
+_REQ_IMPORTS = (
+    "habanero",
+    "pyalex",
+    "semanticscholar",
+    "arxiv",
+    "numpy",
+    "scipy",
+    "sklearn",
+    "httpx",
+)
+_REQ_INSTALLS = (
+    "habanero",
+    "pyalex",
+    "semanticscholar",
+    "arxiv",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "httpx",
+    "pytest",
+    "ruff",
+)
+if __name__ == "__main__" and not _bs_os.environ.get(
+    "SCIENTIFIC_RESEARCH_NO_SKILL_VENV"
+):
+    if not _bs_os.path.exists(_SKILL_VENV_PY) and not _bs_os.environ.get(
+        "SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"
+    ):
+        import subprocess as _bs_sp
+
+        try:
+            _bs_sys.stderr.write(
+                "Bootstrapping scientific-research skill venv (one-time setup)...\n"
+            )
+            _bs_sp.run(
+                ["uv", "venv", _SKILL_VENV, "--python", "3.13"],
+                check=True,
+                capture_output=True,
+            )
+            _bs_sp.run(
+                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
+                check=True,
+                capture_output=True,
+            )
+            _bs_sys.stderr.write("scientific-research skill venv ready.\n")
+        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
+            _bs_sys.stderr.write(
+                f"Failed to auto-bootstrap: {_bs_ex}\nManual: uv venv {_SKILL_VENV} --python 3.13 && uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
+            )
+            _bs_sys.exit(2)
+    if _bs_os.path.exists(_SKILL_VENV_PY) and _bs_os.path.normpath(
+        _bs_sys.prefix
+    ) != _bs_os.path.normpath(_SKILL_VENV):
+        _bs_os.environ["SCIENTIFIC_RESEARCH_NO_SKILL_VENV"] = "1"
+        _bs_os.execv(
+            _SKILL_VENV_PY,
+            [_SKILL_VENV_PY, _bs_os.path.abspath(__file__)] + _bs_sys.argv[1:],
+        )
+    _missing = []
+    for _m in _REQ_IMPORTS:
+        try:
+            __import__(_m)
+        except ImportError:
+            _missing.append(_m)
+    if _missing and not _bs_os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):
+        # stale venv: auto-install missing deps once, then re-check
+        import subprocess as _bs_sp
+
+        try:
+            _bs_sys.stderr.write(f"Installing missing deps: {', '.join(_missing)}\n")
+            _bs_sp.run(
+                ["uv", "pip", "install", "--python", _SKILL_VENV_PY, *_REQ_INSTALLS],
+                check=True, capture_output=True,
+            )
+            _missing = []
+            for _m in _REQ_IMPORTS:
+                try:
+                    __import__(_m)
+                except ImportError:
+                    _missing.append(_m)
+        except (_bs_sp.CalledProcessError, FileNotFoundError) as _bs_ex:
+            _bs_sys.stderr.write(f"Auto-install failed: {_bs_ex}\n")
+    if _missing:
+        _bs_sys.stderr.write(
+            f"FATAL: missing required deps: {', '.join(_missing)}\nInstall: uv pip install --python {_SKILL_VENV_PY} {' '.join(_REQ_INSTALLS)}\n"
+        )
+        _bs_sys.exit(2)
+# --- End bootstrap ---
+
+
+import json
+import logging
+import sys
+import time
+from pathlib import Path
+
+log = logging.getLogger("scientific_research.synthesize")
+
+_SCRIPT_DIR = Path(__file__).parent.resolve()
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from _classifiers import detect_discipline, detect_research_type  # noqa: E402
+from _narrative import (  # noqa: E402
+    _parse_authors,
+    _sanitize_finding,
+    build_chronological_narrative,
+    build_comparison_narrative,
+    build_compilation_narrative,
+    build_verification_narrative,
+    format_citation_list,
+)
+
+# =============================================================================
+# Data loading helpers
+# =============================================================================
+
+
+def _load_json(path: Path | None) -> dict | None:
+    """Load JSON file, return None if path is None or doesn't exist."""
+    if path is None or not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning("Failed to load %s: %s", path, e)
+        return None
+
+
+def _extract_papers(
+    extracted: dict | None,
+    verified: dict | None,
+) -> list[dict]:
+    """Merge paper metadata from verified.json with extraction data."""
+    ext_lookup: dict[str, dict] = {}
+    if extracted:
+        ext_list = extracted.get("extractions") or extracted.get("results") or []
+        for item in ext_list:
+            pid = item.get("paper_id", "")
+            ext_lookup[pid] = item
+            if item.get("doi"):
+                ext_lookup[item["doi"]] = item
+
+    papers: list[dict] = []
+
+    if verified:
+        for p in verified.get("papers", []):
+            pid = p.get("primary_id") or p.get("paper_id") or ""
+            doi = p.get("doi") or ""
+            ext = ext_lookup.get(pid) or ext_lookup.get(doi) or {}
+
+            abstract = p.get("abstract") or ""
+            key_finding = ext.get("pico", {}).get("key_finding") or ""
+            if not key_finding and abstract:
+                from _classifiers import extract_key_finding
+
+                key_finding = extract_key_finding(abstract, max_chars=300)
+
+            measurements: list[dict] = []
+            eff = ext.get("effect_sizes", {})
+            for m in eff.get("single_measurements", []):
+                measurements.append(
+                    {
+                        "value": m.get("value"),
+                        "unit": m.get("unit", ""),
+                        "measurement": m.get("measurement", ""),
+                        "raw": m.get("raw_text", ""),
+                    }
+                )
+            # Also include measurements parsed from quantitative_data by _geo_enrich
+            for m in ext.get("measurements", []):
+                if (
+                    isinstance(m, dict)
+                    and m.get("value") is not None
+                    and not m.get("_flagged")
+                ):
+                    measurements.append(m)
+
+            papers.append(
+                {
+                    "paper_id": pid,
+                    "title": _sanitize_finding(p.get("title") or ""),
+                    "year": p.get("year"),
+                    "authors": _parse_authors(p.get("authors", [])),
+                    "doi": doi,
+                    "abstract": _sanitize_finding(abstract),
+                    "key_finding": _sanitize_finding(key_finding),
+                    "discipline": (ext.get("pico", {}).get("discipline") or "")
+                    or (detect_discipline(abstract) if abstract else ""),
+                    "novelty": (ext.get("pico", {}).get("novelty") or ""),
+                    "study_type": (ext.get("pico", {}).get("study_type") or ""),
+                    "interpretation": _sanitize_finding(
+                        ext.get("pico", {}).get("interpretation") or ""
+                    ),
+                    "measurements": measurements,
+                }
+            )
+
+    if not papers and extracted:
+        ext_list = extracted.get("extractions") or extracted.get("results") or []
+        for item in ext_list:
+            abstract = item.get("abstract", "")
+            papers.append(
+                {
+                    "paper_id": item.get("paper_id", ""),
+                    "title": item.get("title", ""),
+                    "year": None,
+                    "authors": [],
+                    "doi": item.get("doi", ""),
+                    "abstract": abstract,
+                    "key_finding": (item.get("pico", {}).get("key_finding") or ""),
+                    "discipline": (item.get("pico", {}).get("discipline") or ""),
+                    "novelty": (item.get("pico", {}).get("novelty") or ""),
+                    "study_type": (item.get("pico", {}).get("study_type") or ""),
+                    "interpretation": (
+                        item.get("pico", {}).get("interpretation") or ""
+                    ),
+                    "measurements": [],
+                }
+            )
+
+    return papers
+
+
+# =============================================================================
+# LLM prose smoothing (opt-in via --use-llm)
+# =============================================================================
+
+
+def _detect_best_model() -> str:
+    """Detect smallest available Ollama model for smoothing task."""
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            "http://127.0.0.1:11434/api/tags",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+
+        models = []
+        for m in data.get("models", []):
+            name = m.get("name", "")
+            size = m.get("size", 0)
+            if any(
+                skip in name.lower()
+                for skip in (
+                    "vision",
+                    "embed",
+                    "ocr",
+                    "vl",
+                    "bge",
+                    "nomic",
+                    "mxbai",
+                    "snowflake",
+                    "minilm",
+                    "all-minilm",
+                    "e5",
+                    "gte",
+                )
+            ):
+                continue
+            models.append((name, size))
+
+        if not models:
+            return "qwen3.5:0.8b"
+
+        models.sort(key=lambda x: x[1])
+        return models[0][0]
+    except Exception:
+        return "qwen3.5:0.8b"
+
+
+def smooth_with_llm(
+    template_narrative: str,
+    papers: list[dict],
+    topic: str,
+    research_type: str,
+) -> str:
+    """Optional LLM prose smoothing via Ollama.
+
+    Feeds the template-stitched narrative to a small model for prose
+    improvement. Returns smoothed text or original on failure.
+    Cached via content-hash to avoid re-computation on identical input.
+    """
+    try:
+        from _llm_extract import is_available
+    except ImportError:
+        log.warning("_llm_extract not available — skipping LLM smoothing")
+        return template_narrative
+
+    if not is_available():
+        log.warning("Ollama not available — skipping LLM smoothing")
+        return template_narrative
+
+    # Content-hash cache check
+    import hashlib
+    from pathlib import Path as _Path
+
+    cache_key = hashlib.sha256(
+        f"smooth|{topic}|{research_type}|{template_narrative[:2000]}".encode()
+    ).hexdigest()
+    cache_dir = _Path.home() / ".cache" / "scientific_research" / "llm_smooth"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = cache_dir / f"{cache_key}.txt"
+
+    if cache_file.exists():
+        cached = cache_file.read_text(encoding="utf-8")
+        if cached and len(cached) > 200:
+            log.info("LLM smoothing cache hit")
+            return cached
+
+    # Truncate narrative to fit context window
+    narrative_trunc = template_narrative[:4000]
+    if len(template_narrative) > 4000:
+        last_break = narrative_trunc.rfind("\n\n")
+        if last_break > 2000:
+            narrative_trunc = narrative_trunc[:last_break]
+
+    prompt = (
+        f"You are a geological research writer. Rewrite this synthesis into "
+        f"flowing, publication-quality prose. CRITICAL RULES:\n"
+        f"1. Keep ALL citation numbers like [1], [2], [3] exactly as written.\n"
+        f"2. PRESERVE all geological terminology: mineral names, P-T values, "
+        f"geochemical notation, geochronological ages, and method names.\n"
+        f"3. PRESERVE all quantitative data — temperatures (C), pressures (kbar/GPa), "
+        f"ages (Ma/Ga), compositions (wt%), partition coefficients.\n"
+        f"4. Do NOT add new facts, citations, or geological claims.\n"
+        f"5. Improve transitions, reduce repetition, and tighten prose ONLY.\n"
+        f"6. Do NOT simplify technical language — maintain expert register.\n\n"
+        f"Topic: {topic}\n\n"
+        f"Narrative to rewrite:\n---\n{narrative_trunc}\n---\n\n"
+        f"Rewritten narrative (preserve [1] [2] [3] citations and ALL geological data):"
+    )
+
+    try:
+        model = _detect_best_model()
+        import json as _json
+        import urllib.request
+
+        payload = _json.dumps(
+            {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": "/no_think\n" + prompt},
+                ],
+                "stream": False,
+                "think": False,
+                "options": {
+                    "temperature": 0.0,
+                    "top_k": 1,
+                    "num_ctx": 8192,
+                    "num_predict": 4096,
+                    "repeat_penalty": 1.1,
+                },
+            }
+        ).encode("utf-8")
+
+        req = urllib.request.Request(
+            "http://127.0.0.1:11434/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            result = _json.loads(resp.read())
+            msg = result.get("message", {})
+            smoothed = (msg.get("content") or "").strip()
+
+        if smoothed and len(smoothed) > 200:
+            # Strip leaked /no_think prefix
+            if smoothed.startswith(("No_think", "/no_think", "no_think")):
+                smoothed = (
+                    smoothed.split("\n", 1)[-1].strip()
+                    if "\n" in smoothed
+                    else smoothed[9:].strip()
+                )
+            # Cache the result
+            cache_file.write_text(smoothed, encoding="utf-8")
+            log.info("LLM smoothing successful (%d chars, cached)", len(smoothed))
+            return smoothed
+        log.warning("LLM smoothing returned too-short output — using template")
+        return template_narrative
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="replace")[:500]
+        log.warning("LLM smoothing HTTP %d: %s — using template", e.code, error_body)
+        return template_narrative
+    except Exception as e:
+        log.warning("LLM smoothing failed: %s — using template", e)
+        return template_narrative
+
+
+def smooth_theme_paragraphs(
+    narrative: str,
+    topic: str,
+    model: str | None = None,
+) -> str:
+    """Smooth each theme paragraph individually via LLM.
+
+    Preserves markdown headers (### Theme), only smooths prose paragraphs.
+    Returns smoothed narrative or original on failure.
+    """
+    try:
+        from _llm_extract import is_available
+    except ImportError:
+        return narrative
+
+    if not is_available():
+        return narrative
+
+    import hashlib
+    import json as _json
+    import urllib.request
+
+    if model is None:
+        model = _detect_best_model()
+
+    nl = chr(10)  # newline character
+    lines = narrative.split(nl)
+    smoothed_lines = []
+    current_section = []
+
+    for line in lines:
+        if line.startswith("###") or line.startswith("## "):
+            if current_section:
+                section_text = nl.join(current_section).strip()
+                if len(section_text) > 200 and not section_text.startswith("|"):
+                    cache_key = hashlib.sha256(
+                        f"theme_smooth|{topic}|{section_text[:500]}".encode()
+                    ).hexdigest()
+                    cache_dir = (
+                        Path.home() / ".cache" / "scientific_research" / "theme_smooth"
+                    )
+                    cache_dir.mkdir(parents=True, exist_ok=True)
+                    cache_file = cache_dir / f"{cache_key}.txt"
+
+                    if cache_file.exists():
+                        cached = cache_file.read_text(encoding="utf-8")
+                        if cached and len(cached) > 100:
+                            smoothed_lines.append(cached)
+                            current_section = []
+                            smoothed_lines.append(line)
+                            continue
+
+                    prompt = (
+                        "Polish this geological research paragraph for publication quality. "
+                        "CRITICAL RULES:\n"
+                        "1. Keep ALL [N] citation numbers exactly as written.\n"
+                        "2. PRESERVE all geological terminology: mineral names (garnet, "
+                        "biotite, clinopyroxene), P-T values (550C, 6 kbar), "
+                        "geochemical notation (SiO2, d18O, eNd, KD), and method names.\n"
+                        "3. PRESERVE all quantitative data (temperatures, pressures, "
+                        "ages, compositions, partition coefficients).\n"
+                        "4. Do NOT add new facts, citations, or geological claims.\n"
+                        "5. Improve sentence flow and reduce wordiness ONLY.\n"
+                        "6. Do NOT replace technical terms with simpler alternatives.\n\n"
+                        f"{section_text[:2000]}\n\nPolished:"
+                    )
+
+                    try:
+                        payload = _json.dumps(
+                            {
+                                "model": model,
+                                "messages": [
+                                    {"role": "user", "content": "/no_think\n" + prompt}
+                                ],
+                                "stream": False,
+                                "think": False,
+                                "options": {
+                                    "temperature": 0.0,
+                                    "top_k": 1,
+                                    "num_ctx": 4096,
+                                    "num_predict": 2048,
+                                    "repeat_penalty": 1.1,
+                                },
+                            }
+                        ).encode("utf-8")
+
+                        req = urllib.request.Request(
+                            "http://127.0.0.1:11434/api/chat",
+                            data=payload,
+                            headers={"Content-Type": "application/json"},
+                        )
+                        with urllib.request.urlopen(req, timeout=60) as resp:
+                            result = _json.loads(resp.read())
+                            msg = result.get("message", {})
+                            smoothed = (msg.get("content") or "").strip()
+
+                        if smoothed and len(smoothed) > 100:
+                            if smoothed.startswith(("/no_think", "No_think")):
+                                smoothed = smoothed.split(nl, 1)[-1].strip()
+                            cache_file.write_text(smoothed, encoding="utf-8")
+                            smoothed_lines.append(smoothed)
+                        else:
+                            smoothed_lines.append(section_text)
+                    except Exception as e:
+                        log.debug("Theme smoothing failed: %s", e)
+                        smoothed_lines.append(section_text)
+                else:
+                    smoothed_lines.append(section_text)
+                current_section = []
+            smoothed_lines.append(line)
+        else:
+            current_section.append(line)
+
+    if current_section:
+        smoothed_lines.append(nl.join(current_section))
+
+    result = nl.join(smoothed_lines)
+    log.info("Theme-paragraph smoothing complete")
+    return result
+
+
+# =============================================================================
+# Main orchestrator
+# =============================================================================
+
+
+def _build_executive_summary(cited: list[dict], narrative: str, topic: str) -> str:
+    """Build executive summary — thesis statement + key consensus + gaps.
+
+    Extracts the most important quantitative findings from the narrative
+    and synthesizes a 3-4 sentence overview at the top of the brief.
+    """
+    if not cited:
+        return ""
+
+    n = len(cited)
+    years = [p.get("year") for p in cited if p.get("year")]
+    year_range = ""
+    if years:
+        yr_min, yr_max = min(years), max(years)
+        year_range = f"{yr_min}-{yr_max}" if yr_min != yr_max else str(yr_min)
+
+    # Extract all VALIDATED numerical values
+    all_temps = []
+    all_pressures = []
+    for p in cited:
+        finding = p.get("key_finding") or ""
+        for m in p.get("measurements", []):
+            try:
+                from _narrative import _normalize_measurement
+
+                val, unit = _normalize_measurement(
+                    m.get("measurement", ""), m.get("value"), m.get("unit", "")
+                )
+                if val is not None and unit == "C":
+                    all_temps.append(val)
+                elif val is not None and unit == "kbar":
+                    all_pressures.append(val)
+            except ImportError:
+                pass
+        # Also scan finding text (validated)
+        try:
+            from _narrative import _extract_numbers_from_text
+
+            for val, unit in _extract_numbers_from_text(finding):
+                if unit == "C":
+                    all_temps.append(val)
+                elif unit == "kbar":
+                    all_pressures.append(val)
+        except ImportError:
+            pass
+
+    # Count method themes
+    try:
+        from _narrative import _group_by_theme
+
+        themes = _group_by_theme(cited)
+        theme_labels = [t["label"] for t in themes[:4]]
+    except ImportError:
+        theme_labels = []
+
+    parts = ["## Executive summary", ""]
+    lines = []
+
+    # Sentence 1: Scope
+    scope = f"This review synthesizes {n} studies"
+    if year_range:
+        scope += f" ({year_range})"
+    scope += f" on **{topic}**"
+    if theme_labels:
+        scope += f", spanning {len(themes)} methodological approaches"
+    scope += "."
+    lines.append(scope)
+
+    # Sentence 2: Key quantitative findings
+    import statistics as _stats
+
+    quant_parts = []
+    if len(all_temps) >= 3:
+        t_median = _stats.median(all_temps)
+        t_range = f"{min(all_temps):.0f}-{max(all_temps):.0f}"
+        quant_parts.append(
+            f"temperatures of {t_range}C (median {t_median:.0f}C, n={len(all_temps)})"
+        )
+    if len(all_pressures) >= 3:
+        p_median = _stats.median(all_pressures)
+        p_range = f"{min(all_pressures):.1f}-{max(all_pressures):.1f}"
+        quant_parts.append(
+            f"pressures of {p_range} kbar (median {p_median:.1f} kbar, n={len(all_pressures)})"
+        )
+    if quant_parts:
+        lines.append(
+            "Key quantitative findings include " + "; ".join(quant_parts) + "."
+        )
+
+    # Sentence 3: Main themes
+    if theme_labels:
+        lines.append(
+            f"The dominant methodological themes are {', '.join(theme_labels[:3])}."
+        )
+
+    # Sentence 4: Consensus or gap
+    if len(all_temps) >= 5:
+        t_std = _stats.stdev(all_temps) if len(all_temps) >= 2 else 0
+        t_median = _stats.median(all_temps)
+        cv = t_std / abs(t_median) if t_median else 0
+        if cv < 0.15:
+            lines.append("Reported values show good consistency across studies.")
+        elif cv > 0.4:
+            lines.append(
+                "Reported values show considerable variability across studies, "
+                "reflecting differences in rock type, metamorphic grade, and methodological approach. "
+                "Median values are more representative than means for this heterogeneous corpus."
+            )
+
+    parts.extend(lines)
+    parts.append("")
+    return "\n".join(parts)
+
+
+def _build_method_comparison_table(cited: list[dict]) -> str:
+    """Build enhanced method comparison table with P-T ranges.
+
+    Groups papers by detected method theme, outputs:
+    Method | n studies | Key contribution | P range | T range | Limitations
+    """
+    if not cited:
+        return ""
+    try:
+        from _narrative import (
+            _extract_limitations,
+            _extract_numbers_from_text,
+            _group_by_theme,
+        )
+    except ImportError:
+        return ""
+
+    themes = _group_by_theme(cited)
+    if len(themes) < 2:
+        return ""
+
+    lines = [
+        "## Methodological landscape",
+        "",
+        "| Approach | n | Key contribution | Reported range | Limitations |",
+        "|---|---|---|---|---|",
+    ]
+
+    for theme in themes[:8]:
+        label = theme["label"]
+        papers = theme["papers"]
+        n = len(papers)
+        if n == 0:
+            continue
+
+        # Extract one key finding as representative
+        top_finding = ""
+        for p in papers[:3]:
+            f = (p.get("key_finding") or "").strip()
+            if f and len(f) > 40:
+                top_finding = f[:150].rstrip() + ("..." if len(f) > 150 else "")
+                break
+        if not top_finding:
+            # No finding — use first 100 chars of title as summary
+            for p in papers[:2]:
+                t = (p.get("title") or "").strip()
+                if t:
+                    top_finding = t[:100] + ("..." if len(t) > 100 else "")
+                    break
+
+        # Extract VALIDATED P-T ranges
+        temps = []
+        pressures = []
+        for p in papers:
+            # Check both 'measurements' and 'effect_sizes.single_measurements'
+            all_measurements = list(p.get("measurements", []))
+            es = p.get("effect_sizes") or {}
+            if isinstance(es, dict):
+                all_measurements.extend(es.get("single_measurements", []))
+            for m in all_measurements:
+                try:
+                    from _narrative import _normalize_measurement
+
+                    val, unit = _normalize_measurement(
+                        m.get("measurement", "") or m.get("name", ""),
+                        m.get("value"),
+                        m.get("unit", ""),
+                    )
+                    if val is not None and unit == "C":
+                        temps.append(val)
+                    elif val is not None and unit == "kbar":
+                        pressures.append(val)
+                except (ImportError, TypeError, ValueError):
+                    pass
+            for val, unit in _extract_numbers_from_text(p.get("key_finding") or ""):
+                if unit == "C":
+                    temps.append(val)
+                elif unit == "kbar":
+                    pressures.append(val)
+
+        range_parts = []
+        if temps:
+            tmin, tmax = min(temps), max(temps)
+            if tmin == tmax:
+                range_parts.append(f"T: {tmin:.0f}C (n={len(temps)})")
+            elif len(temps) == 1:
+                range_parts.append(f"T: {tmin:.0f}C")
+            else:
+                range_parts.append(f"T: {tmin:.0f}-{tmax:.0f}C (n={len(temps)})")
+        if pressures:
+            pmin, pmax = min(pressures), max(pressures)
+            if pmin == pmax:
+                range_parts.append(f"P: {pmin:.1f} kbar (n={len(pressures)})")
+            elif len(pressures) == 1:
+                range_parts.append(f"P: {pmin:.1f} kbar")
+            else:
+                range_parts.append(
+                    f"P: {pmin:.1f}-{pmax:.1f} kbar (n={len(pressures)})"
+                )
+        range_str = "; ".join(range_parts) if range_parts else "-"
+
+        # Extract limitations
+        lims = _extract_limitations(papers[:5])
+        lim_str = lims[0][:60] + "..." if lims else "-"
+
+        lines.append(f"| {label} | {n} | {top_finding} | {range_str} | {lim_str} |")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _build_publication_trends(cited: list[dict]) -> str:
+    """Build publication trend summary from cited papers."""
+    if not cited:
+        return ""
+    from collections import Counter
+
+    years = [p.get("year") for p in cited if p.get("year")]
+    if len(years) < 5:
+        return ""
+
+    year_counts = Counter(years)
+    min_year = min(years)
+    max_year = max(years)
+
+    lines = [
+        "## Publication trends",
+        "",
+        f"- **Date range**: {min_year}–{max_year} ({len(years)} dated papers)",
+        f"- **Peak year**: {year_counts.most_common(1)[0][0]} ({year_counts.most_common(1)[0][1]} papers)",
+    ]
+
+    # Decade breakdown
+    decades = Counter()
+    for y in years:
+        decades[(y // 10) * 10] += 1
+    decade_str = ", ".join(f"{d}s: {c}" for d, c in sorted(decades.items()))
+    lines.append(f"- **By decade**: {decade_str}")
+
+    # Recent trend
+    recent = sum(1 for y in years if y >= max_year - 5)
+    lines.append(
+        f"- **Last 5 years** ({max_year - 5}–{max_year}): {recent} papers ({recent * 100 // len(years)}%)"
+    )
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def synthesize(
+    query: str,
+    extracted_path: Path | None,
+    verified_path: Path | None,
+    correlation_path: Path | None = None,
+    meta_path: Path | None = None,
+    output_path: Path | None = None,
+    use_llm: bool = False,
+) -> str:
+    """Main synthesis orchestrator.
+
+    1. Detect research type from query
+    2. Load data from pipeline outputs
+    3. Build narrative based on type
+    4. Optionally smooth with LLM
+    5. Write to output_path and return narrative text
+    """
+    extracted = _load_json(extracted_path)
+    verified = _load_json(verified_path)
+    correlation = _load_json(correlation_path)
+    meta = _load_json(meta_path)
+
+    papers = _extract_papers(extracted, verified)
+
+    if not papers:
+        log.error("No papers found in extracted/verified data")
+        msg = f"# Research Brief: {query}\n\nNo papers available for synthesis.\n"
+        if output_path:
+            output_path.write_text(msg, encoding="utf-8")
+        return msg
+
+    research_type = detect_research_type(query)
+    log.info("Research type: %s (%d papers)", research_type, len(papers))
+
+    # Build narrative based on type
+    if research_type == "verification":
+        narrative, cited = build_verification_narrative(papers, correlation, query)
+    elif research_type == "comparative":
+        narrative, cited = build_comparison_narrative(papers, query)
+    elif research_type == "data_compilation":
+        narrative, cited = build_compilation_narrative(papers, query)
+    else:
+        narrative, cited = build_chronological_narrative(
+            papers, query, research_type, correlation
+        )
+
+    # LLM smoothing — per-theme paragraphs (preserves structure)
+    if use_llm and cited:
+        narrative = smooth_theme_paragraphs(narrative, query)
+
+    # Assemble full brief
+    # Concept-based report structure from topic template
+    report_sections: list[str] = []
+    try:
+        from _intent import parse_intent
+
+        intent = parse_intent(query if isinstance(query, str) else "")
+        if intent and intent.template and intent.template.report_sections:
+            report_sections = intent.template.report_sections
+            log.info(
+                "Using concept-hierarchical structure from template: %d sections",
+                len(report_sections),
+            )
+    except Exception as e:
+        log.debug("Report sections extraction skipped: %s", e)
+
+    parts: list[str] = []
+
+    # Claim-level evidence synthesis
+    try:
+        from _claims import (
+            extract_claims,
+            render_claim_summary,
+            render_contradiction_section,
+        )
+
+        claim_items = []
+        for c in cited:
+            ref = c.get("ref", 0)
+            finding = c.get("finding", "") or c.get("summary", "")
+            measurements = c.get("measurements") or {}
+            if finding:
+                claim_items.append(
+                    {"ref": ref, "finding": finding, "measurements": measurements}
+                )
+
+        if claim_items:
+            claims = extract_claims(claim_items)
+            if claims:
+                claim_text = render_claim_summary(claims)
+                contradiction_text = render_contradiction_section(claims)
+                if claim_text:
+                    parts.append(claim_text)
+                if contradiction_text:
+                    parts.append(contradiction_text)
+    except Exception as e:
+        log.debug("Claim synthesis skipped: %s", e)
+    parts.append(f"# Research Brief: {query}")
+    parts.append("")
+    parts.append(f"**Research type**: {research_type}")
+    parts.append(f"**Corpus**: {len(papers)} papers")
+    if cited:
+        years = [p.get("year") for p in cited if p.get("year")]
+        if years:
+            parts.append(f"**Date range**: {min(years)}–{max(years)}")
+    parts.append(f"**Generated**: {time.strftime('%Y-%m-%d %H:%M')}")
+    parts.append(
+        f"**Method**: {'LLM-smoothed' if use_llm else 'template-based (non-LLM)'}"
+    )
+    parts.append("")
+    parts.append("---")
+    parts.append("")
+
+    # Executive summary
+    if cited:
+        exec_summary = _build_executive_summary(cited, narrative, query)
+        if exec_summary:
+            parts.append(exec_summary)
+
+    # Method comparison table
+    if cited:
+        method_table = _build_method_comparison_table(cited)
+        if method_table:
+            parts.append(method_table)
+
+    # Publication trends
+    if cited:
+        trends = _build_publication_trends(cited)
+        if trends:
+            parts.append(trends)
+
+    # Geological implications — P-T interpretation (non-LLM, textbook logic)
+    try:
+        from _geo_enrich import interpret_pt_data
+
+        all_temps: list[float] = []
+        all_pressures: list[float] = []
+        disc_counts: dict[str, int] = {}
+        for p in cited or papers:
+            pico = p.get("pico") or {}
+            d = (pico.get("discipline") or "").lower()
+            if d:
+                disc_counts[d] = disc_counts.get(d, 0) + 1
+            for m in p.get("measurements") or []:
+                if not isinstance(m, dict) or m.get("_flagged"):
+                    continue
+                mname = (m.get("measurement") or "").lower()
+                try:
+                    val = float(m.get("value")) if m.get("value") else None
+                except (TypeError, ValueError):
+                    val = None
+                if val is None:
+                    continue
+                if "temp" in mname and 50 < val < 2000:
+                    all_temps.append(val)
+                elif "press" in mname and 0 < val < 100:
+                    all_pressures.append(val)
+        dominant_disc = max(disc_counts, key=disc_counts.get) if disc_counts else ""
+        pt_interp = interpret_pt_data(all_temps, all_pressures, dominant_disc)
+        if pt_interp:
+            parts.append("## Geological implications")
+            parts.append("")
+            parts.append(pt_interp)
+            parts.append("")
+    except ImportError:
+        pass
+
+    parts.append(narrative)
+    parts.append("")
+
+    # Convergence and controversies — statistical analysis
+    try:
+        from _geo_enrich import build_convergence_text, detect_research_gaps
+
+        # Group papers by detected theme for convergence analysis
+        theme_groups: dict[str, list[dict]] = {}
+        for p in cited or papers:
+            pico = p.get("pico") or {}
+            theme = pico.get("study_type") or pico.get("discipline") or "general"
+            theme_groups.setdefault(theme, []).append(p)
+        conv_text = build_convergence_text(theme_groups)
+        if conv_text:
+            parts.append("## Convergence and controversies")
+            parts.append("")
+            parts.append(conv_text)
+            parts.append("")
+
+        # Research gaps
+        found_themes = list(theme_groups.keys())
+        gaps = detect_research_gaps(found_themes, dominant_disc)
+        if gaps:
+            parts.append("## Research gaps")
+            parts.append("")
+            parts.append(
+                "The following methodological approaches are underrepresented "
+                "in this corpus: **" + "**, **".join(gaps) + "**. "
+            )
+            parts.append("")
+    except ImportError:
+        pass
+
+    # Add meta-analysis summary if available
+    if meta and meta.get("pooled_effect"):
+        parts.append("## Meta-analysis summary")
+        parts.append("")
+        pooled = meta["pooled_effect"]
+        parts.append(
+            f"- Pooled effect: {pooled.get('estimate', 'N/A')} "
+            f"(95% CI: {pooled.get('ci_lower', '?')}–{pooled.get('ci_upper', '?')})"
+        )
+        if meta.get("heterogeneity"):
+            parts.append(
+                f"- Heterogeneity (I²): {meta['heterogeneity'].get('i_squared', 'N/A')}"
+            )
+        parts.append("")
+
+    # Citation network analysis
+    try:
+        from _citation_graph import build_citation_graph, format_citation_graph_summary
+
+        graph_data = build_citation_graph(cited)
+        if graph_data:
+            graph_md = format_citation_graph_summary(graph_data)
+            if graph_md:
+                parts.append(graph_md)
+    except Exception:
+        pass
+
+    # References
+    if cited:
+        parts.append("## References")
+        parts.append("")
+        parts.append(format_citation_list(cited))
+
+    full_brief = "\n".join(parts)
+
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(full_brief, encoding="utf-8")
+        log.info(
+            "Research brief written to %s (%d chars)", output_path, len(full_brief)
+        )
+
+    return full_brief
+
+
+# =============================================================================
+# CLI
+# =============================================================================
+
+
+def main() -> int:
+    # Pre-parser self-check — bypasses required-positional validation
+    if "--self-check" in sys.argv:
+        print(f"OK {sys.argv[0]}: hard deps verified by bootstrap, ready")
+        return 0
+    import argparse
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    p = argparse.ArgumentParser(
+        prog="synthesize",
+        description="Phase 5: Narrative synthesis with chronological citations.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    p.add_argument("--self-check", action="store_true",
+                        help="verify deps + key imports, then exit 0")  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
+    p.add_argument(
+        "--query",
+        required=True,
+        help="Original research query (drives research type detection)",
+    )
+    p.add_argument(
+        "--extracted",
+        type=Path,
+        default=None,
+        help="extracted.json from extract.py",
+    )
+    p.add_argument(
+        "--verified",
+        type=Path,
+        default=None,
+        help="verified.json from verify.py",
+    )
+    p.add_argument(
+        "--correlation",
+        type=Path,
+        default=None,
+        help="correlation.json from correlate.py (for verification type)",
+    )
+    p.add_argument(
+        "--meta",
+        type=Path,
+        default=None,
+        help="meta.json from meta_analyze.py (optional)",
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output path for research_brief.md",
+    )
+    p.add_argument(
+        "--use-llm",
+        action="store_true",
+        help="Use Ollama LLM for prose smoothing (opt-in, default: template-based)",
+    )
+    p.add_argument(
+        "--print",
+        action="store_true",
+        help="Also print narrative to stdout",
+    )
+
+    args = p.parse_args()
+    brief = synthesize(
+        query=args.query,
+        extracted_path=args.extracted,
+        verified_path=args.verified,
+        correlation_path=args.correlation,
+        meta_path=args.meta,
+        output_path=args.output,
+        use_llm=args.use_llm,
+    )
+
+    if args.print or not args.output:
+        print(brief)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

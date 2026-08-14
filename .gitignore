@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Skill venv (rebuilt by bootstrap)
+.venv/
+
+# Run outputs (regenerated per research run)
+research_outputs/
+scripts/research_outputs/
+
+# Tool state
+.serena/
+.codegraph/
+
+# OS
+.DS_Store

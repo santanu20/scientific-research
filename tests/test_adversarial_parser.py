@@ -8,11 +8,9 @@ name says which scientific claim would be corrupted.
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from _effect_parser import extract_effect_sizes  # noqa: E402
+from _effect_parser import extract_effect_sizes
 
 
 def singles(text):

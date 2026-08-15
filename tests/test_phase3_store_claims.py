@@ -1,20 +1,17 @@
 """Phase 3 tests: DocumentStore, claims engine, subgroup decomposition."""
 
-import json
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from _claims_engine import (  # noqa: E402
+from _claims_engine import (
     NumericClaim,
     contradiction_report,
     detect_contradictions,
     extract_claims,
 )
-from _documentstore import DocumentStore, _paper_key  # noqa: E402
+from _documentstore import DocumentStore, _paper_key
 
 
 class TestDocumentStore:
@@ -115,7 +112,6 @@ class TestSubgroupDecade:
         assert "_year" in src
 
     def test_pool_with_years_emits_subgroups(self, tmp_path):
-        from _sources import PaperRecord
         from meta_analyze import StudyEffect, run_meta_analysis
 
         studies = []

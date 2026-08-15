@@ -160,7 +160,7 @@ class TestBriefCharacterization:
     def test_all_inline_cites_resolve(self, brief):
         refs = set(re.findall(r"\[(\d+)\]", brief.split("## References")[0]))
         ref_entries = set(
-            re.findall(r"^\[(\d+)\]", brief.split("## References")[1], re.M)
+            re.findall(r"^\[(\d+)\]", brief.split("## References")[1], re.MULTILINE)
         )
         assert refs, "no inline citations in body"
         assert refs <= ref_entries, f"dangling cites: {refs - ref_entries}"

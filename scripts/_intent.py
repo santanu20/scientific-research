@@ -22,6 +22,8 @@ Example:
 
 from __future__ import annotations
 
+from _types import TopicTemplate
+
 import json
 import logging
 import re
@@ -36,21 +38,6 @@ log = logging.getLogger("scientific_research.intent")
 # =============================================================================
 
 
-@dataclass
-class TopicTemplate:
-    """Template defining how to search, filter, rank, and organize a topic."""
-
-    name: str
-    display_name: str
-    synonyms: list[str] = field(default_factory=list)
-    landmarks: list[str] = field(default_factory=list)
-    must_have: list[str] = field(default_factory=list)
-    exclude: list[str] = field(default_factory=list)
-    report_sections: list[str] = field(default_factory=list)
-    boost_terms: dict[str, float] = field(default_factory=dict)
-    target_property: str = ""
-    unit: str = ""
-    valid_range: tuple[float, float] = (0.0, 0.0)
 
 
 @dataclass

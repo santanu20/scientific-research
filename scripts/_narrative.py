@@ -10,6 +10,8 @@ Imported by synthesize.py — not called directly.
 
 from __future__ import annotations
 
+from _artifact import _extract_papers, _load_json  # noqa: F401
+
 import json
 import logging
 import re
@@ -70,15 +72,6 @@ def _normalize_for_narrative(papers: list) -> list:
 # =============================================================================
 
 
-def _load_json(path: Path | None) -> dict | None:
-    """Load JSON file, return None if path is None or doesn't exist."""
-    if path is None or not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
-        log.warning("Failed to load %s: %s", path, e)
-        return None
 
 
 def _sanitize_finding(text: str) -> str:
@@ -130,103 +123,6 @@ def _sanitize_finding(text: str) -> str:
     return text.strip()
 
 
-def _extract_papers(
-    extracted: dict | None,
-    verified: dict | None,
-) -> list[dict]:
-    """Merge paper metadata from verified.json with extraction data.
-
-    Returns list of dicts with keys:
-      paper_id, title, year, authors, doi, abstract,
-      key_finding, discipline, novelty, study_type,
-      measurements (list of {value, unit, measurement}), interpretation
-    """
-    # Build lookup from extracted.json (keyed by paper_id or doi)
-    # NOTE: extract.py stores under "extractions" key (not "results")
-    ext_lookup: dict[str, dict] = {}
-    if extracted:
-        ext_list = extracted.get("extractions") or extracted.get("results") or []
-        for item in ext_list:
-            pid = item.get("paper_id", "")
-            ext_lookup[pid] = item
-            if item.get("doi"):
-                ext_lookup[item["doi"]] = item
-
-    papers: list[dict] = []
-
-    # Source paper metadata from verified.json (has full PaperRecord)
-    if verified:
-        for p in verified.get("papers", []):
-            pid = p.get("primary_id") or p.get("paper_id") or ""
-            doi = p.get("doi") or ""
-            ext = ext_lookup.get(pid) or ext_lookup.get(doi) or {}
-
-            # Get key finding from extraction or compute from abstract
-            abstract = p.get("abstract") or ""
-            key_finding = ext.get("pico", {}).get("key_finding") or ""
-            if not key_finding and abstract:
-                from _classifiers import extract_key_finding
-
-                key_finding = extract_key_finding(abstract, max_chars=300)
-
-            # Collect measurements from effect_sizes
-            measurements: list[dict] = []
-            eff = ext.get("effect_sizes", {})
-            for m in eff.get("single_measurements", []):
-                measurements.append(
-                    {
-                        "value": m.get("value"),
-                        "unit": m.get("unit", ""),
-                        "measurement": m.get("measurement", ""),
-                        "raw": m.get("raw_text", ""),
-                    }
-                )
-
-            papers.append(
-                {
-                    "paper_id": pid,
-                    "title": _sanitize_finding(p.get("title") or ""),
-                    "year": p.get("year"),
-                    "authors": _parse_authors(p.get("authors", [])),
-                    "doi": doi,
-                    "abstract": _sanitize_finding(abstract),
-                    "key_finding": _sanitize_finding(key_finding),
-                    "discipline": (ext.get("pico", {}).get("discipline") or "")
-                    or (detect_discipline(abstract) if abstract else ""),
-                    "novelty": (ext.get("pico", {}).get("novelty") or ""),
-                    "study_type": (ext.get("pico", {}).get("study_type") or ""),
-                    "interpretation": _sanitize_finding(
-                        ext.get("pico", {}).get("interpretation") or ""
-                    ),
-                    "measurements": measurements,
-                }
-            )
-
-    # Fallback: if no verified.json, build from extracted.json alone
-    if not papers and extracted:
-        ext_list = extracted.get("extractions") or extracted.get("results") or []
-        for item in ext_list:
-            abstract = item.get("abstract", "")
-            papers.append(
-                {
-                    "paper_id": item.get("paper_id", ""),
-                    "title": item.get("title", ""),
-                    "year": None,
-                    "authors": [],
-                    "doi": item.get("doi", ""),
-                    "abstract": abstract,
-                    "key_finding": (item.get("pico", {}).get("key_finding") or ""),
-                    "discipline": (item.get("pico", {}).get("discipline") or ""),
-                    "novelty": (item.get("pico", {}).get("novelty") or ""),
-                    "study_type": (item.get("pico", {}).get("study_type") or ""),
-                    "interpretation": (
-                        item.get("pico", {}).get("interpretation") or ""
-                    ),
-                    "measurements": [],
-                }
-            )
-
-    return papers
 
 
 def _parse_authors(authors_field: Any) -> list[str]:

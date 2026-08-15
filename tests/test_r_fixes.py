@@ -2,6 +2,8 @@
 
 import json
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -36,29 +38,29 @@ class TestR4IntervalBounds:
 
 class TestR1CorrelateFailLoud:
     def test_extracted_shape_refused(self, tmp_path):
-        """The gate lives in correlate.main load section — drive it via the
-        same shape check main performs (regression: extracted.json used to
-        load 0 papers silently)."""
-        import correlate
+        """Behavior: the typed artifact gate rejects extracted.json shape."""
+        from _artifact import ArtifactShapeError, load_verified
 
         f = tmp_path / "extracted.json"
         f.write_text(json.dumps({"extractions": [], "meta": {}}))
-        data = json.loads(f.read_text(encoding="utf-8"))
-        assert "papers" not in data  # shape detector sees this
-        # and the real gate raises in main(); verified by source contract:
-        src = Path(correlate.__file__).read_text()
-        assert "has no 'papers' key" in src
-        assert "0 papers" in src and "FATAL" in src
+        with pytest.raises(ArtifactShapeError, match="not a valid Verified"):
+            load_verified(f)
 
     def test_zero_papers_refused(self, tmp_path):
+        from _artifact import ArtifactShapeError, load_verified
+
         f = tmp_path / "empty.json"
         f.write_text(json.dumps({"papers": []}))
-        data = json.loads(f.read_text(encoding="utf-8"))
-        assert data.get("papers") == []
-        import correlate
+        with pytest.raises(ArtifactShapeError, match="refusing empty"):
+            load_verified(f)
 
-        src = Path(correlate.__file__).read_text()
-        assert "contains 0 papers" in src  # second gate present
+    def test_correlation_must_be_live(self, tmp_path):
+        from _artifact import ArtifactShapeError, load_correlation
+
+        f = tmp_path / "dead.json"
+        f.write_text(json.dumps({"n_papers": 0}))
+        with pytest.raises(ArtifactShapeError, match="EMPTY"):
+            load_correlation(f)
 
 
 def _run_main(args):

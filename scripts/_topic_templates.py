@@ -13,7 +13,7 @@ Each template defines:
 
 from __future__ import annotations
 
-from _intent import TopicTemplate
+from _types import TopicTemplate
 
 _TEMPLATES: dict[str, TopicTemplate] = {}
 

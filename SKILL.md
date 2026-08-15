@@ -145,7 +145,6 @@ echo "$prompt" | my-agent-llm-call
 
 The hook fires inside `_llm_extract._call_ollama()` and transparently
 replaces EVERY Ollama call across all 5 LLM-using scripts (`_intent.py`,
-`_llm_extract.py`, `_query.py`, `assess.py`, `synthesize.py`). No code
 changes needed — pure env-var configuration.
 
 **Run-scoped rate limits + centralized timeouts** are wired into `_sources.py`

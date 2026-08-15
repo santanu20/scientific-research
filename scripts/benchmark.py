@@ -75,7 +75,7 @@ def _try_load_synergy():
                 papers.append(
                     PaperRecord(
                         title=title[:300],
-                        abstract=" ".join(abstract.split())[:3000],
+                        abstract=" ".join(abstract.split()),
                         doi=None,
                     )
                 )
@@ -172,7 +172,7 @@ def bench_screening(seed_frac: float = 0.05) -> dict:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
 
-    texts = [(p.title + " " + (p.abstract or ""))[:5000] for p in papers]
+    texts = [p.title + " " + (p.abstract or "") for p in papers]
     vec = TfidfVectorizer(ngram_range=(1, 2), sublinear_tf=True, max_features=20000)
     X = vec.fit_transform(texts)
     seed_rel = [i for i in seed_idx if labels[i] == "include"] or seed_idx[:1]

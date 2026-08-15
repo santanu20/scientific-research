@@ -64,7 +64,6 @@ def _score_paper_keywords(
     statistics available) — weights default to 1.0.
     Score = Σ idf(include matched) − 2·Σ idf(exclude matched).
     """
-    import math as _math
 
     text = ((paper.title or "") + " " + (paper.abstract or "")).lower()
     if not text.strip():
@@ -96,16 +95,11 @@ def set_keyword_idf(papers: list[PaperRecord], include: list[str], exclude: list
 # Embedding mode (semantic similarity, optional)
 # =============================================================================
 def _embed_text(text: str) -> list[float]:
-    """Embed single text using BGE (shared singleton from _embeddings.py)."""
-    import numpy as _np
-    from _embeddings import embed_texts
+    """Embed single text using BGE — lossless for long text (chunk-pooled)."""
+    from _embeddings import embed_text_full
 
-    emb = embed_texts([text])
-    if emb is not None and emb.shape[0] > 0:
-        vec = emb[0]
-        norm = _np.linalg.norm(vec) + 1e-10
-        return (vec / norm).tolist()
-    return []
+    vec = embed_text_full(text)
+    return vec.tolist() if vec is not None else []
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
@@ -121,10 +115,10 @@ def _score_paper_embeddings(
     exclude_vecs: list[list[float]],
 ) -> tuple[float, list[str], list[str]]:
     """Score by cosine similarity to include/exclude embeddings."""
-    text = ((paper.title or "") + ". " + (paper.abstract or ""))[:5000]
+    text = (paper.title or "") + ". " + (paper.abstract or "")
     if not text.strip():
         return (0.0, [], [])
-    paper_vec = _embed_text(text)
+    paper_vec = _embed_text(text)  # _embed_text pools long text losslessly
     inc_scores = [_cosine(paper_vec, iv) for iv in include_vecs]
     exc_scores = [_cosine(paper_vec, ev) for ev in exclude_vecs]
     matched_inc = [f"{s:.2f}" for s in inc_scores if s > 0.55]
@@ -174,7 +168,7 @@ def prioritize_active_learning(
         return (p.doi or p.arxiv_id or p.title or "").strip().lower()
 
     def paper_text(p: PaperRecord) -> str:
-        return ((p.title or "") + " " + (p.abstract or ""))[:8000]
+        return (p.title or "") + " " + (p.abstract or "")
 
     keyed = {paper_key(p): p for p in papers}
     train_x, train_y = [], []

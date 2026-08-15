@@ -94,16 +94,23 @@ def semantic_relevance_scores(query: str, papers: list) -> np.ndarray:
     # Try BGE embeddings first (SOTA — semantic, not just keyword matching)
     try:
         import numpy as _np_bge
-        from _embeddings import embed_texts
 
         expanded_query = _expand_query(query)
         texts = [expanded_query]
         for p in papers:
             title = getattr(p, "title", "") or ""
             abstract = getattr(p, "abstract", "") or ""
-            texts.append((title + " " + abstract)[:1000])
+            texts.append(title + " " + abstract)  # full text (chunk-pooled downstream)
 
-        embeddings = embed_texts(texts)
+        from _embeddings import embed_text_full
+
+        _vecs = [embed_text_full(t) for t in texts]
+        if any(v is None for v in _vecs):
+            embeddings = None
+        else:
+            import numpy as _np
+
+            embeddings = _np.array(_vecs)
         if embeddings is not None and embeddings.shape[0] == len(texts):
             query_emb = embeddings[0:1]
             paper_embs = embeddings[1:]

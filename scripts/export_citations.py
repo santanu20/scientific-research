@@ -113,7 +113,7 @@ def export_ris(papers: list[PaperRecord]) -> str:
             out.append(f"DO  - {p.doi}")
         if p.arxiv_id:
             out.append(f"AN  - arXiv:{p.arxiv_id}")
-        out.append(f"AB  - {(p.abstract or '')[:5000]}")
+        out.append(f"AB  - {(p.abstract or '')}")
         out.append("ER  -")
         out.append("")
     return "\n".join(out)
@@ -198,7 +198,7 @@ def push_to_zotero(
         if p.year:
             item["date"] = str(p.year)
         item["publicationTitle"] = p.venue or ""
-        item["abstractNote"] = (p.abstract or "")[:6000]
+        item["abstractNote"] = p.abstract or ""
         if p.doi:
             item["DOI"] = p.doi
         if p.arxiv_id:

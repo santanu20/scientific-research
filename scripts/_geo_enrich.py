@@ -490,7 +490,10 @@ def _match_by_embedding(text: str) -> str | None:
             )
 
         # Embed the paper text
-        paper_emb = embed_texts([text[:2000]])
+        from _embeddings import embed_text_full
+
+        _pooled = embed_text_full(text)  # chunk+mean-pool: full text, no cut
+        paper_emb = None if _pooled is None else [_pooled]
         if paper_emb is None:
             return None
 

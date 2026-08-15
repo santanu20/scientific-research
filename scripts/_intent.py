@@ -22,13 +22,13 @@ Example:
 
 from __future__ import annotations
 
-from _types import TopicTemplate
-
 import json
 import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from _types import TopicTemplate
 
 log = logging.getLogger("scientific_research.intent")
 

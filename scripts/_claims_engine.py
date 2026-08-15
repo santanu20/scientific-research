@@ -26,7 +26,8 @@ from _effect_parser import extract_effect_sizes
 
 log = logging.getLogger("scientific_research.claims")
 
-_CLAIM_SENT = re.compile(r"[^.!?]{20,600}?[.!?]", re.DOTALL)
+# 600->2000 (2026-08-15): long numeric claims must not be dropped
+_CLAIM_SENT = re.compile(r"[^.!?]{20,2000}?[.!?]", re.DOTALL)
 
 
 @dataclass

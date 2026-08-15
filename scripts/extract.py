@@ -551,7 +551,7 @@ def extract_from_paper(
                     paper_id=paper.primary_id,
                     doi=paper.doi,
                     title=paper.title,
-                    abstract=(paper.abstract or "")[:6000],
+                    abstract=paper.abstract or "",
                     key_finding=llm_result.get("key_finding", "")
                     or pico_regex.get("key_finding", ""),
                     pico=pico,
@@ -617,7 +617,7 @@ def extract_from_paper(
         paper_id=paper.primary_id,
         doi=paper.doi,
         title=paper.title,
-        abstract=(paper.abstract or "")[:6000],
+        abstract=paper.abstract or "",
         key_finding=pico_regex.get("key_finding", ""),
         pico=pico_regex,
         effect_sizes=effects_regex,

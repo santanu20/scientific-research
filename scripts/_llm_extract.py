@@ -577,11 +577,33 @@ def extract_paper(
         log.debug("Cache hit for extraction")
         return cached
 
-    # Call LLM
+    # Call LLM — long abstracts are extracted SEGMENT-WISE, never cut
+    # (2026-08-15: a [:6000] cap silently dropped every measurement in the
+    # tail of long abstracts — scientifically dangerous). Segments split at
+    # sentence boundaries within the context budget; per-segment results
+    # merge below (effects append, first non-empty key_finding wins).
+    _SEG = 5800  # chars ≈ within 4096-token ctx alongside the prompt
+
+    def _segments(ab: str) -> list[str]:
+        if len(ab) <= _SEG:
+            return [ab]
+        out, buf = [], ""
+        for sent in ab.replace("\n", " ").split(". "):
+            cand = f"{buf}. {sent}" if buf else sent
+            if len(cand) > _SEG and buf:
+                out.append(buf)
+                buf = sent
+            else:
+                buf = cand
+        if buf:
+            out.append(buf)
+        return out
+
+    segs = _segments(abstract or "")
     prompt = _EXTRACTION_PROMPT.format(
         topic=topic or "(not specified)",
         title=title or "(not provided)",
-        abstract=abstract[:6000],  # cap at 6000 chars (~1500 tokens, within 4096 ctx)
+        abstract=segs[0],
     )
 
     # Retry LLM call up to 2 times on failure (rate limit, timeout, bad JSON)
@@ -621,6 +643,32 @@ def extract_paper(
                     "LLM returned no discipline for '%s' — accepting partial",
                     title[:40],
                 )
+            # Multi-segment merge: every remaining segment of a long
+            # abstract gets its own extraction; effects append, first
+            # non-empty narrative fields win. No content left unextracted.
+            if len(segs) > 1:
+                for extra_seg in segs[1:]:
+                    try:
+                        sub = extract_paper(
+                            extra_seg,
+                            title=title,
+                            topic=topic,
+                            fallback=_empty_result(),
+                        )
+                    except Exception:  # noqa: BLE001 — segment isolation
+                        continue
+                    if not sub:
+                        continue
+                    es = sub.get("effect_sizes") or {}
+                    for key in ("single_measurements", "mean_sd_groups", "event_counts"):
+                        merged_list = result.setdefault("effect_sizes", {}).setdefault(key, [])
+                        merged_list.extend(es.get(key) or [])
+                    if not result.get("key_finding") and sub.get("key_finding"):
+                        result["key_finding"] = sub["key_finding"]
+                    p = sub.get("pico") or {}
+                    for k, v in p.items():
+                        if v and not (result.get("pico") or {}).get(k):
+                            result.setdefault("pico", {})[k] = v
             _cached_put(cache_key, result)
             log.debug("LLM extraction successful for: %s", title[:50])
             return result

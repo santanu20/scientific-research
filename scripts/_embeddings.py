@@ -123,6 +123,51 @@ def embed_texts(texts: list[str], use_cache: bool = True) -> np.ndarray | None:
     return np.array([emb for _, emb in results]) if results else None
 
 
+def embed_text_full(text: str, use_cache: bool = True) -> np.ndarray | None:
+    """Lossless embedding for arbitrarily long scientific text (2026-08-15).
+
+    Character-capped embeddings silently blinded ranking/screening to
+    everything past the cut — scientifically dangerous (a P-T estimate in
+    the tail of an abstract became invisible). This helper CHUNKS at
+    sentence boundaries (~1,800 chars, within the model's 512-token window),
+    embeds each chunk, L2-normalizes, and mean-pools to one unit vector.
+    No scientific content is discarded.
+
+    Returns (dim,) unit vector or None when embeddings unavailable.
+    """
+    if not text or not text.strip():
+        return None
+    if len(text) <= 1800:
+        emb = embed_texts([text], use_cache=use_cache)
+        if emb is None or emb.shape[0] == 0:
+            return None
+        v = emb[0]
+        n = np.linalg.norm(v) + 1e-10
+        return v / n
+    # sentence-boundary chunks
+    chunks, buf = [], ""
+    for sent in text.replace("\n", " ").split(". "):
+        sent = sent.strip()
+        if not sent:
+            continue
+        cand = f"{buf}. {sent}" if buf else sent
+        if len(cand) > 1800 and buf:
+            chunks.append(buf)
+            buf = sent
+        else:
+            buf = cand
+    if buf:
+        chunks.append(buf)
+    embs = embed_texts(chunks, use_cache=use_cache)
+    if embs is None or embs.shape[0] == 0:
+        return None
+    norms = np.linalg.norm(embs, axis=1, keepdims=True) + 1e-10
+    unit = embs / norms
+    pooled = unit.mean(axis=0)
+    pn = np.linalg.norm(pooled) + 1e-10
+    return pooled / pn
+
+
 def semantic_rank(
     query: str,
     papers: list[dict],

@@ -43,10 +43,8 @@ _SCRIPT_DIR = Path(__file__).parent.resolve()
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from _classifiers import detect_discipline, detect_research_type
+from _classifiers import detect_research_type
 from _narrative import (
-    _parse_authors,
-    _sanitize_finding,
     build_chronological_narrative,
     build_comparison_narrative,
     build_compilation_narrative,
@@ -318,7 +316,7 @@ def smooth_theme_paragraphs(
                         "4. Do NOT add new facts, citations, or geological claims.\n"
                         "5. Improve sentence flow and reduce wordiness ONLY.\n"
                         "6. Do NOT replace technical terms with simpler alternatives.\n\n"
-                        f"{section_text[:2000]}\n\nPolished:"
+                        f"{section_text}\n\nPolished:"  # full section (num_ctx sized)
                     )
 
                     try:
@@ -794,12 +792,12 @@ def synthesize(
     5. Write to output_path and return narrative text
     """
     from _artifact import (  # deduped helpers (Phase 1)
+        ArtifactShapeError,
         _extract_papers,
         _load_json,
         load_extractions,
         load_verified,
     )
-    from _artifact import ArtifactShapeError
 
     try:
         extracted = load_extractions(extracted_path)
@@ -982,7 +980,11 @@ def synthesize(
         # >=5x spreads — the calibration-disagreement candidates a reviewer
         # expects in this section. Advisory; sentences quoted for traceability.
         try:
-            from _claims_engine import contradiction_report, detect_contradictions, extract_claims
+            from _claims_engine import (
+                contradiction_report,
+                detect_contradictions,
+                extract_claims,
+            )
 
             claims = [c for p in (cited or papers)[:80] for c in extract_claims(p)]
             cons = detect_contradictions(claims)

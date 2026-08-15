@@ -10,14 +10,16 @@ Imported by synthesize.py — not called directly.
 
 from __future__ import annotations
 
-from _artifact import _extract_papers, _load_json, _sanitize_finding  # noqa: F401
-from _artifact import _parse_authors  # noqa: F401
-
-import json
 import logging
 import re
 from collections import defaultdict
-from typing import Any
+
+from _artifact import (  # noqa: F401
+    _extract_papers,
+    _load_json,
+    _parse_authors,
+    _sanitize_finding,
+)
 
 log = logging.getLogger("scientific_research.narrative")
 
@@ -29,7 +31,6 @@ _SCRIPT_DIR = Path(__file__).parent.resolve()
 if str(_SCRIPT_DIR) not in _sys.path:
     _sys.path.insert(0, str(_SCRIPT_DIR))
 
-from _classifiers import detect_discipline
 
 # ── Boundary normalizer (defense-in-depth) ─────────────────────────────────
 _NARR_STRING_FIELDS = (
@@ -114,8 +115,6 @@ def format_citation_list(papers: list[dict]) -> str:
         author = _author_short(_parse_authors(p.get("authors", [])))
         year = p.get("year") or "n.d."
         title = p.get("title", "Untitled")
-        if len(title) > 120:
-            title = title[:117] + "..."
         doi = p.get("doi", "")
         doi_str = f" DOI:[{doi}](https://doi.org/{doi})" if doi else ""
         lines.append(f"[{i}] {author} ({year}). {title}.{doi_str}")

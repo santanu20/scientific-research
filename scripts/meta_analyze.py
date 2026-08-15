@@ -937,6 +937,44 @@ def main() -> int:
                 "cross-unit pooling refused. Nothing to pool."
             )
             return 1
+        # R3 phenomenon screen: unit-commensurable is necessary but not
+        # sufficient. Experimental run pressures (piston-cylinder calibration
+        # conditions, vacuum/ambient ~0 kbar) are a DIFFERENT phenomenon than
+        # magma-storage barometry; pooling them dragged the pressure pool
+        # toward 0 in the E2E run. Screen by physical plausibility band for
+        # the known crustal-storage quantities; excluded rows are LOGGED with
+        # counts (never silently dropped), and only storage-scale pools keep
+        # the clean label. Bands are documented earth-science priors:
+        #   storage T 650-1400 °C (silicate magmas, anhydrous to hydrous)
+        #   storage P 0.3-15 kbar (mid-crust to Moho; >15 = mantle/xenolith)
+        # Other quantities pass through unscreened (no band asserted).
+        _PHENOMENON_BANDS: dict[tuple[str, str], tuple[float, float]] = {
+            ("temperature", "°C"): (650.0, 1400.0),
+            ("pressure", "kbar"): (0.3, 15.0),
+        }
+        screened_pools: list[tuple[str, list[StudyEffect]]] = []
+        for lbl, g in pools:
+            base_unit = lbl.rsplit("(", 1)[-1].rstrip(")")
+            meas = lbl.rsplit("(", 1)[0].strip()
+            band = _PHENOMENON_BANDS.get((meas, base_unit))
+            if band is None:
+                screened_pools.append((lbl, g))
+                continue
+            kept = [s for s in g if band[0] <= s.effect <= band[1]]
+            n_out = len(g) - len(kept)
+            if n_out:
+                print(
+                    f"Phenomenon screen [{lbl}]: {n_out}/{len(g)} rows outside "
+                    f"storage band {band[0]}-{band[1]} — excluded from pool "
+                    f"(logged; experimental/vacuum run conditions, not storage "
+                    f"estimates)"
+                )
+            if len(kept) >= 2:
+                screened_pools.append((lbl, kept))
+        pools = screened_pools
+        if not pools:
+            print("All pools emptied by phenomenon screen — nothing commensurable.")
+            return 1
         pools.sort(key=lambda t: -len(t[1]))
         for lbl, g in pools:
             try:

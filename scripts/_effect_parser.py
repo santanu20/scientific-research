@@ -233,6 +233,11 @@ class ExtractedNumber:
     p_value: float | None = None
     position: int = 0  # character position in text
     raw_text: str = ""
+    # R4 (2026-08-15): True when this number is one BOUND of a range/interval
+    # ("cooling interval of 190–270 °C", "1200–1350°C experiments"). Interval
+    # bounds are NOT point measurements — pooling them as points fabricated
+    # phantom 190 °C / 1350 °C "temperatures" in the E2E brief.
+    is_interval_bound: bool = False
 
 
 def _find_all_numbers(text: str) -> list[ExtractedNumber]:
@@ -472,6 +477,33 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
 
     # Sort by position
     results.sort(key=lambda r: r.position)
+
+    # R4: mark interval/range bounds: number-dash-number-unit spans
+    # (e.g. 1200-1350 C, 0.5-1.0 GPa, 190-270 C). Both endpoint numbers
+    # become is_interval_bound=True and are excluded from point pools,
+    # because they describe a RANGE, not a measured value.
+    _range_re = re.compile(
+        r"(\d+\.?\d*)\s*[\u2013\u2014-]\s*(\d+\.?\d*)\s*([°A-Za-zµ%‰]*)"
+    )
+    span_by_val: dict[float, bool] = {}
+    for m in _range_re.finditer(text):
+        try:
+            lo, hi = float(m.group(1)), float(m.group(2))
+        except ValueError:
+            continue
+        if lo == hi:
+            continue
+        # unit right after range OR shared family unit on either side
+        u_after = (m.group(3) or "").strip()
+        ctx = text[max(0, m.start() - 8) : m.end() + 8]
+        looks_ranged = bool(u_after) or _detect_unit(ctx)
+        if looks_ranged:
+            span_by_val[lo] = True
+            span_by_val[hi] = True
+    for r in results:
+        if span_by_val.get(r.value):
+            r.is_interval_bound = True
+
     _reconcile_units_and_measurements(results, text)
     return results
 
@@ -784,6 +816,9 @@ def extract_effect_sizes(text: str) -> dict:
     for n in numbers:
         # Skip p-values and sample sizes from singles
         if n.measurement in ("p-value", "sample size"):
+            continue
+        # R4: interval bounds are not point measurements — never pool
+        if getattr(n, "is_interval_bound", False):
             continue
         # Skip if this number is part of a pair (check by value proximity)
         in_pair = any(

@@ -51,7 +51,6 @@ from _render import (
 )
 from _sources import (
     PaperRecord,
-    load_corpus,
     openalex_get_cited_by,
 )
 
@@ -620,7 +619,25 @@ def main() -> int:
         format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
     )
 
-    papers = load_corpus(args.verified)
+    data = json.loads(Path(args.verified).read_text(encoding="utf-8"))
+    # R1 (2026-08-15): this stage needs the VERIFIED CORPUS shape
+    # ({"papers": [...]}). An extracted.json shape ({"extractions": [...]})
+    # previously loaded 0 papers SILENTLY and produced an empty correlation
+    # file with exit 0 (§5 H1 violation — downstream synthesis then wrote a
+    # brief from an empty correlation). Now: detect shape, fail loud.
+    if "papers" not in data:
+        raise SystemExit(
+            f"FATAL: {args.verified} has no 'papers' key — this looks like an "
+            f"extracted.json (keys: {sorted(data)[:5]}). correlate.py needs "
+            f"the VERIFIED corpus (verify.py output). "
+            f"Order: discover → verify → correlate → extract → synthesize."
+        )
+    papers = [PaperRecord.from_dict(d) for d in data.get("papers", [])]
+    if not papers:
+        raise SystemExit(
+            f"FATAL: {args.verified} contains 0 papers — refusing to emit an "
+            f"empty correlation (previous silent behavior masked a dead stage)"
+        )
     log.info("Loaded %d verified papers", len(papers))
 
     # Auto-detect S2 availability — if down, skip citation contexts

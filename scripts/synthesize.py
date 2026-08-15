@@ -91,6 +91,13 @@ def _extract_papers(
             pid = p.get("primary_id") or p.get("paper_id") or ""
             doi = p.get("doi") or ""
             ext = ext_lookup.get(pid) or ext_lookup.get(doi) or {}
+            if not ext and doi:
+                # extraction rows key by 'doi:10...' primary_id — try that form
+                ext = (
+                    ext_lookup.get(f"doi:{doi.lower()}")
+                    or ext_lookup.get(f"doi:{doi}")
+                    or {}
+                )
 
             abstract = p.get("abstract") or ""
             key_finding = ext.get("pico", {}).get("key_finding") or ""
@@ -457,6 +464,93 @@ def smooth_theme_paragraphs(
 # =============================================================================
 # Main orchestrator
 # =============================================================================
+
+
+def _build_structural_gaps(
+    papers: list[dict],
+    correlation: dict,
+    found_themes: list[str] | None = None,
+    template_gaps: list[str] | None = None,
+) -> list[str]:
+    """R5: gap signals from LIVE corpus + correlation structure."""
+    gap_points: list[str] = []
+    years = [p.get("year") for p in papers if p.get("year")]
+    if years and len(years) >= 5:
+        recent_cutoff = max(years) - 5
+        n_recent = sum(1 for y in years if y >= recent_cutoff)
+        if n_recent < len(years) * 0.3:
+            gap_points.append(
+                f"temporal: only {n_recent}/{len(years)} studies newer than "
+                f"{recent_cutoff} — recent-method recalibration may be missing"
+            )
+    n_quant = sum(
+        1
+        for p in papers
+        if p.get("measurements")
+        or (p.get("effect_sizes") or {}).get("single_measurements")
+    )
+    if len(papers) and n_quant < len(papers) * 0.5:
+        gap_points.append(
+            f"quantitative coverage: only {n_quant}/{len(papers)} studies "
+            f"yield extractable numeric estimates (abstract-only ceiling; "
+            f"full-text extraction would widen this)"
+        )
+    theme_counts: dict[str, int] = {}
+    for p in papers:
+        pico = p.get("pico") or {}
+        theme = pico.get("study_type") or pico.get("discipline") or "general"
+        theme_counts[theme] = theme_counts.get(theme, 0) + 1
+    if len(theme_counts) >= 2:
+        biggest = max(theme_counts.values())
+        if biggest >= len(papers) * 0.6:
+            gap_points.append(
+                f"method concentration: one approach covers {biggest}/"
+                f"{len(papers)} studies — cross-method validation is thin"
+            )
+    if correlation.get("n_papers") and not (
+        correlation.get("bibliographic_coupling_edges") or []
+    ):
+        gap_points.append(
+            "no bibliographic coupling detected — studies rarely share "
+            "reference sets; the field may be fragmented"
+        )
+    if template_gaps:
+        gap_points.append("underrepresented approaches: " + ", ".join(template_gaps))
+    return gap_points
+
+
+def _render_pool_section(meta: dict) -> str:
+    """R2: pooled-estimates markdown from meta.json unit_pools ('' if none)."""
+    unit_pools = meta.get("unit_pools") or []
+    if not unit_pools:
+        return ""
+    pool_lines = ["## Pooled estimates (random-effects, REML + HKSJ)", ""]
+    for up in unit_pools:
+        pr = up.get("pooled_random") or {}
+        eff = pr.get("effect")
+        ci = pr.get("ci_lower"), pr.get("ci_upper")
+        i2 = (pr.get("heterogeneity") or {}).get("i_squared")
+        pi = pr.get("prediction_interval")
+        if eff is None or ci[0] is None or i2 is None:
+            continue
+        pi_txt = f"; 95% PI {pi[0]:.1f}–{pi[1]:.1f}" if pi else ""
+        het_flag = (
+            " **(high heterogeneity — treat as range, not consensus)**"
+            if isinstance(i2, (int, float)) and i2 > 75
+            else ""
+        )
+        pool_lines.append(
+            f"- **{up['group']}**: {eff:.1f} "
+            f"(95% CI {ci[0]:.1f}–{ci[1]:.1f}; k={up['k']}; "
+            f"I²={i2:.0f}%{pi_txt}){het_flag}"
+        )
+    pool_lines += [
+        "",
+        "_Pools are unit-commensurable groups (unit gate + phenomenon "
+        "screen applied; see meta.json unit_pools for per-study rows)._",
+        "",
+    ]
+    return "\n".join(pool_lines)
 
 
 def _build_executive_summary(cited: list[dict], narrative: str, topic: str) -> str:
@@ -841,6 +935,10 @@ def synthesize(
         if exec_summary:
             parts.append(exec_summary)
 
+    pool_section = _render_pool_section(meta or {})
+    if pool_section:
+        parts.append(pool_section)
+
     # Method comparison table
     if cited:
         method_table = _build_method_comparison_table(cited)
@@ -909,17 +1007,25 @@ def synthesize(
             parts.append(conv_text)
             parts.append("")
 
-        # Research gaps
-        found_themes = list(theme_groups.keys())
-        gaps = detect_research_gaps(found_themes, dominant_disc)
-        if gaps:
-            parts.append("## Research gaps")
-            parts.append("")
+        gap_points = _build_structural_gaps(
+            cited or papers,
+            correlation or {},
+            found_themes=list(theme_groups.keys()),
+            template_gaps=detect_research_gaps(
+                list(theme_groups.keys()), dominant_disc
+            ),
+        )
+        parts.append("## Research gaps")
+        parts.append("")
+        if gap_points:
+            for gp_ in gap_points:
+                parts.append(f"- {gp_}")
+        else:
             parts.append(
-                "The following methodological approaches are underrepresented "
-                "in this corpus: **" + "**, **".join(gaps) + "**. "
+                f"The corpus provides broad coverage of {query.lower()}; "
+                f"no structural gap signals fired."
             )
-            parts.append("")
+        parts.append("")
     except ImportError:
         pass
 
@@ -992,8 +1098,11 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    p.add_argument("--self-check", action="store_true",
-                        help="verify deps + key imports, then exit 0")  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
+    p.add_argument(
+        "--self-check",
+        action="store_true",
+        help="verify deps + key imports, then exit 0",
+    )  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
     p.add_argument(
         "--query",
         required=True,

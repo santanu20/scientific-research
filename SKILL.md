@@ -562,6 +562,9 @@ Thread-safety verified by `tests/test_ratelimits.py` (concurrent failure + pacin
 | Pluggable embedding model | env `SCIENTIFIC_RESEARCH_EMBED_MODEL` | Default stays bge-base-en-v1.5; cache keys include model name |
 | PRISMA-S + PROSPERO renderers | `report.py` | Auto-fill from provenance manifest; `[FILL]` elsewhere (no guessing) |
 | RoB tool registry extensions | `data/rob_tools.json` | +PROBAST (4 domains, verified); +ROBINS-E (7 domains count-verified; names deliberately unfilled — fetch riskofbias.info before use) |
+| Unit canonicalization before pooling (`_units.py`) | `meta_analyze` collect path | kbar/GPa/MPa/bar, Ma/Ga/ka, K/°C, %/‰/wt%, ppm/ppb, km-family → family base; exotic units untouched |
+| CAL+ERV stopping advisory (AL screening) | `screen.py --al` report | beta-posterior CAL(u0=1) + ERV<1; ADVISORY only, never auto-stops |
+| Benchmark harness | `benchmark.py --bench all` | WSS@95 screening sim (stratified seed), authenticity (Crossref sample + RW retracted seeds), pooling purity invariant, per-stage cost |
 | Bootstrap self-repair | all entry scripts | Missing deps auto-install once (uv); `httpx`,`pytest`,`ruff` added to `_REQ_INSTALLS` |
 
 ## Performance (validated)

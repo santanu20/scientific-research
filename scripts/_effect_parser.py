@@ -487,7 +487,7 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
 _UNIT_FAMILIES: dict[str, set[str]] = {
     "temperature": {"°C", "K"},
     "pressure": {"GPa", "MPa", "kPa", "kbar", "bar"},
-    "age": {"Ma", "Ga"},
+    "age": {"Ma", "Ga", "ka"},
     "fraction": {"%", "wt%", "‰", "‰ VSMOW", "fold"},
     "length": {"km", "m", "cm", "mm", "µm", "nm"},
     "concentration": {"ppm", "ppb", "mol/L", "mM"},

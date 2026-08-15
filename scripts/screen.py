@@ -221,6 +221,59 @@ def prioritize_active_learning(
     )
 
 
+def _al_stopping_section(seed_labels: dict[str, str], n_total: int) -> str:
+    """Human-readable stopping guidance appended to the AL report."""
+    order = list(seed_labels.values())
+    adv = stopping_advisory(order, n_total)
+    return (
+        "\n## Stopping advisory (CAL u0=1 + ERV, beta posterior)\n\n"
+        f"- reviewed so far: {adv['reviewed']} ({adv['relevant_found']} relevant)\n"
+        f"- p̂(include): {adv['p_include_posterior']}\n"
+        f"- expected relevant remaining: {adv['expected_relevant_remaining']}\n"
+        f"- ERV next 100: {adv['erv_next_100']}\n"
+        f"- CAL stop criterion met: {'YES' if adv['cal_stop'] else 'no'}; "
+        f"ERV: {'YES' if adv['erv_stop'] else 'no'}\n"
+        f"- {adv['note']}\n"
+        f"- Re-run with updated --labels as you screen to refresh this advice.\n"
+    )
+
+
+def stopping_advisory(
+    labels_in_order: list[str], n_total: int, u0: float = 1.0
+) -> dict:
+    """CAL- and ERV-style stopping estimates (ADVISORY ONLY — never auto-stops).
+
+    - Posterior: beta(1,1) prior → p̂ = (r+1)/(n+2) after n reviewed, r relevant
+      (Laplace smoothing; the published CAL estimator uses beta-binomial MLE —
+      this simplification is documented, conservative for small n).
+    - CAL-style (Callaghan & Müller-Büttner 2020): stop when expected relevant
+      remaining (N_remaining · p̂) ≤ u0.
+    - ERV (Extra Relevant found by Viewing next 100): 100·p̂; stop when < 1.
+    labels_in_order: reviewer's screening decisions in review order
+    ('include'/'exclude'/'maybe' — maybe counts as NOT relevant here).
+    """
+    n = len(labels_in_order)
+    r = sum(1 for x in labels_in_order if x == "include")
+    p = (r + 1) / (n + 2)
+    remaining = max(n_total - n, 0)
+    expected_remaining = remaining * p
+    erv = 100.0 * p
+    return {
+        "reviewed": n,
+        "relevant_found": r,
+        "p_include_posterior": round(p, 4),
+        "expected_relevant_remaining": round(expected_remaining, 2),
+        "erv_next_100": round(erv, 2),
+        "cal_stop": bool(expected_remaining <= u0),
+        "erv_stop": bool(erv < 1.0),
+        "u0": u0,
+        "note": (
+            "advisory only — simplified beta-posterior CAL/ERV; reviewer "
+            "decides; stopping never automatic"
+        ),
+    }
+
+
 def load_labels_file(path: Path) -> dict[str, str]:
     """Load labels JSONL: {"doi": "...", "label": "include|exclude|maybe"} per line."""
     labels: dict[str, str] = {}
@@ -480,6 +533,7 @@ def main() -> int:
             )
         if len(al.queue) > 50:
             report_lines.append(f"... and {len(al.queue) - 50} more in {args.output}")
+        report_lines.append(_al_stopping_section(al_labels, len(papers)))
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text("\n".join(report_lines))
         print(f"Wrote AL queue ({al.n_unscreened} papers) → {args.output}")

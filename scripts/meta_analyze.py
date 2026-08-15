@@ -287,9 +287,34 @@ def collect_single_measurements(
     """
     by_id = {p.primary_id: p for p in papers}
     grouped: dict[
-        tuple[str, str], list[tuple[PaperRecord, dict, float, float | None, int]]
+        tuple[str, str], list[tuple[PaperRecord, dict, float, float | None, int, str]]
     ] = {}
     skipped_unbound = 0
+    from _units import BASE_MEASUREMENT, canonical_unit, to_canonical
+
+    def _classify(outcome: str, unit: str, val: float, unc: float | None):
+        """Unit-canonicalize one row → ((outcome, base_unit), val, unc, orig_unit).
+
+        Generic label + convertible unit → family default measurement
+        (fixes 'measurement (ka)' misfiling: ka is age family).
+        """
+        if outcome == "measurement" and unit not in ("", "unitless"):
+            cu = canonical_unit(unit)
+            if cu:
+                outcome = BASE_MEASUREMENT[cu]
+        if unit in ("", "unitless"):
+            return (outcome, "unitless"), val, unc, unit
+        conv = to_canonical(val, unit, unc)
+        if conv is None:
+            return (
+                (outcome, unit),
+                val,
+                unc,
+                unit,
+            )  # exotic unit: no conversion, pools alone
+        base_u, val_c, unc_c = conv
+        return (outcome, base_u), val_c, unc_c, unit
+
     for ex in extractions:
         pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
@@ -319,7 +344,39 @@ def collect_single_measurements(
                 if outcome == "measurement" and unit == "unitless":
                     skipped_unbound += 1
                     continue
-                grouped.setdefault((outcome, unit), []).append((paper, s, val, unc, n))
+                key, val_c, unc_c, orig = _classify(outcome, unit, val, unc)
+                grouped.setdefault(key, []).append((paper, s, val_c, unc_c, n, orig))
+            except (KeyError, ValueError, TypeError) as e:
+                log.debug("Skipping single measurement from %s: %s", pid, e)
+
+    # Source 2: mean_sd_groups with m2=None (old regex format) — same
+    # unit gate + canonicalization as Source 1 (unified 2026-08-15)
+    for ex in extractions:
+        pid = ex.get("paper_id") or ""
+        paper = by_id.get(pid)
+        if not paper:
+            continue
+        groups = ex.get("effect_sizes", {}).get("mean_sd_groups", [])
+        for g in groups:
+            if g.get("m2") is not None:
+                continue  # paired — handled by collect_continuous_effects
+            try:
+                val = g.get("m1")
+                if val is None:
+                    continue
+                val = float(val)
+                unc = g.get("sd1")
+                if unc is not None:
+                    unc = float(unc)
+                n = int(g.get("n") or 1)
+
+                outcome = g.get("outcome", "") or "measurement"
+                unit = g.get("unit", "") or "unitless"
+                if outcome == "measurement" and unit == "unitless":
+                    skipped_unbound += 1
+                    continue
+                key, val_c, unc_c, orig = _classify(outcome, unit, val, unc)
+                grouped.setdefault(key, []).append((paper, g, val_c, unc_c, n, orig))
             except (KeyError, ValueError, TypeError) as e:
                 log.debug("Skipping single measurement from %s: %s", pid, e)
 
@@ -332,8 +389,16 @@ def collect_single_measurements(
                 unit,
             )
             continue
-        log.info("Unit gate: pooling %d values for %s (%s)", len(rows), outcome, unit)
-        for paper, s, val, unc, n in rows:
+        converted = sum(1 for r in rows if r[5] and r[5] != unit)
+        conv_note = f" [{converted} converted to base unit]" if converted else ""
+        log.info(
+            "Unit gate: pooling %d values for %s (%s)%s",
+            len(rows),
+            outcome,
+            unit,
+            conv_note,
+        )
+        for paper, s, val, unc, n, orig_unit in rows:
             pid = paper.primary_id
             if unc is not None and unc > 0:
                 v = (unc / (n**0.5 if n > 1 else 1.0)) ** 2
@@ -351,7 +416,9 @@ def collect_single_measurements(
                     scale="value",
                     scale_label=f"{outcome} ({unit})",
                     subgroup=outcome[:40],
-                    notes=f"n={n}, unit={unit}" + (f", ±{unc}" if unc else ""),
+                    notes=f"n={n}, unit={unit}"
+                    + (f", orig={orig_unit}" if orig_unit != unit else "")
+                    + (f", ±{unc}" if unc else ""),
                 )
             )
     if skipped_unbound:
@@ -359,62 +426,6 @@ def collect_single_measurements(
             "Unit gate: dropped %d unbound numbers (no unit AND no label)",
             skipped_unbound,
         )
-
-    # Source 2: mean_sd_groups with m2=None (from old regex format)
-    for ex in extractions:
-        pid = ex.get("paper_id") or ""
-        paper = by_id.get(pid)
-        if not paper:
-            continue
-        groups = ex.get("effect_sizes", {}).get("mean_sd_groups", [])
-        for g in groups:
-            # Only single measurements (m2 is None)
-            if g.get("m2") is not None:
-                continue  # paired — handled by collect_continuous_effects
-            try:
-                val = g.get("m1")
-                if val is None:
-                    continue
-                val = float(val)
-                unc = g.get("sd1")
-                if unc is not None:
-                    unc = float(unc)
-                n = g.get("n")
-                if n is not None:
-                    n = int(n)
-                else:
-                    n = 1  # single measurement
-
-                # Variance from uncertainty (if available)
-                if unc is not None and unc > 0:
-                    v = (unc / (n**0.5 if n > 1 else 1.0)) ** 2
-                else:
-                    v = 1.0  # no uncertainty → equal weighting
-
-                outcome = g.get("outcome", "") or "measurement"
-                unit = g.get("unit", "") or "unitless"
-                # B5b applies here too: no label+no unit → skip
-                if outcome == "measurement" and unit == "unitless":
-                    continue
-                subgroup = outcome[:40]
-
-                out.append(
-                    StudyEffect(
-                        paper_id=pid,
-                        doi=paper.doi,
-                        name=(paper.title or pid)[:50],
-                        effect=val,
-                        variance=v,
-                        ci_lower=val - 1.96 * (v**0.5) if unc else val,
-                        ci_upper=val + 1.96 * (v**0.5) if unc else val,
-                        scale="value",
-                        scale_label=f"{outcome} ({unit})",
-                        subgroup=subgroup,
-                        notes=f"n={n}, unit={unit}" + (f", ±{unc}" if unc else ""),
-                    )
-                )
-            except (KeyError, ValueError, TypeError) as e:
-                log.debug("Skipping single measurement from %s: %s", pid, e)
     return out
 
 

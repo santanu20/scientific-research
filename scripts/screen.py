@@ -55,15 +55,41 @@ except ImportError:
 def _score_paper_keywords(
     paper: PaperRecord, include: list[str], exclude: list[str]
 ) -> tuple[float, list[str], list[str]]:
-    """Return (score, matched_include, matched_exclude).
-    Score = (#include matched) − 2*(#exclude matched)."""
+    """TF-IDF-weighted keyword scoring (upgraded 2026-08-15).
+
+    Old flat count treated 'magma' (everywhere) equal to 'thermobarometry'
+    (decisive). Now each matched keyword carries its IDF weight over the
+    scoring batch — same principle as the discovery co-occurrence filter.
+    Falls back to flat counting when called on a single paper (no batch
+    statistics available) — weights default to 1.0.
+    Score = Σ idf(include matched) − 2·Σ idf(exclude matched).
+    """
+    import math as _math
+
     text = ((paper.title or "") + " " + (paper.abstract or "")).lower()
     if not text.strip():
         return (0.0, [], [])
     matched_inc = [k for k in include if k.lower() in text]
     matched_exc = [k for k in exclude if k.lower() in text]
-    score = float(len(matched_inc)) - 2.0 * float(len(matched_exc))
-    return (score, matched_inc, matched_exc)
+    idf = getattr(_score_paper_keywords, "_batch_idf", {}) or {}
+    w = lambda k: idf.get(k.lower(), 1.0)
+    score = sum(w(k) for k in matched_inc) - 2.0 * sum(w(k) for k in matched_exc)
+    return (float(score), matched_inc, matched_exc)
+
+
+def set_keyword_idf(papers: list[PaperRecord], include: list[str], exclude: list[str]) -> None:
+    """Compute batch IDF for keywords over the corpus; attach to scorer."""
+    n = max(len(papers), 1)
+    idf: dict[str, float] = {}
+    for k in set(include) | set(exclude):
+        kl = k.lower()
+        df = sum(
+            1
+            for p in papers
+            if kl in ((p.title or "") + " " + (p.abstract or "")).lower()
+        )
+        idf[kl] = _math.log((n + 1) / (df + 1)) + 1.0
+    _score_paper_keywords._batch_idf = idf
 
 
 # =============================================================================
@@ -339,6 +365,7 @@ def screen_corpus(
             )
             scored.append(ScoredPaper(p, score, mi, me, rec))
     else:
+        set_keyword_idf(papers, include, exclude)  # batch IDF (2026-08-15)
         for p in papers:
             score, mi, me = _score_paper_keywords(p, include, exclude)
             rec = (

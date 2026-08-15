@@ -620,6 +620,39 @@ def pool_effects(
     return out
 
 
+def grade_certainty(k: int, i2: float, effect: float, ci_lower: float, ci_upper: float) -> dict:
+    """GRADE-style certainty downgrade (deterministic rules, 2026-08-15).
+
+    Starts High; downgrades one level per rule fired:
+      - imprecision: k < 10
+      - inconsistency: I² > 75
+      - very wide CI: CI spans zero AND upper/lower ratio > 4 (or crosses
+        zero when all effects should be positive-scale)
+    Floors at "very low". This is a SCREENING rating for triage, not a
+    substitute for full GRADE (RoB/indirectness need human assessment —
+    noted in output).
+    """
+    level = 0
+    reasons = []
+    if k < 10:
+        level += 1
+        reasons.append(f"imprecision (k={k} < 10)")
+    if i2 > 75:
+        level += 1
+        reasons.append(f"inconsistency (I²={i2:.0f}% > 75)")
+    if ci_lower is not None and ci_upper is not None:
+        ratio = (abs(ci_upper) + 1e-12) / (max(abs(ci_lower), 1e-12))
+        if ci_lower < 0 < ci_upper and ratio > 4:
+            level += 1
+            reasons.append(f"very wide CI (crosses zero, ratio {ratio:.1f})")
+    labels = ["high", "moderate", "low", "very low"]
+    return {
+        "certainty": labels[min(level, 3)],
+        "downgrades": reasons,
+        "note": "screening rating; full GRADE requires RoB + indirectness assessment",
+    }
+
+
 def run_meta_analysis(
     studies: list[StudyEffect],
     model: str = "random",
@@ -1025,7 +1058,18 @@ def main() -> int:
                     tau2_method=args.tau2,
                     hksj=args.hksj,
                 )
-                unit_pools.append({"group": lbl, "k": len(g), **asdict(r)})
+                _pr = r.pooled_random or {}
+                _het = _pr.get("heterogeneity") or {}
+                _grade = grade_certainty(
+                    len(g),
+                    _het.get("i_squared", 0.0) or 0.0,
+                    _pr.get("effect", 0.0) or 0.0,
+                    _pr.get("ci_lower", 0.0) or 0.0,
+                    _pr.get("ci_upper", 0.0) or 0.0,
+                )
+                unit_pools.append(
+                    {"group": lbl, "k": len(g), "certainty": _grade, **asdict(r)}
+                )
                 pr = r.pooled_random if args.model == "random" else r.pooled_fixed
                 assert pr is not None  # run_meta_analysis sets both pools
                 print(

@@ -885,7 +885,7 @@ def _synthesize_measurements(theme_papers: list[dict]) -> str:
 
     if not parts:
         return ""
-    return "Reported values: " + "; ".join(parts[:5]) + "."
+    return "Reported values: " + "; ".join(parts[:8]) + "."
 
 
 _LIMITATION_CUES_RE = re.compile(
@@ -909,10 +909,10 @@ def _extract_limitations(theme_papers: list[dict]) -> list[str]:
             sentence = sentence.strip()
             if limitation_cues.search(sentence) and len(sentence) > 20:
                 # Clean up and add with author ref
-                limitations.append(sentence[:200].rstrip())
+                limitations.append(sentence[:300].rstrip())
                 break  # one limitation per paper max
 
-    return limitations[:5]  # cap at 5
+    return limitations[:8]  # raised 2026-08-15 (was 5)
 
 
 def _build_theme_synthesis(
@@ -964,7 +964,7 @@ def _build_theme_synthesis(
             ref = refs[i]
             author = _author_short(_parse_authors(p.get("authors", [])))
             year = p.get("year") or "n.d."
-            findings.append((author, year, ref, finding[:200]))
+            findings.append((author, year, ref, finding[:300]))
 
     if findings:
         if len(findings) <= 3:
@@ -976,7 +976,7 @@ def _build_theme_synthesis(
             parts.append(". ".join(sentences) + ".")
         else:
             # Large group: synthesize top findings + cite rest
-            top_findings = findings[:4]
+            top_findings = findings[:6]
             sentences = []
             for author, year, ref, finding in top_findings:
                 verb, content = _rephrase_finding(finding)

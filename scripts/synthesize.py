@@ -152,12 +152,21 @@ def smooth_with_llm(
             log.info("LLM smoothing cache hit")
             return cached
 
-    # Truncate narrative to fit context window
-    narrative_trunc = template_narrative[:4000]
-    if len(template_narrative) > 4000:
-        last_break = narrative_trunc.rfind("\n\n")
-        if last_break > 2000:
-            narrative_trunc = narrative_trunc[:last_break]
+    # Chunked smoothing (2026-08-15): the old [:4000] cap silently left
+    # ~60% of the narrative unsmoothed. Split at paragraph boundaries into
+    # context-sized chunks and smooth each; prose quality reaches the WHOLE
+    # brief. Chunks are independent — a bad chunk falls back to its original.
+    def _chunks(text: str, size: int = 3500) -> list[str]:
+        out, buf = [], ""
+        for para in text.split("\n\n"):
+            if len(buf) + len(para) + 2 > size and buf:
+                out.append(buf)
+                buf = para
+            else:
+                buf = f"{buf}\n\n{para}" if buf else para
+        if buf:
+            out.append(buf)
+        return out
 
     prompt = (
         f"You are a geological research writer. Rewrite this synthesis into "
@@ -171,60 +180,74 @@ def smooth_with_llm(
         f"5. Improve transitions, reduce repetition, and tighten prose ONLY.\n"
         f"6. Do NOT simplify technical language — maintain expert register.\n\n"
         f"Topic: {topic}\n\n"
-        f"Narrative to rewrite:\n---\n{narrative_trunc}\n---\n\n"
+        f"Narrative to rewrite:\n---\n{{chunk}}\n---\n\n"
         f"Rewritten narrative (preserve [1] [2] [3] citations and ALL geological data):"
     )
 
-    try:
-        model = _detect_best_model()
-        import json as _json
-        import urllib.request
+    def _smooth_chunk(chunk: str) -> str:
+        """One Ollama call; falls back to the chunk itself on any failure."""
+        try:
+            model = _detect_best_model()
+            import json as _json
+            import urllib.request
 
-        payload = _json.dumps(
-            {
-                "model": model,
-                "messages": [
-                    {"role": "user", "content": "/no_think\n" + prompt},
-                ],
-                "stream": False,
-                "think": False,
-                "options": {
-                    "temperature": 0.0,
-                    "top_k": 1,
-                    "num_ctx": 8192,
-                    "num_predict": 4096,
-                    "repeat_penalty": 1.1,
-                },
-            }
-        ).encode("utf-8")
+            payload = _json.dumps(
+                {
+                    "model": model,
+                    "messages": [
+                        {"role": "user", "content": "/no_think\n" + prompt.format(chunk=chunk)},
+                    ],
+                    "stream": False,
+                    "think": False,
+                    "options": {
+                        "temperature": 0.0,
+                        "top_k": 1,
+                        "num_ctx": 8192,
+                        "num_predict": 4096,
+                        "repeat_penalty": 1.1,
+                    },
+                }
+            ).encode("utf-8")
 
-        req = urllib.request.Request(
-            "http://127.0.0.1:11434/api/chat",
-            data=payload,
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            result = _json.loads(resp.read())
-            msg = result.get("message", {})
-            smoothed = (msg.get("content") or "").strip()
-
-        if smoothed and len(smoothed) > 200:
-            # Strip leaked /no_think prefix
+            req = urllib.request.Request(
+                "http://127.0.0.1:11434/api/chat",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=180) as resp:
+                result = _json.loads(resp.read())
+                msg = result.get("message", {})
+                smoothed = (msg.get("content") or "").strip()
             if smoothed.startswith(("No_think", "/no_think", "no_think")):
                 smoothed = (
                     smoothed.split("\n", 1)[-1].strip()
                     if "\n" in smoothed
                     else smoothed[9:].strip()
                 )
-            # Cache the result
+            # reject degenerate rewrites (too short = model ignored the chunk)
+            if smoothed and len(smoothed) > max(200, 0.4 * len(chunk)):
+                return smoothed
+            log.warning("LLM chunk rewrite too short (%d chars) — keeping original", len(smoothed))
+            return chunk
+        except urllib.error.HTTPError as e:
+            log.warning("LLM smoothing HTTP %d — keeping chunk original", e.code)
+            return chunk
+        except Exception as e:
+            log.warning("LLM chunk smoothing failed: %s — keeping original", e)
+            return chunk
+
+    try:
+        chunks = _chunks(template_narrative)
+        smoothed_parts = [_smooth_chunk(c) for c in chunks]
+        smoothed = "\n\n".join(smoothed_parts)
+        if len(smoothed) > 200:
             cache_file.write_text(smoothed, encoding="utf-8")
-            log.info("LLM smoothing successful (%d chars, cached)", len(smoothed))
+            log.info(
+                "LLM smoothing successful (%d chunks, %d chars, cached)",
+                len(chunks), len(smoothed),
+            )
             return smoothed
-        log.warning("LLM smoothing returned too-short output — using template")
-        return template_narrative
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="replace")[:500]
-        log.warning("LLM smoothing HTTP %d: %s — using template", e.code, error_body)
+        log.warning("LLM smoothing produced nothing usable — using template")
         return template_narrative
     except Exception as e:
         log.warning("LLM smoothing failed: %s — using template", e)
@@ -444,7 +467,9 @@ def _render_pool_section(meta: dict) -> str:
     return "\n".join(pool_lines)
 
 
-def _build_executive_summary(cited: list[dict], narrative: str, topic: str) -> str:
+def _build_executive_summary(
+    cited: list[dict], narrative: str, topic: str, meta: dict | None = None
+) -> str:
     """Build executive summary — thesis statement + key consensus + gaps.
 
     Extracts the most important quantitative findings from the narrative
@@ -553,6 +578,50 @@ def _build_executive_summary(cited: list[dict], narrative: str, topic: str) -> s
                 "Median values are more representative than means for this heterogeneous corpus."
             )
 
+    # Sentence 5+: pooled estimates (when meta-analysis ran)
+    if meta:
+        pools = meta.get("unit_pools") or []
+        top = [p for p in pools if (p.get("pooled_random") or {}).get("effect") is not None][:3]
+        if top:
+            bits = []
+            for p in top:
+                pr = p["pooled_random"]
+                i2 = (pr.get("heterogeneity") or {}).get("i_squared")
+                bit = f"{p['group']} {pr['effect']:.1f} (95% CI {pr['ci_lower']:.1f}–{pr['ci_upper']:.1f}, k={p['k']}"
+                bit += f", I²={i2:.0f}%)" if isinstance(i2, (int, float)) else ")"
+                bits.append(bit)
+            lines.append(
+                "Random-effects pooling (REML, HKSJ) across commensurable unit "
+                "groups gives " + "; ".join(bits) + "."
+            )
+            if any(
+                isinstance((p.get("pooled_random") or {}).get("heterogeneity", {}).get("i_squared"), (int, float))
+                and p["pooled_random"]["heterogeneity"]["i_squared"] > 75
+                for p in top
+            ):
+                lines.append(
+                    "High between-study heterogeneity (I² > 75%) means pooled "
+                    "values describe a RANGE of storage conditions rather than "
+                    "a single consensus estimate; decade-level decomposition is "
+                    "reported per pool."
+                )
+
+    # Contradiction signal (cheap regex claims pass over cited abstracts)
+    try:
+        from _claims_engine import detect_contradictions, extract_claims
+
+        claims = [c for p in cited[:60] for c in extract_claims(p)]
+        cons = detect_contradictions(claims)
+        if cons:
+            c0 = cons[0]
+            lines.append(
+                f"Notable divergence: {c0.quantity} ({c0.unit}) estimates span "
+                f"a {c0.ratio}x range across {len(c0.values)} reports — a "
+                f"calibration/method disagreement candidates section details this."
+            )
+    except Exception:  # noqa: BLE001 — advisory sentence only
+        pass
+
     parts.extend(lines)
     parts.append("")
     return "\n".join(parts)
@@ -595,17 +664,17 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
 
         # Extract one key finding as representative
         top_finding = ""
-        for p in papers[:3]:
+        for p in papers[:5]:
             f = (p.get("key_finding") or "").strip()
             if f and len(f) > 40:
-                top_finding = f[:150].rstrip() + ("..." if len(f) > 150 else "")
+                top_finding = f[:300].rstrip() + ("..." if len(f) > 300 else "")
                 break
         if not top_finding:
             # No finding — use first 100 chars of title as summary
-            for p in papers[:2]:
+            for p in papers[:3]:
                 t = (p.get("title") or "").strip()
                 if t:
-                    top_finding = t[:100] + ("..." if len(t) > 100 else "")
+                    top_finding = t[:200] + ("..." if len(t) > 200 else "")
                     break
 
         # Extract VALIDATED P-T ranges
@@ -660,8 +729,8 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
         range_str = "; ".join(range_parts) if range_parts else "-"
 
         # Extract limitations
-        lims = _extract_limitations(papers[:5])
-        lim_str = lims[0][:60] + "..." if lims else "-"
+        lims = _extract_limitations(papers[:8])
+        lim_str = "; ".join(l[:120] for l in lims[:4]) if lims else "-"
 
         lines.append(f"| {label} | {n} | {top_finding} | {range_str} | {lim_str} |")
 
@@ -833,7 +902,7 @@ def synthesize(
 
     # Executive summary
     if cited:
-        exec_summary = _build_executive_summary(cited, narrative, query)
+        exec_summary = _build_executive_summary(cited, narrative, query, meta=meta)
         if exec_summary:
             parts.append(exec_summary)
 
@@ -903,11 +972,27 @@ def synthesize(
             theme = pico.get("study_type") or pico.get("discipline") or "general"
             theme_groups.setdefault(theme, []).append(p)
         conv_text = build_convergence_text(theme_groups)
+        parts.append("## Convergence and controversies")
+        parts.append("")
         if conv_text:
-            parts.append("## Convergence and controversies")
-            parts.append("")
             parts.append(conv_text)
             parts.append("")
+        # Claim-level value-divergence signals (Phase 3 engine, 2026-08-15):
+        # clusters same-quantity numeric claims across papers and reports
+        # >=5x spreads — the calibration-disagreement candidates a reviewer
+        # expects in this section. Advisory; sentences quoted for traceability.
+        try:
+            from _claims_engine import contradiction_report, detect_contradictions, extract_claims
+
+            claims = [c for p in (cited or papers)[:80] for c in extract_claims(p)]
+            cons = detect_contradictions(claims)
+            if cons:
+                parts.append("### Quantitative divergences (claim-level)")
+                parts.append("")
+                parts.append(contradiction_report(cons))
+                parts.append("")
+        except Exception as e:  # noqa: BLE001 — advisory content only
+            log.debug("contradiction pass skipped: %s", e)
 
         gap_points = _build_structural_gaps(
             cited or papers,

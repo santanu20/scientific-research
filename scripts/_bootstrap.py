@@ -47,6 +47,7 @@ BASE_INSTALLS = (
     "scipy",
     "scikit-learn",
     "httpx",
+    "matplotlib",  # PRISMA flow diagram rendering (discover.py)
     "pytest",  # test-suite runner (kept in venv for `uv run pytest` parity)
     "ruff",  # lint gate
 )

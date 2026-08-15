@@ -720,7 +720,10 @@ def openalex_search(
 def openalex_semantic_search(text: str, max_results: int = 25) -> list[PaperRecord]:
     """Semantic search via OpenAlex AI embeddings (paragraph-length queries)."""
     q = Works().similar(text).select(_OPENALEX_SELECT)
-    items = q.get(per_page=min(max_results, 200))
+    # B4: semantic endpoint rejects per_page > 50 (snowball passed 75+ →
+    # 3-attempt failure loop). Clamp here; pagination not supported by
+    # .similar() anyway.
+    items = q.get(per_page=min(max_results, 50))
     return [_openalex_to_record(it) for it in items[:max_results]]
 
 
@@ -1399,6 +1402,17 @@ def dedup_papers(
             for existing_norm, cid in blocks.get((surname, year), []):
                 if title_similarity(norm, existing_norm) >= title_threshold:
                     return cid
+            # B3: preprint reposts across repositories/servers land in
+            # different YEARS (posted 2021 on one server, 2022 on another).
+            # Same first-author block + near-exact title (≥0.95) = same paper
+            # regardless of the year stamp. Surname scoping keeps this safe
+            # against generic-title false merges.
+            for (e_surname, _e_year), entries in blocks.items():
+                if e_surname != surname:
+                    continue
+                for existing_norm, cid in entries:
+                    if title_similarity(norm, existing_norm) >= 0.95:
+                        return cid
             return None
         # incomplete block: stricter threshold, same-year scope when possible
         for existing_norm, e_year, cid in fallback_index:

@@ -279,11 +279,17 @@ def collect_single_measurements(
     single measured values (e.g., δ18O = 5.2‰, Fe3+/ΣFe = 0.15) rather than
     intervention vs control groups.
 
-    Groups by measurement type (outcome field) for subgroup analysis.
-    Uses inverse-variance weighting with uncertainty as SD.
+    B5b unit-partition gate (2026-08-15): pooling only happens WITHIN a
+    (measurement, unit) group. Incommensurable units (%, °C, GPa, Ma) are
+    NEVER pooled together — a cross-unit pool is scientifically meaningless
+    even when the arithmetic succeeds. Singleton groups are logged and
+    dropped (k=1 has no pooling meaning).
     """
     by_id = {p.primary_id: p for p in papers}
-    out: list[StudyEffect] = []
+    grouped: dict[
+        tuple[str, str], list[tuple[PaperRecord, dict, float, float | None, int]]
+    ] = {}
+    skipped_unbound = 0
     for ex in extractions:
         pid = ex.get("paper_id") or ""
         paper = by_id.get(pid)
@@ -307,36 +313,59 @@ def collect_single_measurements(
                 else:
                     n = 1
 
-                if unc is not None and unc > 0:
-                    v = (unc / (n**0.5 if n > 1 else 1.0)) ** 2
-                else:
-                    v = 1.0
-
                 outcome = s.get("measurement", "") or "measurement"
-                unit = s.get("unit", "")
-                subgroup = outcome[:40]
-
-                out.append(
-                    StudyEffect(
-                        paper_id=pid,
-                        doi=paper.doi,
-                        name=(paper.title or pid)[:50],
-                        effect=val,
-                        variance=v,
-                        ci_lower=val - 1.96 * (v**0.5) if unc else val,
-                        ci_upper=val + 1.96 * (v**0.5) if unc else val,
-                        scale="value",
-                        scale_label=f"Measured value ({unit})"
-                        if unit
-                        else "Measured value",
-                        subgroup=subgroup,
-                        notes=f"n={n}, unit={unit}" + (f", ±{unc}" if unc else ""),
-                    )
-                )
+                unit = s.get("unit", "") or "unitless"
+                # B5b: no label AND no unit → unbound noise, never pool
+                if outcome == "measurement" and unit == "unitless":
+                    skipped_unbound += 1
+                    continue
+                grouped.setdefault((outcome, unit), []).append((paper, s, val, unc, n))
             except (KeyError, ValueError, TypeError) as e:
                 log.debug("Skipping single measurement from %s: %s", pid, e)
 
-        # Source 2: mean_sd_groups with m2=None (from old regex format)
+    out: list[StudyEffect] = []
+    for (outcome, unit), rows in sorted(grouped.items()):
+        if len(rows) < 2:
+            log.info(
+                "Unit gate: skipping singleton group %s (%s) — k=1, no pooling",
+                outcome,
+                unit,
+            )
+            continue
+        log.info("Unit gate: pooling %d values for %s (%s)", len(rows), outcome, unit)
+        for paper, s, val, unc, n in rows:
+            pid = paper.primary_id
+            if unc is not None and unc > 0:
+                v = (unc / (n**0.5 if n > 1 else 1.0)) ** 2
+            else:
+                v = 1.0  # no uncertainty → equal weighting
+            out.append(
+                StudyEffect(
+                    paper_id=pid,
+                    doi=paper.doi,
+                    name=(paper.title or pid)[:50],
+                    effect=val,
+                    variance=v,
+                    ci_lower=val - 1.96 * (v**0.5) if unc else val,
+                    ci_upper=val + 1.96 * (v**0.5) if unc else val,
+                    scale="value",
+                    scale_label=f"{outcome} ({unit})",
+                    subgroup=outcome[:40],
+                    notes=f"n={n}, unit={unit}" + (f", ±{unc}" if unc else ""),
+                )
+            )
+    if skipped_unbound:
+        log.info(
+            "Unit gate: dropped %d unbound numbers (no unit AND no label)",
+            skipped_unbound,
+        )
+
+    # Source 2: mean_sd_groups with m2=None (from old regex format)
+    for ex in extractions:
+        pid = ex.get("paper_id") or ""
+        paper = by_id.get(pid)
+        if not paper:
+            continue
         groups = ex.get("effect_sizes", {}).get("mean_sd_groups", [])
         for g in groups:
             # Only single measurements (m2 is None)
@@ -363,7 +392,10 @@ def collect_single_measurements(
                     v = 1.0  # no uncertainty → equal weighting
 
                 outcome = g.get("outcome", "") or "measurement"
-                unit = g.get("unit", "")
+                unit = g.get("unit", "") or "unitless"
+                # B5b applies here too: no label+no unit → skip
+                if outcome == "measurement" and unit == "unitless":
+                    continue
                 subgroup = outcome[:40]
 
                 out.append(
@@ -376,9 +408,7 @@ def collect_single_measurements(
                         ci_lower=val - 1.96 * (v**0.5) if unc else val,
                         ci_upper=val + 1.96 * (v**0.5) if unc else val,
                         scale="value",
-                        scale_label=f"Measured value ({unit})"
-                        if unit
-                        else "Measured value",
+                        scale_label=f"{outcome} ({unit})",
                         subgroup=subgroup,
                         notes=f"n={n}, unit={unit}" + (f", ±{unc}" if unc else ""),
                     )
@@ -881,6 +911,76 @@ def main() -> int:
         print("No effect sizes found in extractions. Skipping meta-analysis.")
         return 1
 
+    # B5b (pool level): single measurements span incommensurable units —
+    # one global pool is invalid even when collection grouped them.
+    # Partition by scale_label (measurement+unit) and pool WITHIN each group.
+    unit_pools: list[dict] = []
+    if args.measure in ("single", "auto") and studies and studies[0].scale == "value":
+        groups: dict[str, list[StudyEffect]] = {}
+        for s in studies:
+            groups.setdefault(s.scale_label, []).append(s)
+        pools = [(lbl, g) for lbl, g in sorted(groups.items()) if len(g) >= 2]
+        if not pools:
+            print(
+                "No homogeneous (measurement, unit) group has k ≥ 2 — "
+                "cross-unit pooling refused. Nothing to pool."
+            )
+            return 1
+        pools.sort(key=lambda t: -len(t[1]))
+        for lbl, g in pools:
+            try:
+                r = run_meta_analysis(
+                    g,
+                    model=args.model,
+                    do_subgroups=False,
+                    tau2_method=args.tau2,
+                    hksj=args.hksj,
+                )
+                unit_pools.append({"group": lbl, "k": len(g), **asdict(r)})
+                pr = r.pooled_random if args.model == "random" else r.pooled_fixed
+                assert pr is not None  # run_meta_analysis sets both pools
+                print(
+                    f"Unit pool [{lbl}] k={len(g)}: effect {pr['effect']:.3f} "
+                    f"({pr['ci_lower']:.3f} to {pr['ci_upper']:.3f}), "
+                    f"I²={pr['heterogeneity']['i_squared']:.1f}%"
+                )
+            except Exception as e:  # noqa: BLE001 — one bad group must not kill others
+                log.warning("Unit pool %s failed: %s", lbl, e)
+        # headline = largest group; others preserved in payload
+        result = None
+        headline = unit_pools[0]
+        for up in unit_pools:
+            if up["k"] > headline["k"]:
+                headline = up
+        result = run_meta_analysis(
+            [s for s in studies if s.scale_label == headline["group"]],
+            model=args.model,
+            do_subgroups=not args.no_subgroups,
+            tau2_method=args.tau2,
+            hksj=args.hksj,
+        )
+        payload = asdict(result)
+        payload["unit_pools"] = unit_pools
+        payload["unit_pool_note"] = (
+            f"Single-measurement data partitioned into {len(unit_pools)} "
+            f"commensurable (measurement, unit) pools; headline = largest "
+            f"({headline['group']}, k={headline['k']}). Cross-unit pooling "
+            f"refused (B5b)."
+        )
+        payload["meta"] = {
+            "extractions": str(args.extractions),
+            "verified": str(args.verified),
+            "measure": args.measure,
+            "dichotomous_type": args.dichotomous_type,
+            "correction": args.correction,
+            "model": args.model,
+            "tau2_method": args.tau2,
+            "hksj": args.hksj,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        }
+        _write_outputs(args, result, payload, unit_pools)
+        return 0
+
     result = run_meta_analysis(
         studies,
         model=args.model,
@@ -900,6 +1000,13 @@ def main() -> int:
         "hksj": args.hksj,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
+    _write_outputs(args, result, payload, [])
+    return 0
+
+
+def _write_outputs(args, result, payload: dict, unit_pools: list[dict]) -> None:
+    """Write meta.json + report.md + forest. Shared by single-unit and
+    unit-pooled paths (B5b)."""
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
     print(f"Wrote meta.json → {args.output}")
@@ -987,7 +1094,6 @@ def main() -> int:
         except Exception as e:
             log.warning("Funnel PNG render failed: %s", e)
     print(f"\n{result.interpretation}")
-    return 0
 
 
 if __name__ == "__main__":

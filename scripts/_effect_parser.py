@@ -135,6 +135,43 @@ RE_TEMP_K = re.compile(
 # Pressure: "2.5 GPa", "1 atm", "100 MPa"
 RE_PRESSURE = re.compile(r"(\d+\.?\d*)\s*[MG]?Pa", re.IGNORECASE)
 
+# United bare numbers (B5a, 2026-08-15): "750 °C", "6 kbar", "3.2 wt %",
+# "12 ‰" — the most common scientific phrasing, previously NOT captured
+# (only keyword-prefixed forms were). Runs AFTER specific regexes;
+# position-guarded so it never double-captures. Label comes from the
+# reconcile pass (unit family default).
+RE_UNITED = re.compile(
+    r"(\d+\.?\d*)\s{0,2}(°C|°\s?[Cc]|[Cc]elsius|deg\s?[Cc]\b|GPa|MPa|kPa|kbar"
+    r"|Ma\b|Ga\b|ka\b|wt\s?%|ppm|ppb|‰|per\s?mil|km\b|mm\b|cm\b|µm|μm|nm\b|%)"
+)
+_UNIT_CANON = {
+    "°c": "°C",
+    "° C": "°C",
+    "c": "°C",
+    "celsius": "°C",
+    "deg c": "°C",
+    "gpa": "GPa",
+    "mpa": "MPa",
+    "kpa": "kPa",
+    "kbar": "kbar",
+    "ma": "Ma",
+    "ga": "Ga",
+    "ka": "ka",
+    "wt%": "wt%",
+    "wt %": "wt%",
+    "ppm": "ppm",
+    "ppb": "ppb",
+    "‰": "‰",
+    "per mil": "‰",
+    "km": "km",
+    "mm": "mm",
+    "cm": "cm",
+    "µm": "µm",
+    "μm": "µm",
+    "nm": "nm",
+    "%": "%",
+}
+
 # Age: "45.2 ± 0.3 Ma", "2.5 Ga"
 RE_AGE = re.compile(r"(\d+\.?\d*)\s*[MG]a\b", re.IGNORECASE)
 
@@ -246,7 +283,9 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
         context = text[max(0, m.start() - 30) : m.end()]
         measurement = _detect_measurement(context)
         # Skip if already captured as part of mean±SD
-        if not any(abs(r.value - val) < 0.01 and r.position == m.start() for r in results):
+        if not any(
+            abs(r.value - val) < 0.01 and r.position == m.start() for r in results
+        ):
             results.append(
                 ExtractedNumber(
                     value=val,
@@ -369,7 +408,9 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
     for m in RE_TEMP_C.finditer(text):
         val = float(m.group(1))
         # Skip if already captured
-        if not any(abs(r.value - val) < 0.1 and r.position == m.start() for r in results):
+        if not any(
+            abs(r.value - val) < 0.1 and r.position == m.start() for r in results
+        ):
             results.append(
                 ExtractedNumber(
                     value=val,
@@ -382,7 +423,9 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
     for m in RE_TEMP_K.finditer(text):
         val = float(m.group(1))
         if val > 10:  # avoid matching "k" as in "kPa"
-            if not any(abs(r.value - val) < 0.1 and r.position == m.start() for r in results):
+            if not any(
+                abs(r.value - val) < 0.1 and r.position == m.start() for r in results
+            ):
                 results.append(
                     ExtractedNumber(
                         value=val,
@@ -407,9 +450,120 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
             )
         )
 
+    # United bare numbers ("750 °C", "6 kbar") — position-guarded catch-all
+    for m in RE_UNITED.finditer(text):
+        val = float(m.group(1))
+        raw_unit = m.group(2).strip()
+        canon = _UNIT_CANON.get(raw_unit.lower()) or _UNIT_CANON.get(raw_unit) or ""
+        if not canon:
+            continue
+        # skip if a specific regex already captured this exact number+position
+        if any(abs(r.value - val) < 1e-9 and r.position == m.start(1) for r in results):
+            continue
+        results.append(
+            ExtractedNumber(
+                value=val,
+                unit=canon,
+                measurement="",  # filled by reconcile from unit family
+                position=m.start(1),
+                raw_text=m.group(0),
+            )
+        )
+
     # Sort by position
     results.sort(key=lambda r: r.position)
+    _reconcile_units_and_measurements(results, text)
     return results
+
+
+# =============================================================================
+# Unit/measurement reconciliation (B5a fix, 2026-08-15)
+# Wide-context detection lets NEIGHBORING numbers' units/labels leak in
+# ("temperature ... 5 kbar" → 5 kbar bound to "temperature"). Two-part fix:
+#   1. rebind unit from the TIGHTEST adjacent window (after, then before)
+#   2. enforce unit-family compatibility: unit wins conflicts (locally bound
+#      and more reliable than a label phrase up to 40 chars away)
+# =============================================================================
+_UNIT_FAMILIES: dict[str, set[str]] = {
+    "temperature": {"°C", "K"},
+    "pressure": {"GPa", "MPa", "kPa", "kbar", "bar"},
+    "age": {"Ma", "Ga"},
+    "fraction": {"%", "wt%", "‰", "‰ VSMOW", "fold"},
+    "length": {"km", "m", "cm", "mm", "µm", "nm"},
+    "concentration": {"ppm", "ppb", "mol/L", "mM"},
+}
+
+_FAMILY_DEFAULT_MEASUREMENT = {
+    "temperature": "temperature",
+    "pressure": "pressure",
+    "age": "age",
+    "fraction": "percentage/composition",
+    "length": "distance",
+    "concentration": "concentration",
+}
+
+_MEASUREMENT_FAMILY = {
+    "temperature": "temperature",
+    "pressure": "pressure",
+    "age": "age",
+    "melt composition": "fraction",
+    "yield": "fraction",
+    "conversion": "fraction",
+    "efficiency": "fraction",
+    "accuracy": "fraction",
+    "survival rate": "fraction",
+    "mortality": "fraction",
+    "weight loss": "fraction",
+    "weight gain": "fraction",
+}
+
+
+def _unit_family(unit: str) -> str | None:
+    for family, members in _UNIT_FAMILIES.items():
+        if unit in members:
+            return family
+    return None
+
+
+def _rebind_unit_adjacent(text: str, start: int, end: int) -> str:
+    """Unit from the token(s) immediately after (then before) the number.
+
+    15-char window: long enough for '°C', ' wt %', ' kbar'; too short for a
+    neighboring number's unit to leak in. Returns '' when nothing adjacent.
+    """
+    after = text[end : end + 15]
+    u = _detect_unit(after)
+    if u and (
+        after.lstrip().lower().startswith(u.lower())
+        or "%" in after[:3]
+        or "‰" in after[:3]
+    ):
+        return u
+    before = text[max(0, start - 15) : start]
+    u2 = _detect_unit(before)
+    if u2 and (
+        before.rstrip().lower().endswith(u2.lower())
+        or "%" in before[-3:]
+        or "‰" in before[-3:]
+    ):
+        return u2
+    return ""
+
+
+def _reconcile_units_and_measurements(numbers: list, text: str) -> None:
+    """In-place: adjacent unit rebind + family-compatibility remap."""
+    for n in numbers:
+        if n.measurement in ("p-value", "sample size", "mean difference"):
+            continue
+        adj_unit = _rebind_unit_adjacent(text, n.position, n.position + len(n.raw_text))
+        if adj_unit:
+            n.unit = adj_unit
+        fam_u = _unit_family(n.unit)
+        fam_m = _MEASUREMENT_FAMILY.get(n.measurement or "")
+        # incompatible label vs unit → trust the unit, remap the label
+        if fam_u and fam_m and fam_u != fam_m or not n.measurement and fam_u:
+            n.measurement = _FAMILY_DEFAULT_MEASUREMENT[fam_u]
+        # unit in a family but label still outside mapping? leave as-is
 
 
 def _detect_unit(context: str) -> str:
@@ -633,10 +787,15 @@ def extract_effect_sizes(text: str) -> dict:
             continue
         # Skip if this number is part of a pair (check by value proximity)
         in_pair = any(
-            abs(pair.get("m1", 999) - n.value) < 0.01 or abs(pair.get("m2", 999) - n.value) < 0.01
+            abs(pair.get("m1", 999) - n.value) < 0.01
+            or abs(pair.get("m2", 999) - n.value) < 0.01
             for pair in pairs
         )
         if not in_pair:
+            # B5a: a number with NO unit and NO measurement label is unbound
+            # noise — keeping it poisons downstream pooling with phantom rows
+            if not n.unit and not n.measurement:
+                continue
             singles.append(
                 {
                     "value": n.value,
@@ -695,6 +854,8 @@ if __name__ == "__main__":
         print(f"  Single measurements: {len(result['single_measurements'])}")
         for s in result["single_measurements"][:5]:
             unc = f" ±{s['uncertainty']}" if s.get("uncertainty") else ""
-            print(f"    {s.get('measurement', '?')}: {s['value']}{unc} {s.get('unit', '')}")
+            print(
+                f"    {s.get('measurement', '?')}: {s['value']}{unc} {s.get('unit', '')}"
+            )
         if result["p_values"]:
             print(f"  p-values: {result['p_values']}")

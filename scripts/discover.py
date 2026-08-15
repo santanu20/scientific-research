@@ -35,6 +35,7 @@ if __name__ == "__main__":
 import argparse
 import json
 import logging
+import math
 import os
 import re
 import sys
@@ -327,44 +328,103 @@ def _build_and_query(query: str) -> str:
     return and_query
 
 
-def _enforce_cooccurrence(papers: list, query: str) -> list:
-    """Post-filter: keep only papers mentioning ALL key terms from the query.
+def _backfill_abstracts_crossref(papers: list) -> int:
+    """Fill missing abstracts from Crossref per-DOI work records (B6).
 
-    Even with boolean AND queries, some APIs return fuzzy matches.
-    This ensures every paper in the result set mentions ALL key terms
-    (in title or abstract). Matches singular/plural forms automatically.
+    Mutates PaperRecord.abstract in place. Returns count recovered.
+    Failures are logged once, never fatal — backfill is best-effort.
+    """
+    import re as _re
+
+    dois = [p.doi for p in papers if p.doi]
+    if not dois:
+        return 0
+    try:
+        import habanero
+
+        cr = habanero.Crossref()
+        recs = cr.works(ids=dois)
+    except Exception as e:  # noqa: BLE001 — network/dep resilience, logged loud
+        log.warning("Abstract backfill failed (Crossref batch): %s", e)
+        return 0
+    items = recs if isinstance(recs, list) else recs.get("message", {}).get("items", [])
+    by_doi = {}
+    for it in items:
+        d = (it.get("DOI") or "").lower()
+        ab = it.get("abstract") or ""
+        # strip JATS tags Crossref embeds
+        ab = _re.sub(r"<[^>]+>", " ", ab)
+        ab = _re.sub(r"\s+", " ", ab).strip()
+        if d and len(ab) > 80:
+            by_doi[d] = ab
+    recovered = 0
+    for p in papers:
+        if not (p.abstract or "").strip() and p.doi:
+            ab = by_doi.get(p.doi.lower())
+            if ab:
+                p.abstract = ab
+                recovered += 1
+    return recovered
+
+
+def _enforce_cooccurrence(papers: list, query: str) -> list:
+    """Post-filter: IDF-weighted key-term coverage (B1 v2, 2026-08-15).
+
+    Flat thresholds fail asymmetrically: 'amphibole'+'thermobarometry' (rare,
+    decisive) get outvoted by 'arc'+'magma' (common in a geo corpus) — the
+    filter rejected "Amphibole Thermobarometry: a Thermodynamic Approach"
+    while keeping generic arc-magma papers. Fix: weight each key term by its
+    IDF across the candidate pool; keep a paper when its matched terms carry
+    ≥50% of the query's total IDF mass. Rare-term matches decide relevance;
+    common-term matches alone never do. Matches singular/plural forms.
     """
     key_terms = _extract_key_terms(query)
     if len(key_terms) <= 1:
         return papers
 
+    def _forms(t: str) -> list[str]:
+        tl = t.lower()
+        forms = [tl]
+        if tl.endswith("s") and len(tl) > 4:
+            forms.append(tl[:-1])
+        elif not tl.endswith("s"):
+            forms.append(tl + "s")
+        return forms
+
+    term_forms = {t: _forms(t) for t in key_terms}
+    n_docs = max(len(papers), 1)
+
+    def _doc_text(p) -> str:
+        return (
+            (getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")
+        ).lower()
+
+    # IDF over the candidate pool itself
+    idf: dict[str, float] = {}
+    for t, forms in term_forms.items():
+        df = sum(1 for p in papers if any(f in _doc_text(p) for f in forms))
+        idf[t] = math.log((n_docs + 1) / (df + 1)) + 1.0  # smoothed, ≥1
+
+    total_mass = sum(idf.values())
+    cutoff = 0.5 * total_mass
+
     filtered = []
     rejected = 0
     for p in papers:
-        text = (
-            (getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")
-        ).lower()
-        # Each term must appear (as singular OR plural)
-        if all(
-            any(
-                form in text
-                for form in [
-                    t.lower(),
-                    t.lower()[:-1]
-                    if t.lower().endswith("s") and len(t) > 4
-                    else t.lower(),
-                    t.lower() + "s" if not t.lower().endswith("s") else t.lower(),
-                ]
-            )
-            for t in key_terms
-        ):
+        text = _doc_text(p)
+        matched_mass = sum(
+            idf[t] for t, forms in term_forms.items() if any(f in text for f in forms)
+        )
+        if matched_mass >= cutoff:
             filtered.append(p)
         else:
             rejected += 1
 
     if rejected > 0:
         log.info(
-            "Co-occurrence filter: kept %d/%d papers (rejected %d missing key terms)",
+            "Co-occurrence filter (IDF-weighted, cutoff %.2f/%.2f): kept %d/%d, rejected %d",
+            cutoff,
+            total_mass,
             len(filtered),
             len(papers),
             rejected,
@@ -1771,6 +1831,20 @@ def main() -> int:
         log.info("=== DEDUP ===")
         final = dedup_papers(results)
         log.info("Dedup: %d → %d", len(results), len(final))
+
+    # B6 abstract backfill: OpenAlex leaves abstract_inverted_index empty for
+    # copyright-filtered publishers (observed 8/12 empty). Crossref's
+    # per-DOI work record often carries the abstract even when the search
+    # result didn't. One batched habanero call recovers what the APIs split.
+    missing = [p for p in final if p.doi and not (p.abstract or "").strip()]
+    if missing:
+        recovered = _backfill_abstracts_crossref(missing)
+        if recovered:
+            log.info(
+                "Abstract backfill: %d/%d recovered via Crossref DOI",
+                recovered,
+                len(missing),
+            )
 
     # Auto-supplement via web_search when post-dedup corpus is sparse.
     # Triggered when: (a) threshold > 0, (b) user didn't already enable

@@ -219,7 +219,9 @@ def _extract_papers(
                     "discipline": (item.get("pico", {}).get("discipline") or ""),
                     "novelty": (item.get("pico", {}).get("novelty") or ""),
                     "study_type": (item.get("pico", {}).get("study_type") or ""),
-                    "interpretation": (item.get("pico", {}).get("interpretation") or ""),
+                    "interpretation": (
+                        item.get("pico", {}).get("interpretation") or ""
+                    ),
                     "measurements": [],
                 }
             )
@@ -538,7 +540,11 @@ def _detect_method_theme(paper: dict) -> str:
 
     # Last fallback: discipline-based grouping from pico or top-level
     pico = paper.get("pico") or {}
-    disc = (paper.get("discipline") or pico.get("discipline") or "").lower().replace("_", " ")
+    disc = (
+        (paper.get("discipline") or pico.get("discipline") or "")
+        .lower()
+        .replace("_", " ")
+    )
     if disc and disc not in ("general", "other", ""):
         return disc.capitalize()
     study_t = (pico.get("study_type") or "").lower().replace("_", " ")
@@ -722,7 +728,9 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("c", "k", "celsius", "kelvin", "degc", "deg_c"):
         return "temperature"
     # Stress vs pressure — MPa can be either
-    if unit_lower == "mpa" and ("stress" in mtype_lower or "differential" in mtype_lower):
+    if unit_lower == "mpa" and (
+        "stress" in mtype_lower or "differential" in mtype_lower
+    ):
         return "stress"
     # Pressure
     if unit_lower in ("kbar", "gpa", "mpa", "kb"):
@@ -731,7 +739,9 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("ma", "ga", "ka"):
         return "age"
     # Depth
-    if unit_lower in ("km", "m") and ("depth" in mtype_lower or "crustal" in mtype_lower):
+    if unit_lower in ("km", "m") and (
+        "depth" in mtype_lower or "crustal" in mtype_lower
+    ):
         return "depth"
     # Magnitude
     if unit_lower in ("mw", "ml", "ms", "mb", "m") and "magnitude" in mtype_lower:
@@ -743,7 +753,9 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("g/cm3", "g/cm^3", "kg/m3", "kg/m^3", "g/cc"):
         return "density"
     # Stress
-    if unit_lower in ("mpa",) and ("stress" in mtype_lower or "differential" in mtype_lower):
+    if unit_lower in ("mpa",) and (
+        "stress" in mtype_lower or "differential" in mtype_lower
+    ):
         return "stress"
     # Heat flow
     if unit_lower in ("mw/m2", "mw/m^2", "mw/m2", "hfu"):
@@ -752,7 +764,16 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if "c/km" in unit_lower or "degc/km" in unit_lower:
         return "geotgrad"
     # Composition
-    if unit_lower in ("wt%", "wt %", "wt percent", "ppm", "ppb", "vol%", "vol %", "mol%"):
+    if unit_lower in (
+        "wt%",
+        "wt %",
+        "wt percent",
+        "ppm",
+        "ppb",
+        "vol%",
+        "vol %",
+        "mol%",
+    ):
         return "composition"
 
     # FALLBACK: check mtype label
@@ -764,7 +785,11 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
         return "age"
     if "depth" in mtype_lower:
         return "depth"
-    if "magnitude" in mtype_lower or "seismic" in mtype_lower and "moment" in mtype_lower:
+    if (
+        "magnitude" in mtype_lower
+        or "seismic" in mtype_lower
+        and "moment" in mtype_lower
+    ):
         return "magnitude"
     if "velocity" in mtype_lower or "vp" == mtype_lower or "vs" == mtype_lower:
         return "velocity"
@@ -863,7 +888,11 @@ def _normalize_paper_measurements(papers: list) -> None:
                 m.get("unit", ""),
             )
             if val is not None:
-                mtype = "temperature" if unit == "C" else ("pressure" if unit == "kbar" else "age")
+                mtype = (
+                    "temperature"
+                    if unit == "C"
+                    else ("pressure" if unit == "kbar" else "age")
+                )
                 normalized.append({"measurement": mtype, "value": val, "unit": unit})
         p["measurements"] = normalized
 
@@ -917,12 +946,16 @@ def _extract_numbers_from_text(text: str) -> list:
 
     # Pressure — requires explicit unit + delta-context filtering
     for m in re.finditer(
-        r"(\d+\.?\d*)\s*(?:[\u2013-]\s*(\d+\.?\d*))?\s*(kbar|GPa|MPa)\b", text, re.IGNORECASE
+        r"(\d+\.?\d*)\s*(?:[\u2013-]\s*(\d+\.?\d*))?\s*(kbar|GPa|MPa)\b",
+        text,
+        re.IGNORECASE,
     ):
         # Check for delta context
         after_match_p = text[m.end() : m.end() + 30]
         before_match_p = text[max(0, m.start() - 30) : m.start()]
-        if _DELTA_CONTEXT.search(after_match_p) or _DELTA_CONTEXT.search(before_match_p):
+        if _DELTA_CONTEXT.search(after_match_p) or _DELTA_CONTEXT.search(
+            before_match_p
+        ):
             continue
         try:
             val = float(m.group(1))
@@ -940,7 +973,10 @@ def _extract_numbers_from_text(text: str) -> list:
                 val2_k = val2
             if _PHYS_PRESS_KBAR_MIN <= val_k <= _PHYS_PRESS_KBAR_MAX:
                 results.append((val_k, "kbar"))
-            if val2_k is not None and _PHYS_PRESS_KBAR_MIN <= val2_k <= _PHYS_PRESS_KBAR_MAX:
+            if (
+                val2_k is not None
+                and _PHYS_PRESS_KBAR_MIN <= val2_k <= _PHYS_PRESS_KBAR_MAX
+            ):
                 results.append((val2_k, "kbar"))
         except (ValueError, IndexError):
             pass
@@ -1221,17 +1257,27 @@ def _build_research_gaps(
             )
 
     # Gap 3: geographic/region diversity (scan abstracts)
+    # NOTE: pattern-based detection UNDERCOUNTS real locations (proper-noun
+    # regex can't cover world geography). Claims below are phrased with that
+    # uncertainty explicit — never assert coverage limits the regex can't see.
     regions_found = set()
     region_patterns = _GEO_REGION_PATTERNS_RE
     for p in all_papers:
         abstract = (p.get("abstract") or "") + " " + (p.get("key_finding") or "")
         for m in region_patterns.finditer(abstract):
             regions_found.add(m.group(0).lower())
-    if len(regions_found) <= 2 and n >= 10:
+    if len(regions_found) == 0 and n >= 10:
         parts.append(
-            f"The geographic coverage of the corpus is limited "
-            f"({len(regions_found)} regions identified), suggesting "
-            f"that results may not be globally representative."
+            "No geographic focus was auto-detected in the abstracts; "
+            "geographic coverage of this corpus was not assessed "
+            "(location metadata was not extracted)."
+        )
+    elif len(regions_found) <= 2 and n >= 10:
+        parts.append(
+            f"Only {len(regions_found)} distinct geographic setting(s) were "
+            f"auto-detected in abstract text (pattern-based detection, likely "
+            f"an undercount); geographic diversity should be verified manually "
+            f"before drawing representativeness conclusions."
         )
 
     # Gap 4: methodological gap
@@ -1412,7 +1458,9 @@ def _cluster_findings_by_agreement(
         for j in range(i + 1, n):
             if j in assigned:
                 continue
-            overlap = len(kw_sets[i] & kw_sets[j]) / max(len(kw_sets[i] | kw_sets[j]), 1)
+            overlap = len(kw_sets[i] & kw_sets[j]) / max(
+                len(kw_sets[i] | kw_sets[j]), 1
+            )
             if overlap > 0.15:
                 cluster.append(j)
                 assigned.add(j)
@@ -1478,7 +1526,11 @@ def _build_consensus_sentence(group: dict, verb_offset: int) -> str:
     if len(shared_words) > 1:
         common = set.intersection(
             *[
-                set(t.strip(".,;:!?\"'()[]{}").lower() for t in it["finding"].split() if len(t) > 5)
+                set(
+                    t.strip(".,;:!?\"'()[]{}").lower()
+                    for t in it["finding"].split()
+                    if len(t) > 5
+                )
                 for it in items
             ]
         )
@@ -1581,7 +1633,11 @@ def _build_integrative_synthesis(
     years = [p.get("year") for p in theme_papers if p.get("year")]
     year_str = ""
     if years:
-        year_str = f"{min(years)}-{max(years)}" if min(years) != max(years) else str(min(years))
+        year_str = (
+            f"{min(years)}-{max(years)}"
+            if min(years) != max(years)
+            else str(min(years))
+        )
 
     for i, p in enumerate(theme_papers):
         p["_ref"] = ref_offset + 1 + i
@@ -1617,7 +1673,9 @@ def _build_integrative_synthesis(
                     "measurements": _extract_numbers_from_text(finding),
                     "paper_id": p.get("paper_id", ""),
                     "tokens": set(
-                        t.strip(".,;:!?\"'()[]{}").lower() for t in finding.split() if len(t) > 4
+                        t.strip(".,;:!?\"'()[]{}").lower()
+                        for t in finding.split()
+                        if len(t) > 4
                     ),
                 }
             )
@@ -1664,7 +1722,8 @@ def _cluster_papers_hdbscan(papers: list, n_min: int = 3) -> list[dict]:
         from sklearn.cluster import HDBSCAN
 
         texts = [
-            ((p.get("title") or "") + " " + (p.get("key_finding") or ""))[:500] for p in papers
+            ((p.get("title") or "") + " " + (p.get("key_finding") or ""))[:500]
+            for p in papers
         ]
         embeddings = embed_texts(texts)
         if embeddings is None:
@@ -1707,7 +1766,9 @@ def _cluster_papers_hdbscan(papers: list, n_min: int = 3) -> list[dict]:
                 from collections import Counter
 
                 most_common = Counter(themes_found).most_common(1)
-                label_name = most_common[0][0] if most_common else f"Cluster {label + 1}"
+                label_name = (
+                    most_common[0][0] if most_common else f"Cluster {label + 1}"
+                )
             result.append(
                 {
                     "label": label_name,
@@ -1715,7 +1776,10 @@ def _cluster_papers_hdbscan(papers: list, n_min: int = 3) -> list[dict]:
                 }
             )
         log.info(
-            "HDBSCAN: %d clusters from %d papers (min_size=%d)", len(result), len(papers), min_size
+            "HDBSCAN: %d clusters from %d papers (min_size=%d)",
+            len(result),
+            len(papers),
+            min_size,
         )
         return result
     except Exception as e:
@@ -1818,7 +1882,9 @@ def _cluster_by_claim_semantic(items: list[dict]) -> list[dict]:
         for cluster_items_list in clusters:
             if not cluster_items_list:
                 continue
-            refs = sorted(set(it.get("ref", 0) for it in cluster_items_list if it.get("ref")))
+            refs = sorted(
+                set(it.get("ref", 0) for it in cluster_items_list if it.get("ref"))
+            )
             claim_terms = set()
             temps = []
             pressures = []
@@ -1829,7 +1895,9 @@ def _cluster_by_claim_semantic(items: list[dict]) -> list[dict]:
                     if "temp" in mtype.lower() and isinstance(values, list):
                         temps.extend(v for v in values if isinstance(v, (int, float)))
                     elif "press" in mtype.lower() and isinstance(values, list):
-                        pressures.extend(v for v in values if isinstance(v, (int, float)))
+                        pressures.extend(
+                            v for v in values if isinstance(v, (int, float))
+                        )
             result.append(
                 {
                     "refs": refs,
@@ -1876,7 +1944,9 @@ def _build_claim_sentence(cluster: dict, idx: int) -> str:
         meas_parts.append(f"temperatures of {temps[0]:.0f}C")
     if len(pressures) >= 2:
         pmed = _stats.median(pressures)
-        meas_parts.append(f"pressures of {min(pressures):.1f}-{max(pressures):.1f} kbar")
+        meas_parts.append(
+            f"pressures of {min(pressures):.1f}-{max(pressures):.1f} kbar"
+        )
     elif len(pressures) == 1:
         meas_parts.append(f"pressures of {pressures[0]:.1f} kbar")
 
@@ -1975,7 +2045,8 @@ def _synthesize_measurements_v2(theme_papers: list[dict]) -> str:
 
             random.seed(42)  # deterministic
             boot_medians = [
-                _stats.median(random.choices(values, k=len(values))) for _ in range(1000)
+                _stats.median(random.choices(values, k=len(values)))
+                for _ in range(1000)
             ]
             boot_medians.sort()
             ci_lo = boot_medians[int(0.025 * len(boot_medians))]
@@ -2041,11 +2112,17 @@ def _build_cross_cutting_v2(
         comparison_parts = []
         for label, mp in method_measures.items():
             if mp["T"] and len(mp["T"]) >= 2:
-                comparison_parts.append(f"{label}: T={min(mp['T']):.0f}-{max(mp['T']):.0f}C")
+                comparison_parts.append(
+                    f"{label}: T={min(mp['T']):.0f}-{max(mp['T']):.0f}C"
+                )
             if mp["P"] and len(mp["P"]) >= 2:
-                comparison_parts.append(f"{label}: P={min(mp['P']):.0f}-{max(mp['P']):.0f}kbar")
+                comparison_parts.append(
+                    f"{label}: P={min(mp['P']):.0f}-{max(mp['P']):.0f}kbar"
+                )
         if comparison_parts:
-            parts.append("Cross-method comparison: " + "; ".join(comparison_parts[:5]) + ".")
+            parts.append(
+                "Cross-method comparison: " + "; ".join(comparison_parts[:5]) + "."
+            )
 
     # 3. Convergence/divergence
     all_temps = []
@@ -2141,7 +2218,7 @@ def _build_research_gaps_v2(
                 f"representing a methodological gap."
             )
 
-    # 4. Geographic diversity
+    # 4. Geographic diversity (pattern-based; undercounts — phrase honestly)
     regions_found = set()
     region_patterns = _GEO_REGION_PATTERNS_RE_V2
     for p in all_papers:
@@ -2150,8 +2227,10 @@ def _build_research_gaps_v2(
             regions_found.add(m.group(0).lower())
     if 0 < len(regions_found) <= 2 and n >= 10:
         parts.append(
-            f"Geographic coverage is limited to {len(regions_found)} region(s), "
-            f"constraining the global applicability of findings."
+            f"Only {len(regions_found)} geographic setting(s) were auto-detected "
+            f"in abstract text (pattern-based detection, likely an undercount); "
+            f"verify geographic diversity manually before limiting claims of "
+            f"global applicability."
         )
 
     # 5. Measurement uncertainty
@@ -2161,7 +2240,9 @@ def _build_research_gaps_v2(
             mtype = (m.get("measurement") or "").lower()
             munit = (m.get("unit") or "").strip()
             if not (
-                "temp" in mtype or "press" in mtype or munit in ("C", "K", "kbar", "GPa", "MPa")
+                "temp" in mtype
+                or "press" in mtype
+                or munit in ("C", "K", "kbar", "GPa", "MPa")
             ):
                 continue
             try:
@@ -2203,51 +2284,109 @@ def _build_research_gaps_v2(
 # Rock-type detection for contextual measurement grouping
 _ROCK_TYPE_PATTERNS = [
     # Metamorphic
-    ("metapelite", re.compile(r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.IGNORECASE)),
+    (
+        "metapelite",
+        re.compile(
+            r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.IGNORECASE
+        ),
+    ),
     ("eclogite", re.compile(r"\b(?:eclogite|eclogitic)\b", re.IGNORECASE)),
-    ("granulite", re.compile(r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.IGNORECASE)),
+    (
+        "granulite",
+        re.compile(
+            r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.IGNORECASE
+        ),
+    ),
     ("amphibolite", re.compile(r"\b(?:amphibolite|amphibolitic)\b", re.IGNORECASE)),
     (
         "gneiss",
-        re.compile(r"\b(?:gn(?:e|†)iss(?:ic)?|orthogneiss|paragneiss|augen\s+gneiss)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:gn(?:e|†)iss(?:ic)?|orthogneiss|paragneiss|augen\s+gneiss)\b",
+            re.IGNORECASE,
+        ),
     ),
     (
         "schist",
-        re.compile(r"\b(?:schist(?:ose)?|mica\s+schist|garnet\s+schist|chlorite\s+schist)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:schist(?:ose)?|mica\s+schist|garnet\s+schist|chlorite\s+schist)\b",
+            re.IGNORECASE,
+        ),
     ),
     ("skarn", re.compile(r"\b(?:skarn(?:s)?|tactite)\b", re.IGNORECASE)),
     ("quartzite", re.compile(r"\b(?:quartzite|quartzitic)\b", re.IGNORECASE)),
-    ("marble", re.compile(r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.IGNORECASE)),
-    ("serpentinite", re.compile(r"\b(?:serpentin(?:ite|inite)|serpentiniz)\b", re.IGNORECASE)),
-    ("blueschist", re.compile(r"\b(?:blueschist|blue\s+schist|lawsonite)\b", re.IGNORECASE)),
-    ("migmatite", re.compile(r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.IGNORECASE)),
+    (
+        "marble",
+        re.compile(
+            r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.IGNORECASE
+        ),
+    ),
+    (
+        "serpentinite",
+        re.compile(r"\b(?:serpentin(?:ite|inite)|serpentiniz)\b", re.IGNORECASE),
+    ),
+    (
+        "blueschist",
+        re.compile(r"\b(?:blueschist|blue\s+schist|lawsonite)\b", re.IGNORECASE),
+    ),
+    (
+        "migmatite",
+        re.compile(
+            r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.IGNORECASE
+        ),
+    ),
     (
         "mylonite",
         re.compile(
-            r"\b(?:mylon(?:ite|itic)|ultramylon|cataclasite|fault\s+(?:rock|gouge|breccia))\b", re.IGNORECASE
+            r"\b(?:mylon(?:ite|itic)|ultramylon|cataclasite|fault\s+(?:rock|gouge|breccia))\b",
+            re.IGNORECASE,
         ),
     ),
     ("hornfels", re.compile(r"\b(?:hornfels|contact\s+metamorph)\b", re.IGNORECASE)),
-    ("calc-silicate", re.compile(r"\b(?:calc.silicate|calc-silicate)\b", re.IGNORECASE)),
+    (
+        "calc-silicate",
+        re.compile(r"\b(?:calc.silicate|calc-silicate)\b", re.IGNORECASE),
+    ),
     # Igneous — volcanic
     (
         "basalt",
-        re.compile(r"\b(?:basalt(?:ic)?|MORB|mid.ocean.ridge\s+basalt|OIB|flood\s+basalt)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:basalt(?:ic)?|MORB|mid.ocean.ridge\s+basalt|OIB|flood\s+basalt)\b",
+            re.IGNORECASE,
+        ),
     ),
-    ("rhyolite", re.compile(r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.IGNORECASE)),
+    (
+        "rhyolite",
+        re.compile(
+            r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.IGNORECASE
+        ),
+    ),
     ("andesite", re.compile(r"\b(?:andesite|andesitic)\b", re.IGNORECASE)),
     ("dacite", re.compile(r"\b(?:dacite|dacitic)\b", re.IGNORECASE)),
     ("komatiite", re.compile(r"\b(?:komatiite|komatiitic|boninite)\b", re.IGNORECASE)),
-    ("carbonatite", re.compile(r"\b(?:carbonatite|nephelinite|melilitite)\b", re.IGNORECASE)),
-    ("tuff", re.compile(r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.IGNORECASE)),
+    (
+        "carbonatite",
+        re.compile(r"\b(?:carbonatite|nephelinite|melilitite)\b", re.IGNORECASE),
+    ),
+    (
+        "tuff",
+        re.compile(
+            r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.IGNORECASE
+        ),
+    ),
     # Igneous — plutonic
     (
         "granite",
         re.compile(
-            r"\b(?:granite|granitic|granodiorite|tonalite|trondhjemite|monzonite|syenite)\b", re.IGNORECASE
+            r"\b(?:granite|granitic|granodiorite|tonalite|trondhjemite|monzonite|syenite)\b",
+            re.IGNORECASE,
         ),
     ),
-    ("gabbro", re.compile(r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.IGNORECASE)),
+    (
+        "gabbro",
+        re.compile(
+            r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.IGNORECASE
+        ),
+    ),
     ("diorite", re.compile(r"\b(?:diorite|dioritic|monzodiorite)\b", re.IGNORECASE)),
     (
         "peridotite",
@@ -2260,9 +2399,17 @@ _ROCK_TYPE_PATTERNS = [
     # Sedimentary
     (
         "sandstone",
-        re.compile(r"\b(?:sandstone|arenite|wacke|quartz\s+arenite|arkose|greywacke)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:sandstone|arenite|wacke|quartz\s+arenite|arkose|greywacke)\b",
+            re.IGNORECASE,
+        ),
     ),
-    ("shale", re.compile(r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.IGNORECASE)),
+    (
+        "shale",
+        re.compile(
+            r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.IGNORECASE
+        ),
+    ),
     (
         "limestone",
         re.compile(
@@ -2270,33 +2417,65 @@ _ROCK_TYPE_PATTERNS = [
             re.IGNORECASE,
         ),
     ),
-    ("dolomite", re.compile(r"\b(?:dolomite|dolostone|dolomit(?:e|ic))\b", re.IGNORECASE)),
-    ("chert", re.compile(r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.IGNORECASE)),
-    ("conglomerate", re.compile(r"\b(?:conglomerate|breccia|fanglomerate)\b", re.IGNORECASE)),
+    (
+        "dolomite",
+        re.compile(r"\b(?:dolomite|dolostone|dolomit(?:e|ic))\b", re.IGNORECASE),
+    ),
+    (
+        "chert",
+        re.compile(
+            r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.IGNORECASE
+        ),
+    ),
+    (
+        "conglomerate",
+        re.compile(r"\b(?:conglomerate|breccia|fanglomerate)\b", re.IGNORECASE),
+    ),
     (
         "evaporite",
-        re.compile(r"\b(?:evaporite|halite|gypsum|anhydrite|salt\s+(?:dome|diapir))\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:evaporite|halite|gypsum|anhydrite|salt\s+(?:dome|diapir))\b",
+            re.IGNORECASE,
+        ),
     ),
-    ("turbidite", re.compile(r"\b(?:turbidite|flysch|contourite|debris\s+flow)\b", re.IGNORECASE)),
-    ("BIF", re.compile(r"\b(?:banded\s+iron\s+formation|\bBIF\b|taconite|itabirite)\b", re.IGNORECASE)),
-    ("coal", re.compile(r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.IGNORECASE)),
+    (
+        "turbidite",
+        re.compile(r"\b(?:turbidite|flysch|contourite|debris\s+flow)\b", re.IGNORECASE),
+    ),
+    (
+        "BIF",
+        re.compile(
+            r"\b(?:banded\s+iron\s+formation|\bBIF\b|taconite|itabirite)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "coal",
+        re.compile(
+            r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.IGNORECASE
+        ),
+    ),
     # Mantle / deep Earth
     (
         "mantle xenolith",
         re.compile(
-            r"\b(?:mantle\s+(?:xenolith|section|nodule|peridotite)|ophiolite|ophiolitic)\b", re.IGNORECASE
+            r"\b(?:mantle\s+(?:xenolith|section|nodule|peridotite)|ophiolite|ophiolitic)\b",
+            re.IGNORECASE,
         ),
     ),
     # Ore deposits
     (
         "VMS",
         re.compile(
-            r"\b(?:volcanogenic\s+massive\s+sulfide|\bVMS\b|SEDEX|Mississippi\s+Valley)\b", re.IGNORECASE
+            r"\b(?:volcanogenic\s+massive\s+sulfide|\bVMS\b|SEDEX|Mississippi\s+Valley)\b",
+            re.IGNORECASE,
         ),
     ),
     (
         "porphyry deposit",
-        re.compile(r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.IGNORECASE
+        ),
     ),
 ]
 
@@ -2440,7 +2619,9 @@ def _build_field_evolution(
         rt_parts = []
         for rt, vals in sorted(rock_type_press.items(), key=lambda x: -len(x[1])):
             if len(vals) >= 2:
-                rt_parts.append(f"{rt}: {min(vals):.1f}-{max(vals):.1f} kbar (n={len(vals)})")
+                rt_parts.append(
+                    f"{rt}: {min(vals):.1f}-{max(vals):.1f} kbar (n={len(vals)})"
+                )
         if rt_parts:
             parts.append(
                 "Pressure estimates vary systematically by rock type: "
@@ -2686,7 +2867,9 @@ def _build_method_comparison_synthesis(
         for md in earliest_methods[:6]:
             yr = int(md["avg_year"])
             timeline_parts.append(f"{md['label'].lower()} (avg {yr}, n={md['n']})")
-        parts.append("Temporal distribution from corpus: " + "; ".join(timeline_parts) + ".")
+        parts.append(
+            "Temporal distribution from corpus: " + "; ".join(timeline_parts) + "."
+        )
 
     # Per-method comparative sentences
     for md in method_data:
@@ -2852,12 +3035,16 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
             bge_scores = {id(p): s for p, s in bge_ranked}
             scores = [bge_scores.get(id(p), 0.0) for p in papers]
             kw_scores = [_keyword_relevance(p, topic) for p in papers]
-            hybrid = [(p, max(s, k * 0.5)) for p, s, k in zip(papers, scores, kw_scores)]
+            hybrid = [
+                (p, max(s, k * 0.5)) for p, s, k in zip(papers, scores, kw_scores)
+            ]
             hybrid.sort(key=lambda x: -x[1])
             relevant = [(p, s) for p, s in hybrid if s >= 0.15]
             if relevant:
                 log.info(
-                    "BGE topical filter: %d/%d papers above threshold", len(relevant), len(papers)
+                    "BGE topical filter: %d/%d papers above threshold",
+                    len(relevant),
+                    len(papers),
                 )
                 min_keep = max(len(relevant), len(papers) // 2)
                 if len(relevant) < min_keep:
@@ -2887,17 +3074,32 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
 _VERB_MAP = [
     (re.compile(r"^(?:we|our)\s+(?:found|find)\b", re.IGNORECASE), "found that"),
     (
-        re.compile(r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.IGNORECASE),
+        re.compile(
+            r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.IGNORECASE
+        ),
         "demonstrated that",
     ),
-    (re.compile(r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.IGNORECASE), "reported that"),
     (
-        re.compile(r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.IGNORECASE),
+        re.compile(
+            r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.IGNORECASE
+        ),
+        "reported that",
+    ),
+    (
+        re.compile(
+            r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.IGNORECASE
+        ),
         "proposed that",
     ),
-    (re.compile(r"^(?:we|our)\s+(?:conclude|concluded)\b", re.IGNORECASE), "concluded that"),
+    (
+        re.compile(r"^(?:we|our)\s+(?:conclude|concluded)\b", re.IGNORECASE),
+        "concluded that",
+    ),
     (re.compile(r"^(?:we|our)\s+(?:argue|argued)\b", re.IGNORECASE), "argued that"),
-    (re.compile(r"^(?:we|our)\s+(?:observ\w+|not\w+|detect\w+)\b", re.IGNORECASE), "observed that"),
+    (
+        re.compile(r"^(?:we|our)\s+(?:observ\w+|not\w+|detect\w+)\b", re.IGNORECASE),
+        "observed that",
+    ),
     (
         re.compile(
             r"^(?:this|the)\s+(?:study|work|paper|research)\s+(?:show|showed|demonstrat\w+|found|report\w+|present\w+)\b",
@@ -2907,7 +3109,8 @@ _VERB_MAP = [
     ),
     (
         re.compile(
-            r"^(?:here|in this study)\s+we\s+(?:show|demonstrate|report|present|found)\b", re.IGNORECASE
+            r"^(?:here|in this study)\s+we\s+(?:show|demonstrate|report|present|found)\b",
+            re.IGNORECASE,
         ),
         "demonstrated that",
     ),
@@ -3145,7 +3348,9 @@ def _is_quality_finding(finding: str) -> bool:
         return False
     # Check for numeric gibberish (mostly digits with few words)
     words = finding.split()
-    digit_ratio = sum(1 for w in words if any(c.isdigit() for c in w)) / max(len(words), 1)
+    digit_ratio = sum(1 for w in words if any(c.isdigit() for c in w)) / max(
+        len(words), 1
+    )
     if digit_ratio > 0.5:
         return False
     return True
@@ -3232,7 +3437,11 @@ def _select_transition(
             return "Several years later, "
 
     # 2. Discipline-shift transition (replace underscores with spaces)
-    prev_disc = ((prev_paper or {}).get("discipline") or "").replace("_", " ") if prev_paper else ""
+    prev_disc = (
+        ((prev_paper or {}).get("discipline") or "").replace("_", " ")
+        if prev_paper
+        else ""
+    )
     curr_disc = (curr_paper.get("discipline") or "").replace("_", " ")
     if prev_disc and curr_disc and prev_disc != curr_disc:
         return f"From a {curr_disc} perspective, "
@@ -3353,13 +3562,24 @@ def _detect_paragraph_break(
 # Content-based verb enrichment — varies verb by finding content
 _CONTENT_VERB_MAP = [
     (re.compile(r"\bfirst\b", re.IGNORECASE), "pioneered the demonstration that"),
-    (re.compile(r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.IGNORECASE), "modeled"),
+    (
+        re.compile(
+            r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.IGNORECASE
+        ),
+        "modeled",
+    ),
     (re.compile(r"\b(?:review|synthesi\w+|compil\w+)\b", re.IGNORECASE), "reviewed"),
-    (re.compile(r"\b(?:measure|determin\w+|quantif\w+)\b", re.IGNORECASE), "determined that"),
+    (
+        re.compile(r"\b(?:measure|determin\w+|quantif\w+)\b", re.IGNORECASE),
+        "determined that",
+    ),
     (re.compile(r"\b(?:argue| propos\w+|hypnoth\w+)\b", re.IGNORECASE), "argued that"),
     (re.compile(r"\b(?:conclude|infer\w+)\b", re.IGNORECASE), "concluded that"),
     (re.compile(r"\b(?:observ\w+|not\w+|detect\w+)\b", re.IGNORECASE), "observed that"),
-    (re.compile(r"\b(?:establish\w+|demonstrat\w+)\b", re.IGNORECASE), "established that"),
+    (
+        re.compile(r"\b(?:establish\w+|demonstrat\w+)\b", re.IGNORECASE),
+        "established that",
+    ),
 ]
 
 
@@ -3592,7 +3812,9 @@ def build_chronological_narrative(
         theme_label = theme["label"]
         n_theme = len(theme_papers)
 
-        parts.append(f"### {theme_label} ({n_theme} {'study' if n_theme == 1 else 'studies'})")
+        parts.append(
+            f"### {theme_label} ({n_theme} {'study' if n_theme == 1 else 'studies'})"
+        )
         parts.append("")
 
         synthesis, theme_cited = _build_integrative_synthesis(
@@ -3726,7 +3948,9 @@ def _summarize_measurements(measurements: list[dict]) -> str:
             import statistics
 
             mean_val = statistics.mean(values)
-            summaries.append(f"{mtype}: {min(values):.2f}–{max(values):.2f} (mean {mean_val:.2f})")
+            summaries.append(
+                f"{mtype}: {min(values):.2f}–{max(values):.2f} (mean {mean_val:.2f})"
+            )
         elif len(values) == 1:
             summaries.append(f"{mtype} = {values[0]:.2f}")
 
@@ -3773,14 +3997,10 @@ def build_verification_narrative(
                 verdict_detail = "No papers in the corpus directly address this claim."
             elif len(supporting) > 0 and len(contrasting) == 0:
                 verdict = "Supported"
-                verdict_detail = (
-                    f"{len(supporting)} of {total_addr} papers provide supporting evidence."
-                )
+                verdict_detail = f"{len(supporting)} of {total_addr} papers provide supporting evidence."
             elif len(contrasting) > 0 and len(supporting) == 0:
                 verdict = "Contradicted"
-                verdict_detail = (
-                    f"{len(contrasting)} of {total_addr} papers provide contrasting evidence."
-                )
+                verdict_detail = f"{len(contrasting)} of {total_addr} papers provide contrasting evidence."
             elif len(supporting) > len(contrasting):
                 verdict = "Mostly supported"
                 verdict_detail = (
@@ -3840,9 +4060,13 @@ def build_verification_narrative(
             return "\n".join(parts), cited
 
     # Fallback: no correlation data — do simple chronological
-    parts.append("No stance correlation data available — presenting chronological findings.")
+    parts.append(
+        "No stance correlation data available — presenting chronological findings."
+    )
     parts.append("")
-    narrative, cited_chron = build_chronological_narrative(papers, claim, "verification")
+    narrative, cited_chron = build_chronological_narrative(
+        papers, claim, "verification"
+    )
     parts.append(narrative)
     return "\n".join(parts), cited_chron
 
@@ -3852,7 +4076,9 @@ def _find_paper_by_id(papers: list[dict], paper_id: str) -> dict | None:
     for p in papers:
         pid = p.get("paper_id", "")
         doi = p.get("doi", "")
-        if paper_id and (pid == paper_id or doi == paper_id or paper_id in pid or pid in paper_id):
+        if paper_id and (
+            pid == paper_id or doi == paper_id or paper_id in pid or pid in paper_id
+        ):
             return p
     return papers[0] if papers else None
 
@@ -3885,7 +4111,13 @@ def _detect_approach(paper: dict, topic: str) -> str:
             "high pressure",
             "phase equilibrium",
         ],
-        "Modeling": ["model", "simulation", "numerical", "computational", "thermodynamic model"],
+        "Modeling": [
+            "model",
+            "simulation",
+            "numerical",
+            "computational",
+            "thermodynamic model",
+        ],
         "Field study": ["field", "sample", "collected", "outcrop", "fieldwork"],
         "Review": ["review", "synthesis", "overview", "meta-analysis"],
     }
@@ -3940,11 +4172,16 @@ def build_comparison_narrative(
         return f"No papers available for comparison of '{topic}'.", cited
 
     topical = _filter_topical(papers, topic)
-    with_findings = [p for p in topical if _is_quality_finding(p.get("key_finding") or "")]
+    with_findings = [
+        p for p in topical if _is_quality_finding(p.get("key_finding") or "")
+    ]
     if not with_findings:
         with_findings = _filter_with_findings(topical)
     if not with_findings:
-        return f"Papers found for '{topic}' but no key findings could be extracted.", cited
+        return (
+            f"Papers found for '{topic}' but no key findings could be extracted.",
+            cited,
+        )
 
     # Group by approach
 
@@ -3961,7 +4198,9 @@ def build_comparison_narrative(
     if total > 200:
         # Trim each group proportionally
         ratio = 200 / total
-        sorted_approaches = [(a, g[: max(1, int(len(g) * ratio))]) for a, g in sorted_approaches]
+        sorted_approaches = [
+            (a, g[: max(1, int(len(g) * ratio))]) for a, g in sorted_approaches
+        ]
         total = sum(len(g) for _, g in sorted_approaches)
 
     parts: list[str] = []
@@ -3987,12 +4226,16 @@ def build_comparison_narrative(
             cited.append(p)
             author = _author_short(_parse_authors(p.get("authors", [])))
             year = p.get("year") or "n.d."
-            finding = _clean_title_finding(_sanitize_finding(p.get("key_finding") or ""))
+            finding = _clean_title_finding(
+                _sanitize_finding(p.get("key_finding") or "")
+            )
             verb, content = _rephrase_finding(finding)
             if verb.endswith(" that"):
                 citations.append(f"- {author} ({year}) [{ref_num}] {verb} {content}")
             else:
-                citations.append(f"- {author} ({year}) [{ref_num}] reported that {content}")
+                citations.append(
+                    f"- {author} ({year}) [{ref_num}] reported that {content}"
+                )
 
         parts.extend(citations)
         parts.append("")
@@ -4062,7 +4305,9 @@ def build_compilation_narrative(
             f"Presenting chronological narrative instead."
         )
         parts.append("")
-        narrative, cited = build_chronological_narrative(papers, topic, "data_compilation")
+        narrative, cited = build_chronological_narrative(
+            papers, topic, "data_compilation"
+        )
         parts.append(narrative)
         return "\n".join(parts), cited
 
@@ -4153,7 +4398,9 @@ def build_compilation_narrative(
             year = paper.get("year") or "n.d."
             val = m.get("value", "?")
             unit = m.get("unit", "")
-            parts.append(f"| {author} [{ref_num}] | {year} | {mtype} | {val} | {unit} |")
+            parts.append(
+                f"| {author} [{ref_num}] | {year} | {mtype} | {val} | {unit} |"
+            )
 
     parts.append("")
 

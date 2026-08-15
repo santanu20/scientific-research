@@ -724,10 +724,21 @@ def synthesize(
     4. Optionally smooth with LLM
     5. Write to output_path and return narrative text
     """
-    extracted = _load_json(extracted_path)
-    verified = _load_json(verified_path)
-    correlation = _load_json(correlation_path)
-    meta = _load_json(meta_path)
+    from _artifact import (  # deduped helpers (Phase 1)
+        _extract_papers,
+        _load_json,
+        load_extractions,
+        load_verified,
+    )
+    from _artifact import ArtifactShapeError
+
+    try:
+        extracted = load_extractions(extracted_path)
+        verified = load_verified(verified_path)
+    except ArtifactShapeError as e:
+        raise SystemExit(f"FATAL: {e}") from e
+    correlation = _load_json(correlation_path)  # optional
+    meta = _load_json(meta_path)  # optional
 
     papers = _extract_papers(extracted, verified)
 
@@ -947,11 +958,14 @@ def synthesize(
     except Exception:
         pass
 
-    # References
-    if cited:
-        parts.append("## References")
-        parts.append("")
-        parts.append(format_citation_list(cited))
+    # References — must cover EVERY [n] used in the body. The narrative
+    # builder numbers citations across ALL papers; `cited` may be a subset,
+    # which previously left [6][7][8] dangling with only 5 entries listed
+    # (caught by characterization test 2026-08-15).
+    ref_source = cited if len(cited) >= len(papers) else papers
+    parts.append("## References")
+    parts.append("")
+    parts.append(format_citation_list(ref_source))
 
     full_brief = "\n".join(parts)
 

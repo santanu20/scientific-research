@@ -142,13 +142,15 @@ RE_PRESSURE = re.compile(r"(\d+\.?\d*)\s*[MG]?Pa", re.IGNORECASE)
 # reconcile pass (unit family default).
 RE_UNITED = re.compile(
     r"(\d+\.?\d*)\s{0,2}(°C|°\s?[Cc]|[Cc]elsius|deg\s?[Cc]\b|GPa|MPa|kPa|kbar"
-    r"|Ma\b|Ga\b|ka\b|wt\s?%|ppm|ppb|‰|per\s?mil|km\b|mm\b|cm\b|µm|μm|nm\b|%)"
+    r"|Ma\b|Ga\b|ka\b|wt\s?%|ppm|ppb|‰|per\s?mil|km\b|mm\b|cm\b|µm|μm|nm\b|%"
+    r"|(?<![a-zA-Z])K\b|(?<![a-zA-Z])C\b)"
 )
 _UNIT_CANON = {
     "°c": "°C",
     "° C": "°C",
     "c": "°C",
     "celsius": "°C",
+    "k": "K",
     "deg c": "°C",
     "gpa": "GPa",
     "mpa": "MPa",

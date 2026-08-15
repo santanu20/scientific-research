@@ -10,7 +10,8 @@ Imported by synthesize.py — not called directly.
 
 from __future__ import annotations
 
-from _artifact import _extract_papers, _load_json  # noqa: F401
+from _artifact import _extract_papers, _load_json, _sanitize_finding  # noqa: F401
+from _artifact import _parse_authors  # noqa: F401
 
 import json
 import logging
@@ -74,70 +75,10 @@ def _normalize_for_narrative(papers: list) -> list:
 
 
 
-def _sanitize_finding(text: str) -> str:
-    """Strip HTML entities/tags + fix scientific notation spacing artifacts."""
-    if not text:
-        return ""
-    import re as _re
-
-    _html_entities = {
-        "&lt;": "<",
-        "&gt;": ">",
-        "&amp;": "&",
-        "&quot;": '"',
-        "&#39;": "'",
-        "&nbsp;": " ",
-        "&permil;": "‰",
-        "&delta;": "δ",
-        "&alpha;": "α",
-        "&beta;": "β",
-        "&sigma;": "σ",
-        "&mu;": "μ",
-        "&times;": "×",
-        "&plusmn;": "±",
-        "&deg;": "°",
-        "&ndash;": "–",
-        "&mdash;": "—",
-    }
-    for entity, char in _html_entities.items():
-        text = text.replace(entity, char)
-    text = _re.sub(r"<[^>]+>", "", text)
-    # Strip LaTeX markup common in Crossref abstracts
-    text = text.replace("$\\sim$", "~").replace("$\\pm$", "±")
-    text = text.replace("$\\degree$", "°").replace("$\\times$", "×")
-    text = _re.sub(r"\$\$.*?\$\$", "", text)  # remove display math
-    text = _re.sub(r"\$([^$]+)\$", r"\1", text)  # inline math → plain text
-    text = _re.sub(r"\\(?:text|mathrm|mathbf)\{([^}]+)\}", r"\1", text)  # \text{x} → x
-    # Fix isotope spacing: "δ 18 O" → "δ18O"
-    text = _re.sub(r"δ\s*(\d+)\s*([A-Z])", r"δ\1\2", text)
-    text = _re.sub(r"Δ\s*(\d+)\s*([A-Z])", r"Δ\1\2", text)
-    # Fix oxide spacing: "SiO 2" → "SiO2", "fO 2" → "fO2"
-    text = _re.sub(r"([A-Za-z])O\s*(\d+)", r"\1O\2", text)
-    text = _re.sub(r"([A-Za-z])\s*(\d+)\s*O\s*(\d+)", r"\1\2O\3", text)
-    # Fix "fO 2 s" → "fO2s"
-    text = _re.sub(r"fO\s*2\s*s", "fO2", text, flags=_re.IGNORECASE)
-    # Remove KEY WORDS artifacts from journal formatting
-    text = _re.sub(r"KEY WORDS?:.*", "", text, flags=_re.DOTALL)
-    # Normalize whitespace
-    text = _re.sub(r"\s{2,}", " ", text)
-    return text.strip()
 
 
 
 
-def _parse_authors(authors_field: Any) -> list[str]:
-    """Parse authors field — handles list of strings or list of dicts."""
-    if not authors_field:
-        return []
-    result: list[str] = []
-    for a in authors_field:
-        if isinstance(a, str):
-            result.append(a)
-        elif isinstance(a, dict):
-            name = a.get("name") or a.get("display_name") or ""
-            if name:
-                result.append(name)
-    return result
 
 
 def _author_short(authors: list[str]) -> str:
@@ -3736,6 +3677,7 @@ def build_chronological_narrative(
                 yr = p.get("year", "")
                 parts.append(f"[{ref_num}] ({yr}) investigates {title}.")
                 p["paper_id"] = p.get("paper_id") or p.get("doi") or str(ref_num)
+                p["_ref"] = ref_num  # keep body marker ↔ reference entry aligned
                 cited.append(p)
                 ref_num += 1
 
@@ -3807,9 +3749,16 @@ def build_chronological_narrative(
         # Apply in descending order so [10]→[12] doesn't clobber [1]→[2].
         import re as _re
 
+        n_refs = len(cited)
+
         def _rewrite_citation(m: _re.Match[str]) -> str:
             old = int(m.group(1))
-            new = renumber_map.get(old, old)
+            new = renumber_map.get(old)
+            if new is None:
+                # Stale ref (paper dropped in dedup): a dangling [N] would
+                # fabricate a citation — map to the LAST valid ref of the
+                # same theme cluster is unsafe; drop the marker instead.
+                return ""
             return f"[{new}]"
 
         body_text = _re.sub(r"\[(\d+)\](?!\d)", _rewrite_citation, body_text)

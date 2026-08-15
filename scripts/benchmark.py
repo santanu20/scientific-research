@@ -433,6 +433,56 @@ def bench_cost(verified_path: Path | None) -> dict:
     }
 
 
+
+
+# ─── Bench 6: fulltext coverage (DocumentStore, live network) ─────────────
+def bench_fulltext(verified_path: Path) -> dict:
+    from _documentstore import DocumentStore
+
+    ds = DocumentStore()
+    stats = ds.fetch_corpus(verified_path, limit=8)
+    cov = ds.coverage(verified_path)
+    return {**stats, "corpus_coverage": cov,
+            "note": "legal routes only: Unpaywall OA + arXiv + user-dropped incoming/"}
+
+
+# ─── Bench 7: contradiction detection (claims engine) ─────────────────────
+def bench_contradictions(extracted_path: Path) -> dict:
+    from _artifact import load_extractions
+    from _claims_engine import (
+        contradiction_report,
+        detect_contradictions,
+        extract_claims,
+    )
+
+    ext = load_extractions(extracted_path)
+    papers = [{"doi": e.get("doi"), "title": e.get("title"), "abstract": e.get("abstract")} for e in ext["extractions"]]
+    claims = [c for p in papers for c in extract_claims(p)]
+    cons = detect_contradictions(claims)
+    return {"papers": len(papers), "numeric_claims": len(claims), "contradictions": len(cons),
+            "top": [{"quantity": c.quantity, "unit": c.unit, "ratio": c.ratio, "n": len(c.values)} for c in cons[:5]],
+            "sample_report": contradiction_report(cons[:3])}
+
+
+# ─── Bench 8: subgroup explanatory power ───────────────────────────────────
+def bench_subgroups(meta_path: Path) -> dict:
+    from _artifact import load_meta
+
+    meta = load_meta(meta_path)
+    pools = meta.get("unit_pools") or []
+    out = []
+    for up in pools:
+        subs = up.get("subgroup_results") or []
+        decade = [r for r in subs if "decade" in str(r.get("label", ""))]
+        if decade:
+            effs = [r["effect"] for r in decade]
+            out.append({"pool": up["group"], "k": up["k"],
+                        "i2": (up.get("pooled_random") or {}).get("heterogeneity", {}).get("i_squared"),
+                        "decade_subgroups": len(decade),
+                        "decade_effect_spread": round(max(effs) - min(effs), 3)})
+    return {"pools_with_decade_split": out,
+            "note": "spread > 0 with decade split = heterogeneity partially explained by era"}
+
 def main() -> int:
     if "--self-check" in sys.argv:
         print(f"OK {sys.argv[0]}: ready")
@@ -444,6 +494,8 @@ def main() -> int:
     p.add_argument(
         "--verified", type=Path, default=Path("/tmp/opencode/valrun2/verified.json")
     )
+    p.add_argument("--extracted", type=Path, default=Path("/tmp/opencode/valrun2/extracted.json"))
+    p.add_argument("--meta", type=Path, default=Path("/tmp/opencode/valrun2/meta.json"))
     p.add_argument("--out", type=Path, default=Path("research_outputs/benchmark"))
     args = p.parse_args()
     run = args.bench == "all" or "screening" in args.bench
@@ -457,6 +509,24 @@ def main() -> int:
     if args.bench in ("all", "cost"):
         print("Bench 5: cost ...")
         RESULTS["cost"] = bench_cost(args.verified)
+    if args.bench in ("all", "fulltext"):
+        print("Bench 6: fulltext ...")
+        try:
+            RESULTS["fulltext"] = bench_fulltext(args.verified)
+        except Exception as e:  # noqa: BLE001
+            RESULTS["fulltext"] = {"error": str(e)[:200]}
+    if args.bench in ("all", "contradictions"):
+        print("Bench 7: contradictions ...")
+        try:
+            RESULTS["contradictions"] = bench_contradictions(args.extracted)
+        except Exception as e:  # noqa: BLE001
+            RESULTS["contradictions"] = {"error": str(e)[:200]}
+    if args.bench in ("all", "subgroups"):
+        print("Bench 8: subgroups ...")
+        try:
+            RESULTS["subgroups"] = bench_subgroups(args.meta)
+        except Exception as e:  # noqa: BLE001
+            RESULTS["subgroups"] = {"error": str(e)[:200]}
 
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "benchmark_results.json").write_text(

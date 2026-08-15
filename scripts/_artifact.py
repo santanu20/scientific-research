@@ -49,7 +49,7 @@ def _expect_keys(
 ) -> None:
     missing = needed - data.keys()
     if missing:
-        got = sorted(k for k in data.keys() if k not in ("meta",))[:5]
+        got = sorted(k for k in data if k not in ("meta",))[:5]
         raise ArtifactShapeError(
             f"{path} is not a valid {artifact} (missing {sorted(missing)}; "
             f"looks like {got}). {wants}"

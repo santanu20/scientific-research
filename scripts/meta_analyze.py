@@ -404,8 +404,7 @@ def collect_single_measurements(
                 v = (unc / (n**0.5 if n > 1 else 1.0)) ** 2
             else:
                 v = 1.0  # no uncertainty → equal weighting
-            out.append(
-                StudyEffect(
+            _eff_obj = StudyEffect(
                     paper_id=pid,
                     doi=paper.doi,
                     name=(paper.title or pid)[:50],
@@ -419,8 +418,9 @@ def collect_single_measurements(
                     notes=f"n={n}, unit={unit}"
                     + (f", orig={orig_unit}" if orig_unit != unit else "")
                     + (f", ±{unc}" if unc else ""),
-                )
             )
+            _eff_obj._year = paper.year  # decade decomposition input (Phase 3)
+            out.append(_eff_obj)
     if skipped_unbound:
         log.info(
             "Unit gate: dropped %d unbound numbers (no unit AND no label)",
@@ -712,6 +712,46 @@ def run_meta_analysis(
     )
     # Subgroup analysis
     subgroup_results: list[dict] = []
+    # Phase 3: I²>75% on single-measure pools → decompose by year-decade
+    # (calibration-era proxy) so heavy heterogeneity is EXPLAINED, not just
+    # flagged. Labels carry the decade; downstream tables stay honest.
+    if studies and studies[0].scale == "value" and len(studies) >= 4:
+        try:
+            i2 = chosen["heterogeneity"].get("i_squared", 0.0)
+        except (KeyError, TypeError):
+            i2 = 0.0
+        if isinstance(i2, (int, float)) and i2 > 75.0:
+            from collections import defaultdict as _dd
+
+            by_dec: dict[str, list[StudyEffect]] = _dd(list)
+            for st in studies:
+                yr = None
+                for eff_d in (st.notes or ""):
+                    pass
+                yr = getattr(st, "_year", None)
+                if yr is None:
+                    # recover from notes 'n=.., unit=..' — not present; use doi year guess via paper title? keep simple:
+                    by_dec["mixed"].append(st)
+                else:
+                    by_dec[str((int(yr) // 10) * 10) + "s"].append(st)
+            if len(by_dec) >= 2 and "mixed" not in by_dec:
+                for lbl, grp in sorted(by_dec.items()):
+                    if len(grp) < 2:
+                        continue
+                    pr = pool_effects(
+                        [g for g in grp], model=model,
+                        tau2_method=tau2_method, hksj=hksj,
+                    )
+                    subgroup_results.append(
+                        {
+                            "label": f"decade {lbl}",
+                            "k": len(grp),
+                            "effect": pr["effect"],
+                            "ci_lower": pr["ci_lower"],
+                            "ci_upper": pr["ci_upper"],
+                            "source": "year-decade decomposition (Phase 3)",
+                        }
+                    )
     if do_subgroups and len(studies) >= 4:
         from collections import defaultdict
 

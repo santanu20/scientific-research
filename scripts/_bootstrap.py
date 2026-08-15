@@ -37,6 +37,7 @@ BASE_IMPORTS = (
     "scipy",
     "sklearn",
     "httpx",
+    "pypdf",
 )
 BASE_INSTALLS = (
     "habanero",
@@ -47,6 +48,7 @@ BASE_INSTALLS = (
     "scipy",
     "scikit-learn",
     "httpx",
+    "pypdf",
     "matplotlib",  # PRISMA flow diagram rendering (discover.py)
     "pytest",  # test-suite runner (kept in venv for `uv run pytest` parity)
     "ruff",  # lint gate

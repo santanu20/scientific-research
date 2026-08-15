@@ -80,9 +80,9 @@ class ResearchConfig:
     """
     search_timeout: int = 30
     """Per-source timeout for web search (seconds)."""
-    abstract_cap: int = 6000
+    abstract_cap: int | None = None  # None = no cap (zero-truncation policy 2026-08-15)
     """Max chars of abstract to process for extraction."""
-    fulltext_cap: int = 10000
+    fulltext_cap: int | None = None  # None = no cap (lossless; downstream chunks)
     """Max chars of full-text to process for extraction."""
     verify_workers: int = 8
     """Thread pool size for parallel paper verification."""

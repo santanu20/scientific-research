@@ -960,7 +960,8 @@ _GEO_PAPER_SIGNALS = re.compile(
     r"\bmantle\b|\bcrust\b|\btectonic\b|structural\s+geolog|"
     r"fault\s+zone|shear\s+zone|\bigneous\b|\bvolcanic\b|"
     r"\bsedimentary\b|metamorphi|\bolivine\b|\bperidotite\b|"
-    r"\bgarnet\b|\bpyroxene\b|\bmagma\b|\bmelt\b|"
+    r"\bgarnets?\b|\bpyroxenes?\b|\bmagma\b|\bmagmas\b|\bmelts?\b|"
+    r"amphiboles?\b|thermobarometr\w*|geothermomet\w*|hornblendes?\b|"
     r"experimental\s+petrolog|petrolog|geochem|geophysic|"
     r"volcanolog|sedimentolog|paleomagnet|geochronolog|"
     r"mineraliz|hydrothermal|ore\s+deposit)\b",
@@ -1078,12 +1079,24 @@ def _is_domain_relevant(paper: object, query: str) -> bool:
         abstract = (paper.get("abstract") or "").lower()
     text = f"{title} {abstract}"
 
-    # Exclude papers with strong non-geoscience signals
-    if _GEO_EXCLUSION.search(text):
-        return False
-
-    # Count geoscience signals — require 3+ for highly ambiguous queries
+    # Count geoscience signals FIRST (needed for soft exclusions below)
     geo_signal_count = len(_GEO_PAPER_SIGNALS.findall(text))
+
+    # Exclude papers with strong non-geoscience signals. BUG FIX 2026-08-15:
+    # ML/DL/NN terms were HARD exclusions — they rejected legitimate
+    # ML-applied-to-geoscience papers ("Machine learning thermobarometry...")
+    # which a modern review must include. ML terms are now SOFT: excluded
+    # only when geoscience evidence is thin (< 2 signals). All other
+    # exclusion terms stay hard.
+    _ML_SOFT = ("machine learning", "deep learning", "neural network",
+                "graph neural", "computer vision", "image segmentation")
+    for m in _GEO_EXCLUSION.finditer(text):
+        term = m.group(0).lower()
+        if term in _ML_SOFT:
+            if geo_signal_count < 2:
+                return False
+            continue  # ML term + strong geo evidence = methods paper, keep
+        return False  # hard exclusion
     query_words = set(q_lower.split())
     ambiguous_overlap = query_words & _AMBIGUOUS_TERMS
     is_ambiguous = bool(ambiguous_overlap)
@@ -1947,6 +1960,21 @@ def main() -> int:
             len(final),
             before - len(final),
         )
+
+    # Domain relevance (geoscience queries only) — wired 2026-08-15.
+    # _is_domain_relevant was defined but NEVER called from the CLI flow
+    # (only _apply_post_filters, itself dead code); CS/materials junk was
+    # caught only by the IDF co-occurrence filter. ML/DL terms are soft
+    # exclusions now (see _is_domain_relevant), so ML-applied-to-geo
+    # papers survive.
+    if final and not args.explore and _GEO_QUERY_SIGNALS.search(args.query.lower()):
+        before_domain = len(final)
+        final = [p for p in final if _is_domain_relevant(p, args.query)]
+        if len(final) < before_domain:
+            log.info(
+                "Domain filter: %d → %d (removed %d off-domain)",
+                before_domain, len(final), before_domain - len(final),
+            )
 
     # Co-occurrence filter (Tier 3 cherry-pick) — keep only papers
     # mentioning ALL key terms. Matches singular/plural forms.

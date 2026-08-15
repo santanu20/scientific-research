@@ -17,6 +17,7 @@ with the CORRECT pipeline order in the message. save_* writes atomically.
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,9 @@ if __name__ == "__main__":
     import _bootstrap
 
     _bootstrap.ensure_env()
+
+
+log = logging.getLogger("scientific_research.artifact")
 
 
 class ArtifactShapeError(RuntimeError):

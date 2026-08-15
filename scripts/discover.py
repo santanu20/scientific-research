@@ -1122,57 +1122,6 @@ def _is_domain_relevant(paper: object, query: str) -> bool:
 # =============================================================================
 
 
-def _apply_post_filters(papers: list, filters: dict | None) -> list:
-    """Filter papers by year/OA/type/domain constraints (catches KB cache bypass)."""
-    if not filters:
-        return papers
-    query = filters.get("query", "")
-    yf = filters.get("year_from")
-    yt = filters.get("year_to")
-    oa = filters.get("open_access_only", False)
-    ptype = filters.get("publication_type", "")
-
-    result = []
-    for p in papers:
-        year = (
-            getattr(p, "year", None)
-            or (p.get("year") if isinstance(p, dict) else None)
-            or 0
-        )
-        if yf and year and year < yf:
-            continue
-        if yt and year and year > yt:
-            continue
-        if oa:
-            is_oa = getattr(p, "is_open_access", None)
-            if is_oa is None and isinstance(p, dict):
-                is_oa = p.get("is_open_access", False)
-            if not is_oa:
-                continue
-        if ptype:
-            t = (
-                getattr(p, "type", None)
-                or (p.get("type") if isinstance(p, dict) else "")
-                or ""
-            )
-            if ptype not in t:
-                continue
-        # Domain relevance filter (geoscience queries only)
-        if query and not _is_domain_relevant(p, query):
-            continue
-        result.append(p)
-    # Also filter by abstract if requested
-    if filters and filters.get("require_abstract"):
-        result = [
-            p
-            for p in result
-            if (
-                getattr(p, "abstract", None)
-                or (p.get("abstract") if isinstance(p, dict) else "")
-                or ""
-            ).strip()
-        ]
-    return result
 
 
 def search_multi_source(
@@ -1963,7 +1912,7 @@ def main() -> int:
 
     # Domain relevance (geoscience queries only) — wired 2026-08-15.
     # _is_domain_relevant was defined but NEVER called from the CLI flow
-    # (only _apply_post_filters, itself dead code); CS/materials junk was
+    # (its only caller _apply_post_filters was dead code, removed); junk was
     # caught only by the IDF co-occurrence filter. ML/DL terms are soft
     # exclusions now (see _is_domain_relevant), so ML-applied-to-geo
     # papers survive.

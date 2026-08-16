@@ -23,8 +23,6 @@ from pathlib import Path
 
 log = logging.getLogger("scientific_research.geodict")
 
-_CACHE_PATH = Path.home() / ".cache" / "geokit" / "geo_dictionary.json"
-_CACHE_TTL_DAYS = 30
 _BATCH_SIZE = 500
 _SPARQL_TIMEOUT = 30
 
@@ -111,117 +109,11 @@ def _sparql_paginated(base_body: str, batch_size: int = _BATCH_SIZE) -> list[str
     return all_labels
 
 
-def _download_geodictionary() -> dict[str, list[str]]:
-    """Download geological terms from Wikidata.
-
-    Returns dict with keys: 'minerals', 'mineral_groups', 'rocks', 'all'.
-    """
-    result: dict[str, list[str]] = {
-        "minerals": [],
-        "mineral_groups": [],
-        "rocks": [],
-        "all": [],
-    }
-
-    # 1. Mineral species (IMA-approved, Q12089225)
-    log.info("Downloading mineral species from Wikidata...")
-    try:
-        minerals = _sparql_paginated(
-            '?item wdt:P31 wd:Q12089225. ?item rdfs:label ?label. FILTER(LANG(?label) = "en") '
-        )
-        # Clean: remove entries with parentheses (discredited minerals)
-        minerals = [m for m in minerals if "(" not in m and "-" not in m[:2]]
-        result["minerals"] = sorted(set(minerals))
-        log.info("Minerals: %d species", len(result["minerals"]))
-    except Exception as e:
-        log.warning("Mineral download failed: %s — using fallback", e)
-
-    # 2. Mineral groups (subclasses of Q7946)
-    log.info("Downloading mineral groups from Wikidata...")
-    try:
-        groups = _sparql(
-            "SELECT ?label WHERE { "
-            "?item wdt:P279 wd:Q7946. "
-            "?item rdfs:label ?label. "
-            'FILTER(LANG(?label) = "en") '
-            "} LIMIT 200"
-        )
-        result["mineral_groups"] = sorted(set(groups))
-        log.info("Mineral groups: %d", len(result["mineral_groups"]))
-    except Exception as e:
-        log.warning("Mineral groups download failed: %s", e)
-
-    # 3. Rock types (subclasses of Q8063)
-    log.info("Downloading rock types from Wikidata...")
-    try:
-        rocks = _sparql_paginated('?item wdt:P279+ wd:Q8063. ?item rdfs:label ?label. FILTER(LANG(?label) = "en") ')
-        result["rocks"] = sorted(set(rocks))
-        log.info("Rocks: %d types", len(result["rocks"]))
-    except Exception as e:
-        log.warning("Rock download failed: %s", e)
-
-    # Merge all terms
-    all_terms = set(result["minerals"] + result["mineral_groups"] + result["rocks"])
-    # Add fallback terms if list is too small
-    if len(all_terms) < 100:
-        log.warning("Downloaded only %d terms — adding fallback list", len(all_terms))
-        all_terms.update(_FALLBACK_TERMS)
-    result["all"] = sorted(all_terms)
-    log.info("Total geological terms: %d", len(result["all"]))
-
-    return result
-
-
-def _is_cache_stale() -> bool:
-    """Check if cache is missing or older than TTL."""
-    if not _CACHE_PATH.exists():
-        return True
-    age_days = (time.time() - _CACHE_PATH.stat().st_mtime) / 86400
-    return age_days > _CACHE_TTL_DAYS
-
-
-_geo_dict: dict[str, list[str]] | None = None
-
-
-def get_geo_dictionary() -> dict[str, list[str]]:
-    """Get the geological dictionary (cached, lazy-loaded).
-
-    Returns dict with keys: 'minerals', 'mineral_groups', 'rocks', 'all'.
-    Downloads from Wikidata on first use or when cache expires.
-    """
-    global _geo_dict
-    if _geo_dict is not None:
-        return _geo_dict
-
-    # Try cache
-    if not _is_cache_stale():
-        try:
-            data = json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                log.debug("Geo dictionary loaded from cache: %d terms", len(data.get("all", [])))
-                return data
-            log.warning("Geo dictionary cache has wrong shape (%s) — re-downloading", type(data).__name__)
-        except Exception as e:
-            log.warning("Cache read failed: %s — re-downloading", e)
-
-    # Download fresh
-    _geo_dict = _download_geodictionary()
-
-    # Cache to disk
-    try:
-        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _CACHE_PATH.write_text(json.dumps(_geo_dict, ensure_ascii=False), encoding="utf-8")
-        log.info("Geo dictionary cached to %s", _CACHE_PATH)
-    except Exception as e:
-        log.warning("Cache write failed: %s", e)
-
-    return _geo_dict
-
-
 # =============================================================================
 # Journal ISSN discovery via Crossref
 # =============================================================================
 _JOURNAL_CACHE_PATH = Path.home() / ".cache" / "geokit" / "geo_journals.json"
+_CACHE_TTL_DAYS = 30
 _GEO_JOURNAL_QUERIES = [
     "geology",
     "geochemistry",

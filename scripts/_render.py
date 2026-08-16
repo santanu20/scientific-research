@@ -572,7 +572,7 @@ def render_prisma_png(
             "",
             xy=(5, y_start - 0.5),
             xytext=(5, y_start),
-            arrowprops=dict(arrowstyle="->", color="#4285f4", lw=2),
+            arrowprops={"arrowstyle": "->", "color": "#4285f4", "lw": 2},
         )
 
     plt.tight_layout()

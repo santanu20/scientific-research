@@ -54,18 +54,14 @@ def _try_load_synergy():
                 body = r.read().decode("utf-8", errors="replace")
             rows = [ln.split(",") for ln in body.splitlines() if ln.strip()]
             header = [h.strip().strip('"').lower() for h in rows[0]]
-            if "include" not in header or (
-                "title" not in header and "abstract" not in header
-            ):
+            if "include" not in header or ("title" not in header and "abstract" not in header):
                 continue
             i_label = header.index("include")
             i_title = header.index("title") if "title" in header else None
             i_abs = header.index("abstract") if "abstract" in header else None
             papers, labels = [], []
             for ln in rows[1:]:
-                if len(ln) <= max(
-                    x for x in (i_label, i_title, i_abs) if x is not None
-                ):
+                if len(ln) <= max(x for x in (i_label, i_title, i_abs) if x is not None):
                     continue
                 try:
                     lab = int(ln[i_label])
@@ -95,8 +91,7 @@ def _synthetic_gold(n: int = 300, seed: int = 7):
     rel = [
         PaperRecord(
             title=f"Amphibole thermobarometry study {i}",
-            abstract="amphibole thermobarometry constrains magma storage "
-            "temperatures and pressures in arc magmas",
+            abstract="amphibole thermobarometry constrains magma storage temperatures and pressures in arc magmas",
         )
         for i in range(rng.randint(25, 40))
     ]
@@ -115,9 +110,7 @@ def _synthetic_gold(n: int = 300, seed: int = 7):
     ]
     papers = rel + noise
     rng.shuffle(papers)
-    labels = [
-        "include" if p.title.startswith("Amphibole") else "exclude" for p in papers
-    ]
+    labels = ["include" if p.title.startswith("Amphibole") else "exclude" for p in papers]
     return papers, labels
 
 
@@ -144,10 +137,7 @@ def bench_screening(seed_frac: float = 0.05) -> dict:
         provenance = f"REAL gold set: {source}"
     else:
         papers, labels = _synthetic_gold()
-        provenance = (
-            "SYNTHETIC gold (synergy fetch failed) — absolute numbers are "
-            "upper bounds; harness validity only"
-        )
+        provenance = "SYNTHETIC gold (synergy fetch failed) — absolute numbers are upper bounds; harness validity only"
     n = len(papers)
     n_seed = max(10, int(n * seed_frac))
     rng = random.Random(42)
@@ -194,18 +184,13 @@ def bench_screening(seed_frac: float = 0.05) -> dict:
 
     # method C: skill AL mode (train on seed labels, rank unscreened)
     # key must match screen.paper_key: doi or FULL title, lowercased
-    label_map = {
-        (papers[i].doi or papers[i].title or "").strip().lower(): labels[i]
-        for i in seed_idx
-    }
+    label_map = {(papers[i].doi or papers[i].title or "").strip().lower(): labels[i] for i in seed_idx}
     al_order = list(range(n))
     try:
         al = prioritize_active_learning(papers, label_map)
         ranked_keys = [q["paper_id"] for q in al.queue]
         by_key = {p.primary_id: i for i, p in enumerate(papers)}
-        al_rest = [
-            by_key[k] for k in ranked_keys if k in by_key and by_key[k] in set(rest_idx)
-        ]
+        al_rest = [by_key[k] for k in ranked_keys if k in by_key and by_key[k] in set(rest_idx)]
         al_order = [*seed_idx, *al_rest]
     except ValueError as e:
         print(f"AL failed in bench (not silent): {e}", file=sys.stderr)
@@ -245,9 +230,7 @@ def bench_authenticity(verified_path: Path) -> dict:
             continue
         try:
             u = f"https://api.crossref.org/works/{urllib.parse.quote(doi)}"
-            req = urllib.request.Request(
-                u, headers={"User-Agent": "bench/1.0 (mailto:bench@example.org)"}
-            )
+            req = urllib.request.Request(u, headers={"User-Agent": "bench/1.0 (mailto:bench@example.org)"})
             with urllib.request.urlopen(req, timeout=20) as r:
                 m = json.load(r)["message"]
             resolved += 1
@@ -275,9 +258,7 @@ def bench_authenticity(verified_path: Path) -> dict:
     return {
         "crossref_sample": f"{resolved}/{len(sample)} resolved, {matched}/{len(sample)} title-matched",
         "rw_index_size": len(idx),
-        "known_retracted_flagged": f"{rw_flagged}/{rw_total}"
-        if rw_total
-        else "RW CSV absent — skipped (fail-open)",
+        "known_retracted_flagged": f"{rw_flagged}/{rw_total}" if rw_total else "RW CSV absent — skipped (fail-open)",
         "note": "sample of 8; full-corpus audits live in session logs (22/22 round 2)",
     }
 
@@ -308,12 +289,8 @@ def bench_pooling() -> dict:
         rows = []
         for _ in range(rng.randint(1, 3)):
             u = rng.choice(units)
-            rows.append(
-                {"value": round(rng.uniform(1, 900), 2), "unit": u, "measurement": ""}
-            )
-        exts.append(
-            {"paper_id": p.primary_id, "effect_sizes": {"single_measurements": rows}}
-        )
+            rows.append({"value": round(rng.uniform(1, 900), 2), "unit": u, "measurement": ""})
+        exts.append({"paper_id": p.primary_id, "effect_sizes": {"single_measurements": rows}})
     effects = collect_single_measurements(exts, papers)
     labels = {e.scale_label for e in effects}
     # purity invariant: every label is 'measurement (unit)' — one unit per pool.
@@ -322,21 +299,10 @@ def bench_pooling() -> dict:
     fam = {}
     pure = True
     for e in effects:
-        fam.setdefault(e.scale_label, set()).add(
-            e.scale_label.split("(")[-1].rstrip(")")
-        )
-    for lbl, us in fam.items():
+        fam.setdefault(e.scale_label, set()).add(e.scale_label.split("(")[-1].rstrip(")"))
+    for us in fam.values():
         if len(us) != 1:
             pure = False
-    # exact conversion spot-checks
-    checks = {
-        "1 GPa→10 kbar": any(
-            abs(e.effect - 10.0) < 1e-9 and "kbar" in e.scale_label for e in effects
-        ),
-        "973.15 K→700 °C": any(
-            abs(e.effect - 700.0) < 1e-6 and "°C" in e.scale_label for e in effects
-        ),
-    }
     # need guaranteed rows to assert conversions deterministically:
     forced = [
         PaperRecord(doi="10.1/f1", title="F1"),
@@ -421,7 +387,7 @@ def bench_cost(verified_path: Path | None) -> dict:
         ]
         for name, cmd in cmds:
             t0 = time.monotonic()
-            r = subprocess.run(cmd, capture_output=True, timeout=600)
+            r = subprocess.run(cmd, capture_output=True, timeout=600, check=False)
             stages.append(
                 (
                     name,
@@ -436,8 +402,6 @@ def bench_cost(verified_path: Path | None) -> dict:
     }
 
 
-
-
 # ─── Bench 6: fulltext coverage (DocumentStore, live network) ─────────────
 def bench_fulltext(verified_path: Path) -> dict:
     from _documentstore import DocumentStore
@@ -445,8 +409,7 @@ def bench_fulltext(verified_path: Path) -> dict:
     ds = DocumentStore()
     stats = ds.fetch_corpus(verified_path, limit=8)
     cov = ds.coverage(verified_path)
-    return {**stats, "corpus_coverage": cov,
-            "note": "legal routes only: Unpaywall OA + arXiv + user-dropped incoming/"}
+    return {**stats, "corpus_coverage": cov, "note": "legal routes only: Unpaywall OA + arXiv + user-dropped incoming/"}
 
 
 # ─── Bench 7: contradiction detection (claims engine) ─────────────────────
@@ -462,9 +425,13 @@ def bench_contradictions(extracted_path: Path) -> dict:
     papers = [{"doi": e.get("doi"), "title": e.get("title"), "abstract": e.get("abstract")} for e in ext["extractions"]]
     claims = [c for p in papers for c in extract_claims(p)]
     cons = detect_contradictions(claims)
-    return {"papers": len(papers), "numeric_claims": len(claims), "contradictions": len(cons),
-            "top": [{"quantity": c.quantity, "unit": c.unit, "ratio": c.ratio, "n": len(c.values)} for c in cons[:5]],
-            "sample_report": contradiction_report(cons[:3])}
+    return {
+        "papers": len(papers),
+        "numeric_claims": len(claims),
+        "contradictions": len(cons),
+        "top": [{"quantity": c.quantity, "unit": c.unit, "ratio": c.ratio, "n": len(c.values)} for c in cons[:5]],
+        "sample_report": contradiction_report(cons[:3]),
+    }
 
 
 # ─── Bench 8: subgroup explanatory power ───────────────────────────────────
@@ -479,24 +446,28 @@ def bench_subgroups(meta_path: Path) -> dict:
         decade = [r for r in subs if "decade" in str(r.get("label", ""))]
         if decade:
             effs = [r["effect"] for r in decade]
-            out.append({"pool": up["group"], "k": up["k"],
-                        "i2": (up.get("pooled_random") or {}).get("heterogeneity", {}).get("i_squared"),
-                        "decade_subgroups": len(decade),
-                        "decade_effect_spread": round(max(effs) - min(effs), 3)})
-    return {"pools_with_decade_split": out,
-            "note": "spread > 0 with decade split = heterogeneity partially explained by era"}
+            out.append(
+                {
+                    "pool": up["group"],
+                    "k": up["k"],
+                    "i2": (up.get("pooled_random") or {}).get("heterogeneity", {}).get("i_squared"),
+                    "decade_subgroups": len(decade),
+                    "decade_effect_spread": round(max(effs) - min(effs), 3),
+                }
+            )
+    return {
+        "pools_with_decade_split": out,
+        "note": "spread > 0 with decade split = heterogeneity partially explained by era",
+    }
+
 
 def main() -> int:
     if "--self-check" in sys.argv:
         print(f"OK {sys.argv[0]}: ready")
         return 0
     p = argparse.ArgumentParser(prog="benchmark")
-    p.add_argument(
-        "--bench", default="all", help="all|screening|authenticity|pooling|cost"
-    )
-    p.add_argument(
-        "--verified", type=Path, default=Path("/tmp/opencode/valrun2/verified.json")
-    )
+    p.add_argument("--bench", default="all", help="all|screening|authenticity|pooling|cost")
+    p.add_argument("--verified", type=Path, default=Path("/tmp/opencode/valrun2/verified.json"))
     p.add_argument("--extracted", type=Path, default=Path("/tmp/opencode/valrun2/extracted.json"))
     p.add_argument("--meta", type=Path, default=Path("/tmp/opencode/valrun2/meta.json"))
     p.add_argument("--out", type=Path, default=Path("research_outputs/benchmark"))
@@ -516,19 +487,19 @@ def main() -> int:
         print("Bench 6: fulltext ...")
         try:
             RESULTS["fulltext"] = bench_fulltext(args.verified)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             RESULTS["fulltext"] = {"error": str(e)[:200]}
     if args.bench in ("all", "contradictions"):
         print("Bench 7: contradictions ...")
         try:
             RESULTS["contradictions"] = bench_contradictions(args.extracted)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             RESULTS["contradictions"] = {"error": str(e)[:200]}
     if args.bench in ("all", "subgroups"):
         print("Bench 8: subgroups ...")
         try:
             RESULTS["subgroups"] = bench_subgroups(args.meta)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             RESULTS["subgroups"] = {"error": str(e)[:200]}
 
     args.out.mkdir(parents=True, exist_ok=True)

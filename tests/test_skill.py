@@ -528,7 +528,7 @@ class TestBibliographicCoupling:
         out = bibliographic_coupling(papers)
         assert len(out) == 1
         # 2 shared refs (A and B)
-        assert list(out.values())[0] == 2
+        assert next(iter(out.values())) == 2
 
 
 # =============================================================================

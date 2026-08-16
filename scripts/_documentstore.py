@@ -84,6 +84,7 @@ class DocumentStore:
                     capture_output=True,
                     text=True,
                     timeout=300,
+                    check=False,
                 )
                 if r.returncode == 0 and len(r.stdout.strip()) > 200:
                     return r.stdout
@@ -98,7 +99,7 @@ class DocumentStore:
             text = "\n".join(pages)
             if len(text.strip()) > 200:
                 return text
-        except Exception as e:  # noqa: BLE001 — extraction robustness
+        except Exception as e:
             log.debug("pypdf failed for %s: %s", pdf_path, e)
         return ""
 
@@ -115,7 +116,7 @@ class DocumentStore:
             best = data.get("best_oa_location") or {}
             pdf = best.get("url_for_pdf") or best.get("url")
             return pdf if pdf and str(pdf).lower().endswith(".pdf") else None
-        except Exception:  # noqa: BLE001 — network best-effort
+        except Exception:
             return None
 
     @staticmethod
@@ -172,7 +173,7 @@ class DocumentStore:
                     open(tmp_pdf, "wb") as fh,
                 ):
                     fh.write(r.read(30_000_000))  # 30 MB cap
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 log.debug("PDF fetch failed %s: %s", pdf_url, e)
                 tmp_pdf = None
         if tmp_pdf is None:
@@ -223,7 +224,7 @@ class DocumentStore:
                     stats["stored"] += 1
                 else:
                     stats["unavailable"] += 1
-            except Exception as e:  # noqa: BLE001 — per-paper isolation
+            except Exception as e:
                 log.warning("fetch failed for %s: %s", _paper_key(p), e)
                 stats["unavailable"] += 1
             time.sleep(0.4)  # polite rate

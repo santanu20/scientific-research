@@ -62,7 +62,7 @@ class TestB5bUnitGate:
         from meta_analyze import collect_single_measurements
 
         papers = [PaperRecord(doi=f"10.1/g{i}", title=f"P{i}") for i in range(4)]
-        by_pid = {p.primary_id: p for p in papers}
+        {p.primary_id: p for p in papers}
         exts = [
             _ext(p.primary_id, 700 + i * 10, "°C", "temperature")
             for i, p in enumerate(papers[:3])

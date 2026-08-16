@@ -213,13 +213,13 @@ def predict_svm_scores(sentence: str) -> dict[str, float]:
     """
     model = _get_model()
     if model is None:
-        return {s: 0.2 for s in VALID_STANCES}  # uniform fallback
+        return dict.fromkeys(VALID_STANCES, 0.2)  # uniform fallback
 
     X = model["vectorizer"].transform([sentence])
     probs = model["classifier"].predict_proba(X)[0]
     classes = model["classifier"].classes_
 
-    scores = {s: 0.1 for s in VALID_STANCES}  # base prior
+    scores = dict.fromkeys(VALID_STANCES, 0.1)  # base prior
     for cls, prob in zip(classes, probs):
         scores[str(cls)] = float(prob)
     return scores
@@ -232,7 +232,7 @@ def discourse_stance_scores(sentence: str) -> dict[str, float]:
     support, contrast, or methodology.
     """
     text_lower = " " + sentence.lower() + " "
-    scores = {s: 0.0 for s in VALID_STANCES}
+    scores = dict.fromkeys(VALID_STANCES, 0.0)
 
     # Support markers
     for marker in _DISCOURSE_SUPPORT:
@@ -290,7 +290,7 @@ def combined_stance(
     disc_scores = discourse_stance_scores(sentence)
 
     # Lexicon scores (convert single label to distribution)
-    lex_scores = {s: 0.1 for s in VALID_STANCES}
+    lex_scores = dict.fromkeys(VALID_STANCES, 0.1)
     if lexicon_stance and lexicon_stance in lex_scores:
         lex_scores[lexicon_stance] = max(lexicon_confidence, 0.3)
 

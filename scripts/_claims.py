@@ -77,7 +77,7 @@ def extract_claims(items: list[dict]) -> list[Claim]:
     clusters = _cluster_items(items)
 
     for cluster in clusters:
-        refs = sorted(set(it.get("ref", 0) for it in cluster))
+        refs = sorted({it.get("ref", 0) for it in cluster})
         if not refs:
             continue
 
@@ -108,7 +108,7 @@ def extract_claims(items: list[dict]) -> list[Claim]:
                 r for r in refs if r not in [c.get("ref2") for c in contradictions]
             ]
             conflicting = sorted(
-                set(c.get("ref2") for c in contradictions if c.get("ref2"))
+                {c.get("ref2") for c in contradictions if c.get("ref2")}
             )
         else:
             consensus = (

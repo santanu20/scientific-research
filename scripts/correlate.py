@@ -32,7 +32,6 @@ if __name__ == "__main__":
 
 
 import argparse
-import json
 import logging
 import sys
 import time

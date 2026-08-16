@@ -169,7 +169,7 @@ Return JSON:
         risk_of_bias=risk_of_bias,
         quality_score=quality_score,
         grade_profile=GRADE_FACTORS,
-        grade_judgments={k: "" for k in GRADE_FACTORS},
+        grade_judgments=dict.fromkeys(GRADE_FACTORS, ""),
         assessment_timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
     )
 

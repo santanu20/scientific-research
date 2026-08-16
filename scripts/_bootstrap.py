@@ -51,7 +51,8 @@ BASE_INSTALLS = (
     "pypdf",
     "matplotlib",  # PRISMA flow diagram rendering (discover.py)
     "pytest",  # test-suite runner (kept in venv for `uv run pytest` parity)
-    "ruff",  # lint gate
+    "ruff==0.16.3",  # lint gate — PINNED (A10): unpinned tools drift between sessions
+    "pyright==1.1.411",  # type gate — PINNED (A10)
 )
 
 
@@ -83,12 +84,8 @@ def ensure_env(
     if os.environ.get("SCIENTIFIC_RESEARCH_NO_SKILL_VENV"):
         return
     # 1. first run: create venv + install everything
-    if not os.path.exists(SKILL_VENV_PY) and not os.environ.get(
-        "SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"
-    ):
-        sys.stderr.write(
-            "Bootstrapping scientific-research skill venv (one-time setup)...\n"
-        )
+    if not os.path.exists(SKILL_VENV_PY) and not os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):
+        sys.stderr.write("Bootstrapping scientific-research skill venv (one-time setup)...\n")
         try:
             subprocess.run(
                 ["uv", "venv", SKILL_VENV, "--python", "3.13"],
@@ -105,13 +102,9 @@ def ensure_env(
             )
             sys.exit(2)
     # 2. re-exec into the venv when under a different interpreter
-    if os.path.exists(SKILL_VENV_PY) and os.path.normpath(
-        sys.prefix
-    ) != os.path.normpath(SKILL_VENV):
+    if os.path.exists(SKILL_VENV_PY) and os.path.normpath(sys.prefix) != os.path.normpath(SKILL_VENV):
         os.environ["SCIENTIFIC_RESEARCH_NO_SKILL_VENV"] = "1"
-        os.execv(
-            SKILL_VENV_PY, [SKILL_VENV_PY, os.path.abspath(sys.argv[0])] + sys.argv[1:]
-        )
+        os.execv(SKILL_VENV_PY, [SKILL_VENV_PY, os.path.abspath(sys.argv[0]), *sys.argv[1:]])
     # 3. verify deps; stale venv → auto-install once, re-check, fail loud
     missing = _missing_imports(req_imports)
     if missing and not os.environ.get("SCIENTIFIC_RESEARCH_NO_BOOTSTRAP"):

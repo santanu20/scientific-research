@@ -372,7 +372,7 @@ def _find_all_numbers(text: str) -> list[ExtractedNumber]:
     for m in RE_OXIDE.finditer(text):
         oxide = m.group(1).upper()
         val = float(m.group(2))
-        unit = "wt%" if "%" in m.group(0).lower() else "wt%"
+        unit = "wt%"
         results.append(
             ExtractedNumber(
                 value=val,
@@ -595,7 +595,7 @@ def _reconcile_units_and_measurements(numbers: list, text: str) -> None:
         fam_u = _unit_family(n.unit)
         fam_m = _MEASUREMENT_FAMILY.get(n.measurement or "")
         # incompatible label vs unit → trust the unit, remap the label
-        if fam_u and fam_m and fam_u != fam_m or not n.measurement and fam_u:
+        if (fam_u and fam_m and fam_u != fam_m) or (not n.measurement and fam_u):
             n.measurement = _FAMILY_DEFAULT_MEASUREMENT[fam_u]
         # unit in a family but label still outside mapping? leave as-is
 
@@ -809,7 +809,6 @@ def extract_effect_sizes(text: str) -> dict:
     pairs = _find_comparisons(text, numbers)
 
     # Layer 3: Single measurements (not part of any pair)
-    paired_positions = set()
     for pair in pairs:
         # Mark positions used in pairs (approximate)
         pass

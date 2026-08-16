@@ -549,7 +549,7 @@ def _lexicon_classify(context: str) -> StanceResult:
     if not context or not context.strip():
         return StanceResult("mentioning", 0.0, "empty context", [])
 
-    text_lower = context.lower()
+    context.lower()
 
     # Count term matches per category
     n_support = _count_terms(context, _SUPPORT_TERMS)
@@ -875,7 +875,6 @@ def extract_pico(text: str) -> dict:
     # Try new structured extraction first
     try:
         from _classifiers import (
-            extract_key_finding,
             extract_method,
             extract_method_from_sections,
             extract_subject,
@@ -972,10 +971,7 @@ def _select_definition(definition: str, abbrev: str) -> str:
         raise ValueError("Abbreviation is full word of definition")
     s_idx, l_idx = -1, -1
     while True:
-        try:
-            long_char = definition[l_idx].lower()
-        except IndexError:
-            raise
+        long_char = definition[l_idx].lower()  # IndexError terminates the scan
         short_char = abbrev[s_idx].lower()
         if not short_char.isalnum():
             s_idx -= 1
@@ -1088,7 +1084,7 @@ def extract_abbreviations(text: str) -> dict[str, str]:
             result[abbr] = defn
 
     # Strategy 5: Acronym matching — find uppercase tokens that match capitalized words
-    upper_tokens = set(m.group(1) for m in _UPPER_TOKEN.finditer(text) if _conditions(m.group(1)))
+    upper_tokens = {m.group(1) for m in _UPPER_TOKEN.finditer(text) if _conditions(m.group(1))}
     for abbr in upper_tokens:
         if abbr in result:
             continue

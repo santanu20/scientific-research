@@ -77,19 +77,13 @@ def _score_paper_keywords(
     return (float(score), matched_inc, matched_exc)
 
 
-def set_keyword_idf(
-    papers: list[PaperRecord], include: list[str], exclude: list[str]
-) -> None:
+def set_keyword_idf(papers: list[PaperRecord], include: list[str], exclude: list[str]) -> None:
     """Compute batch IDF for keywords over the corpus; attach to scorer."""
     n = max(len(papers), 1)
     idf: dict[str, float] = {}
     for k in set(include) | set(exclude):
         kl = k.lower()
-        df = sum(
-            1
-            for p in papers
-            if kl in ((p.title or "") + " " + (p.abstract or "")).lower()
-        )
+        df = sum(1 for p in papers if kl in ((p.title or "") + " " + (p.abstract or "")).lower())
         idf[kl] = math.log((n + 1) / (df + 1)) + 1.0
     _score_paper_keywords._batch_idf = idf
 
@@ -105,7 +99,9 @@ def _embed_text(text: str) -> list[float]:
     return vec.tolist() if vec is not None else []
 
 
-def _cosine(a: list[float], b: list[float]) -> float:
+def _dot(a: list[float], b: list[float]) -> float:
+    """Dot product. NOTE: only equals cosine similarity because inputs are
+    unit-norm (BGE mean-pooled vectors from _embeddings are L2-normalized)."""
     if len(a) != len(b):
         return 0.0
     return sum(x * y for x, y in zip(a, b))
@@ -122,16 +118,12 @@ def _score_paper_embeddings(
     if not text.strip():
         return (0.0, [], [])
     paper_vec = _embed_text(text)  # _embed_text pools long text losslessly
-    inc_scores = [_cosine(paper_vec, iv) for iv in include_vecs]
-    exc_scores = [_cosine(paper_vec, ev) for ev in exclude_vecs]
+    inc_scores = [_dot(paper_vec, iv) for iv in include_vecs]
+    exc_scores = [_dot(paper_vec, ev) for ev in exclude_vecs]
     matched_inc = [f"{s:.2f}" for s in inc_scores if s > 0.55]
     matched_exc = [f"{s:.2f}" for s in exc_scores if s > 0.65]
-    primary = max(_cosine(paper_vec, query_vec), 0.0)
-    score = (
-        primary
-        + sum(max(0.0, s - 0.4) for s in inc_scores)
-        - 2.0 * sum(max(0.0, s - 0.5) for s in exc_scores)
-    )
+    primary = max(_dot(paper_vec, query_vec), 0.0)
+    score = primary + sum(max(0.0, s - 0.4) for s in inc_scores) - 2.0 * sum(max(0.0, s - 0.5) for s in exc_scores)
     return (float(score), matched_inc, matched_exc)
 
 
@@ -147,9 +139,7 @@ class ALResult:
     recall_curve: list[dict]  # [{reviewed, predicted_includes, p_found}] — advisory
 
 
-def prioritize_active_learning(
-    papers: list[PaperRecord], labels: dict[str, str], seed_min: int = 5
-) -> ALResult:
+def prioritize_active_learning(papers: list[PaperRecord], labels: dict[str, str], seed_min: int = 5) -> ALResult:
     """Prioritize unscreened papers via TF-IDF(1-2) + LinearSVC on seed labels.
 
     Model stack = ELAS-Ultra (ASReview LAB v2 default): TF-IDF bigrams +
@@ -226,9 +216,7 @@ def prioritize_active_learning(
                 {
                     "reviewed": i,
                     "predicted_includes": cum,
-                    "p_found": round(
-                        cum / max(1, sum(1 for q in queue if q["p_include"] >= 0.5)), 3
-                    ),
+                    "p_found": round(cum / max(1, sum(1 for q in queue if q["p_include"] >= 0.5)), 3),
                 }
             )
     return ALResult(
@@ -261,9 +249,7 @@ def _al_stopping_section(seed_labels: dict[str, str], n_total: int) -> str:
     )
 
 
-def stopping_advisory(
-    labels_in_order: list[str], n_total: int, u0: float = 1.0
-) -> dict:
+def stopping_advisory(labels_in_order: list[str], n_total: int, u0: float = 1.0) -> dict:
     """CAL- and ERV-style stopping estimates (ADVISORY ONLY — never auto-stops).
 
     - Posterior: beta(1,1) prior → p̂ = (r+1)/(n+2) after n reviewed, r relevant
@@ -290,10 +276,7 @@ def stopping_advisory(
         "cal_stop": bool(expected_remaining <= u0),
         "erv_stop": bool(erv < 1.0),
         "u0": u0,
-        "note": (
-            "advisory only — simplified beta-posterior CAL/ERV; reviewer "
-            "decides; stopping never automatic"
-        ),
+        "note": ("advisory only — simplified beta-posterior CAL/ERV; reviewer decides; stopping never automatic"),
     }
 
 
@@ -350,28 +333,14 @@ def screen_corpus(
         include_vecs = [_embed_text(s) for s in include]
         exclude_vecs = [_embed_text(s) for s in exclude]
         for p in papers:
-            score, mi, me = _score_paper_embeddings(
-                p, query_vec, include_vecs, exclude_vecs
-            )
-            rec = (
-                "include"
-                if score >= threshold_include
-                else "exclude"
-                if score <= threshold_exclude
-                else "borderline"
-            )
+            score, mi, me = _score_paper_embeddings(p, query_vec, include_vecs, exclude_vecs)
+            rec = "include" if score >= threshold_include else "exclude" if score <= threshold_exclude else "borderline"
             scored.append(ScoredPaper(p, score, mi, me, rec))
     else:
         set_keyword_idf(papers, include, exclude)  # batch IDF (2026-08-15)
         for p in papers:
             score, mi, me = _score_paper_keywords(p, include, exclude)
-            rec = (
-                "include"
-                if score >= threshold_include
-                else "exclude"
-                if score <= threshold_exclude
-                else "borderline"
-            )
+            rec = "include" if score >= threshold_include else "exclude" if score <= threshold_exclude else "borderline"
             scored.append(ScoredPaper(p, score, mi, me, rec))
     scored.sort(key=lambda s: -s.score)
     return scored
@@ -406,9 +375,7 @@ def render_screening_report(scored: list[ScoredPaper], counts: dict) -> str:
     out.append(f"- Recommended exclude (auto): **{counts['n_exclude_recommended']}**")
     out.append(f"- Recommended include (auto): **{counts['n_include_recommended']}**")
     out.append(f"- **Borderline (LLM adjudicates)**: **{counts['n_borderline']}**")
-    out.append(
-        f"- Sent to Phase 3 (eligibility): **{counts['n_records_to_eligibility']}**"
-    )
+    out.append(f"- Sent to Phase 3 (eligibility): **{counts['n_records_to_eligibility']}**")
     out.append("")
     out.append("## Recommended INCLUDE")
     for s in [x for x in scored if x.recommendation == "include"]:
@@ -495,12 +462,8 @@ def main() -> int:
         default=-1.0,
         help="score threshold for exclude recommendation (negative)",
     )
-    p.add_argument(
-        "-o", "--output", type=Path, default=Path("research_outputs/screened.json")
-    )
-    p.add_argument(
-        "--report", type=Path, default=Path("research_outputs/screening_report.md")
-    )
+    p.add_argument("-o", "--output", type=Path, default=Path("research_outputs/screened.json"))
+    p.add_argument("--report", type=Path, default=Path("research_outputs/screening_report.md"))
     p.add_argument("-v", "--verbose", action="count", default=0)
     args = p.parse_args()
     level = logging.WARNING - 10 * args.verbose
@@ -563,8 +526,7 @@ def main() -> int:
         print(f"Wrote AL queue ({al.n_unscreened} papers) → {args.output}")
         print(f"Wrote AL report → {args.report}")
         print(
-            f"\nAL mode: {al.n_unscreened} unscreened prioritized "
-            f"(seed={al.n_seed}). REORDER-ONLY — no auto-exclusion."
+            f"\nAL mode: {al.n_unscreened} unscreened prioritized (seed={al.n_seed}). REORDER-ONLY — no auto-exclusion."
         )
         return 0
 

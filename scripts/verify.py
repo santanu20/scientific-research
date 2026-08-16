@@ -43,7 +43,6 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _timeouts import TIMEOUTS
 from _sources import (
     PaperRecord,
     arxiv_search,
@@ -53,6 +52,7 @@ from _sources import (
     openalex_get_by_doi,
     save_corpus,
 )
+from _timeouts import TIMEOUTS
 
 log = logging.getLogger("scientific_research.verify")
 
@@ -577,7 +577,7 @@ def verify_paper(
         # 5. Evidence grading
         is_sr = any(
             "systematic review" in (c or "").lower()
-            for c in (merged.concepts + [merged.abstract or ""])
+            for c in ([*merged.concepts, merged.abstract or ""])
         )
         lvl, desc = grade_evidence(
             merged.type_crossref, is_systematic_review=is_sr, fallback_type=merged.type
@@ -586,7 +586,7 @@ def verify_paper(
         # 6. RoB advisory
         result.risk_of_bias = rob_advisory(
             merged.type_crossref,
-            study_design_hints=[merged.abstract or ""] + merged.concepts,
+            study_design_hints=[merged.abstract or "", *merged.concepts],
         )
         # 7. DOAJ check
         if do_doaj and merged.venue:

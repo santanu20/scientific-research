@@ -141,18 +141,18 @@ GEO_THEME_VOCABULARY: list[tuple[str, str]] = [
     # ── Metamorphic petrology ──
     (
         "Garnet-biotite exchange thermometry",
-        "Fe-Mg partitioning between garnet and biotite minerals to estimate metamorphic "
-        "temperature KD distribution coefficient pelitic schist metamorphic grade Barrovian",
+        ("Fe-Mg partitioning between garnet and biotite minerals to estimate metamorphic "
+        "temperature KD distribution coefficient pelitic schist metamorphic grade Barrovian"),
     ),
     (
         "Garnet-clinopyroxene thermobarometry",
-        "Fe-Mg exchange between garnet and clinopyroxene eclogite granulite temperature "
-        "pressure estimation",
+        ("Fe-Mg exchange between garnet and clinopyroxene eclogite granulite temperature "
+        "pressure estimation"),
     ),
     (
         "Phase-equilibrium modeling",
-        "pseudosection phase diagram garnet biotite staurolite chlorite mineral assemblage "
-        "P-T calculation thermocalc domino perple_x",
+        ("pseudosection phase diagram garnet biotite staurolite chlorite mineral assemblage "
+        "P-T calculation thermocalc domino perple_x"),
     ),
     (
         "U-Pb zircon geochronology",
@@ -185,8 +185,8 @@ GEO_THEME_VOCABULARY: list[tuple[str, str]] = [
     # ── Igneous petrology ──
     (
         "Experimental petrology",
-        "experimental melting crystallization phase relations magma high pressure piston "
-        "cylinder apparatus synthetic rock composition",
+        ("experimental melting crystallization phase relations magma high pressure piston "
+        "cylinder apparatus synthetic rock composition"),
     ),
     (
         "Melt inclusion analysis",
@@ -194,8 +194,8 @@ GEO_THEME_VOCABULARY: list[tuple[str, str]] = [
     ),
     (
         "Magma differentiation",
-        "fractional crystallization magma evolution crystal settling cumulate layering "
-        "differentiation trend",
+        ("fractional crystallization magma evolution crystal settling cumulate layering "
+        "differentiation trend"),
     ),
     (
         "Assimilation-fractional crystallization",
@@ -749,7 +749,6 @@ def _match_by_taxonomy(text: str) -> str:
         return method_label
 
     # Use discipline from pico
-    pico = text_lower
     return "Other studies"
 
 
@@ -1026,8 +1025,7 @@ def build_convergence_text(
         # Known systematic offsets (generalizable pattern matching)
         all_text = " ".join((p.get("key_finding") or "").lower() for p in papers)
         offsets = _detect_known_offsets(all_text)
-        for offset_desc in offsets:
-            parts.append(offset_desc)
+        parts.extend(offsets)
 
     return " ".join(parts) if parts else ""
 
@@ -1036,25 +1034,25 @@ def build_convergence_text(
 _KNOWN_OFFSETS: list[tuple[list[str], str]] = [
     (
         ["ferry", "holdaway"],
-        "Ferry-Spear vs Holdaway garnet-biotite calibrations "
-        "show a known ~50-80°C systematic offset [Spear, 1993]. ",
+        ("Ferry-Spear vs Holdaway garnet-biotite calibrations "
+        "show a known ~50-80°C systematic offset [Spear, 1993]. "),
     ),
     (
         ["laiu", "lai-icp"],
-        "LA-ICP-MS vs SIMS trace element data may show "
-        "systematic differences due to spatial resolution and matrix effects. ",
+        ("LA-ICP-MS vs SIMS trace element data may show "
+        "systematic differences due to spatial resolution and matrix effects. "),
     ),
     (
         ["mass-spec", "thermal ionization"],
-        "TIMS vs LA-ICP-MS U-Pb ages show "
+        ("TIMS vs LA-ICP-MS U-Pb ages show "
         "different precision (TIMS ±0.1% vs LA-ICP-MS ±2%) — comparison requires "
-        "method-aware interpretation. ",
+        "method-aware interpretation. "),
     ),
     (
         ["grt-bt", "grt-cpx"],
-        "Garnet-biotite vs garnet-clinopyroxene thermometers "
+        ("Garnet-biotite vs garnet-clinopyroxene thermometers "
         "may yield systematically different temperatures due to different Fe-Mg "
-        "exchange kinetics. ",
+        "exchange kinetics. "),
     ),
 ]
 

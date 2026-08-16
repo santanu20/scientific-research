@@ -138,7 +138,7 @@ def smooth_theme_paragraphs(
     current_section = []
 
     for line in lines:
-        if line.startswith("###") or line.startswith("## "):
+        if line.startswith(("###", "## ")):
             if current_section:
                 section_text = nl.join(current_section).strip()
                 if len(section_text) > 200 and not section_text.startswith("|"):
@@ -313,8 +313,8 @@ def _render_pool_section(meta: dict) -> str:
         )
     pool_lines += [
         "",
-        "_Pools are unit-commensurable groups (unit gate + phenomenon "
-        "screen applied; see meta.json unit_pools for per-study rows)._",
+        ("_Pools are unit-commensurable groups (unit gate + phenomenon "
+        "screen applied; see meta.json unit_pools for per-study rows)._"),
         "",
     ]
     return "\n".join(pool_lines)
@@ -479,7 +479,7 @@ def _build_executive_summary(
                 f"a {c0.ratio}x range across {len(c0.values)} reports — a "
                 f"calibration/method disagreement candidates section details this."
             )
-    except Exception as e:  # noqa: BLE001 — advisory sentence only
+    except Exception as e:
         log.warning("Contradiction signal skipped: %s", e)
 
     parts.extend(lines)
@@ -590,7 +590,7 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
 
         # Extract limitations
         lims = _extract_limitations(papers[:8])
-        lim_str = "; ".join(l[:120] for l in lims[:4]) if lims else "-"
+        lim_str = "; ".join(lim[:120] for lim in lims[:4]) if lims else "-"
 
         lines.append(f"| {label} | {n} | {top_finding} | {range_str} | {lim_str} |")
 
@@ -855,7 +855,7 @@ def synthesize(
                 parts.append("")
                 parts.append(contradiction_report(cons))
                 parts.append("")
-        except Exception as e:  # noqa: BLE001 — advisory content only
+        except Exception as e:
             log.debug("contradiction pass skipped: %s", e)
 
         gap_points = _build_structural_gaps(

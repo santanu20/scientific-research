@@ -37,7 +37,7 @@ from _timeouts import TIMEOUTS
 # --- Dependency check (fail loud per §5 H2) ---
 _MISSING: list[str] = []
 try:
-    from habanero import Crossref, cn, counts  # type: ignore
+    from habanero import Crossref, counts  # type: ignore
 except ImportError:
     _MISSING.append("habanero")
 try:
@@ -62,7 +62,9 @@ if _MISSING:
     )
 
 # --- Polite-pool configuration ---
-_EMAIL = os.environ.get("SCIENTIFIC_RESEARCH_EMAIL", "researcher@example.com")
+_EMAIL = os.environ.get(
+    "SCIENTIFIC_RESEARCH_EMAIL", "scientific-research@geokit.dev"
+)  # OpenAlex/Crossref polite-pool identity (single source, A9)
 # pyalex 0.21+: use `pyalex.config` dict (older versions used `pyalex.settings`)
 _pyalex_cfg = getattr(pyalex, "config", None) or getattr(pyalex, "settings", None)
 if _pyalex_cfg is not None:
@@ -174,11 +176,7 @@ def cache_get(identifier: str) -> PaperRecord | None:
 def cache_put(paper: PaperRecord) -> None:
     p = cache_key(paper.primary_id)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(
-        json.dumps(
-            _sanitize_json(paper.to_dict()), indent=2, ensure_ascii=False, default=str
-        )
-    )
+    p.write_text(json.dumps(_sanitize_json(paper.to_dict()), indent=2, ensure_ascii=False, default=str))
 
 
 def _sanitize_json(obj: Any) -> Any:
@@ -245,15 +243,9 @@ def retry_with_backoff(
                     # Rate-limit awareness: check for 429 / Retry-After
                     if rate_limit_aware:
                         err_str = str(e).lower()
-                        if (
-                            "429" in err_str
-                            or "rate" in err_str
-                            or "too many" in err_str
-                        ):
+                        if "429" in err_str or "rate" in err_str or "too many" in err_str:
                             # Rate limited — use longer delay
-                            delay = max(
-                                delay, 3.0
-                            )  # circuit breakers are primary defense
+                            delay = max(delay, 3.0)  # circuit breakers are primary defense
                             log.warning(
                                 "RATE LIMITED on %s (attempt %d/%d) — waiting %.1fs",
                                 fn.__name__,
@@ -275,9 +267,7 @@ def retry_with_backoff(
                         delay,
                     )
                     time.sleep(delay)
-            raise RuntimeError(
-                f"{fn.__name__} failed after {max_attempts} attempts"
-            ) from last_err
+            raise RuntimeError(f"{fn.__name__} failed after {max_attempts} attempts") from last_err
 
         wrapper.__name__ = fn.__name__
         wrapper.__doc__ = fn.__doc__
@@ -304,20 +294,14 @@ def _crossref_to_record(item: dict) -> PaperRecord:
             authors.append(
                 {
                     "name": name,
-                    "orcid": (a.get("ORCID") or "").replace("http://orcid.org/", "")
-                    or None,
-                    "affiliation": [
-                        af.get("name")
-                        for af in a.get("affiliation", [])
-                        if af.get("name")
-                    ],
+                    "orcid": (a.get("ORCID") or "").replace("http://orcid.org/", "") or None,
+                    "affiliation": [af.get("name") for af in a.get("affiliation", []) if af.get("name")],
                 }
             )
     issued = item.get("issued", {}).get("date-parts", [[None]])
     year = issued[0][0] if issued and issued[0] else None
     funders = [
-        {"name": f.get("name"), "doi": f.get("DOI"), "award": f.get("award", [])}
-        for f in item.get("funder", [])
+        {"name": f.get("name"), "doi": f.get("DOI"), "award": f.get("award", [])} for f in item.get("funder", [])
     ]
     type_cr = item.get("type", "") or ""
     return PaperRecord(
@@ -328,9 +312,7 @@ def _crossref_to_record(item: dict) -> PaperRecord:
         year=year,
         venue=(item.get("container-title") or [""])[0],
         publication_date=(
-            item.get("published-print", {}).get("date-parts", [[""]])[0][0]
-            if item.get("published-print")
-            else ""
+            item.get("published-print", {}).get("date-parts", [[""]])[0][0] if item.get("published-print") else ""
         ),
         type=type_cr,
         type_crossref=type_cr,
@@ -340,10 +322,7 @@ def _crossref_to_record(item: dict) -> PaperRecord:
         referenced_works_count=item.get("references-count"),
         is_retracted=(
             "retraction" in type_cr.lower()
-            or any(
-                r.get("type") == "retraction"
-                for r in (item.get("relation", {}) or {}).get("is-review-of", [])
-            )
+            or any(r.get("type") == "retraction" for r in (item.get("relation", {}) or {}).get("is-review-of", []))
         ),
         source="crossref",
         sources_seen=["crossref"],
@@ -353,9 +332,7 @@ def _crossref_to_record(item: dict) -> PaperRecord:
 
 
 @retry_with_backoff(max_attempts=3)
-def crossref_search(
-    query: str, max_results: int = 25, filter_dict: dict | None = None
-) -> list[PaperRecord]:
+def crossref_search(query: str, max_results: int = 25, filter_dict: dict | None = None) -> list[PaperRecord]:
     """Search Crossref works. ``filter_dict`` follows Crossref filter syntax.
 
     Respects Crossref circuit breaker — returns empty list if open.
@@ -368,9 +345,7 @@ def crossref_search(
         return []
     cb.pace()
     try:
-        res = _crossref_client.works(
-            query=query, limit=max_results, filter=filter_dict or {}
-        )
+        res = _crossref_client.works(query=query, limit=max_results, filter=filter_dict or {})
     except Exception as e:
         err_str = str(e).lower()
         if "429" in err_str or "rate" in err_str or "too many" in err_str:
@@ -418,36 +393,7 @@ def crossref_resolve_doi(doi: str) -> PaperRecord | None:
 # =============================================================================
 # OpenAlex (pyalex + raw API)
 # =============================================================================
-_OPENALEX_SELECT = ",".join(
-    [
-        "id",
-        "doi",
-        "title",
-        "display_name",
-        "publication_year",
-        "publication_date",
-        "ids",
-        "language",
-        "type",
-        "type_crossref",
-        "open_access",
-        "authorships",
-        "cited_by_count",
-        "referenced_works_count",
-        "referenced_works",
-        "cited_by_api_url",
-        "is_retracted",
-        "best_oa_location",
-        "concepts",
-        "topics",
-        "keywords",
-        "mesh",
-        "funders",
-        "awards",
-        "primary_location",
-        "abstract_inverted_index",
-    ]
-)
+_OPENALEX_SELECT = "id,doi,title,display_name,publication_year,publication_date,ids,language,type,type_crossref,open_access,authorships,cited_by_count,referenced_works_count,referenced_works,cited_by_api_url,is_retracted,best_oa_location,concepts,topics,keywords,mesh,funders,awards,primary_location,abstract_inverted_index"
 
 
 def _openalex_reconstruct_abstract(inv: dict | None) -> str:
@@ -470,41 +416,20 @@ def _openalex_to_record(item: dict) -> PaperRecord:
             authors.append(
                 {
                     "name": name,
-                    "orcid": (author.get("orcid") or "").replace(
-                        "https://orcid.org/", ""
-                    )
-                    or None,
+                    "orcid": (author.get("orcid") or "").replace("https://orcid.org/", "") or None,
                     "openalex_id": author.get("id"),
                     "affiliation": [
-                        inst.get("display_name")
-                        for inst in a.get("institutions", [])
-                        if inst.get("display_name")
+                        inst.get("display_name") for inst in a.get("institutions", []) if inst.get("display_name")
                     ],
                     "countries": a.get("countries", []),
                 }
             )
     oa = item.get("open_access") or {}
     best_oa = item.get("best_oa_location") or {}
-    concepts = [
-        c.get("display_name", "")
-        for c in item.get("concepts", [])
-        if c.get("display_name")
-    ]
-    topics = [
-        t.get("display_name", "")
-        for t in item.get("topics", [])
-        if t.get("display_name")
-    ]
-    keywords = [
-        k.get("display_name", "")
-        for k in (item.get("keywords") or [])
-        if k.get("display_name")
-    ]
-    mesh = [
-        m.get("descriptor_name", "")
-        for m in (item.get("mesh") or [])
-        if m.get("descriptor_name")
-    ]
+    concepts = [c.get("display_name", "") for c in item.get("concepts", []) if c.get("display_name")]
+    topics = [t.get("display_name", "") for t in item.get("topics", []) if t.get("display_name")]
+    keywords = [k.get("display_name", "") for k in (item.get("keywords") or []) if k.get("display_name")]
+    mesh = [m.get("descriptor_name", "") for m in (item.get("mesh") or []) if m.get("descriptor_name")]
     funders = [
         {"name": f.get("display_name"), "openalex_id": f.get("id"), "doi": f.get("doi")}
         for f in (item.get("funders") or [])
@@ -545,7 +470,7 @@ def _openalex_to_record(item: dict) -> PaperRecord:
 
 
 # OpenAlex rate limiting + circuit breaker (delegates to run-scoped registry).
-_OPENALEX_EMAIL = "scientific-research@geokit.dev"  # polite pool
+_OPENALEX_EMAIL = _EMAIL  # polite pool (unified identity)
 
 
 def _openalex_cb() -> CircuitBreaker:
@@ -584,9 +509,7 @@ def _openalex_raw_get(url: str) -> dict | None:
         if not cb.available:
             return None
         # Wait and retry once
-        retry_after = min(
-            float(r.headers.get("retry-after", "5")), 5.0
-        )  # cap at 5s — fail fast
+        retry_after = min(float(r.headers.get("retry-after", "5")), 5.0)  # cap at 5s — fail fast
         log.warning("OpenAlex 429 — waiting %.0fs", retry_after)
         time.sleep(retry_after)
         try:
@@ -627,11 +550,9 @@ def openalex_search(
     # Check knowledge base (internal module — fail loud on broken install, H1)
     from _search_cache import search_cache_get, search_cache_put
 
-    cached_ids, age_days = search_cache_get(
-        query, "openalex", max_results, force_refresh=force_refresh
-    )
+    cached_ids, age_days = search_cache_get(query, "openalex", max_results, force_refresh=force_refresh)
     if cached_ids:
-        papers = [cache_get(pid) for pid in cached_ids if cache_has(pid)]
+        papers = [p for pid in cached_ids if cache_has(pid) and (p := cache_get(pid)) is not None]
         if papers and len(papers) >= len(cached_ids) * 0.8:
             log.info(
                 "Knowledge base HIT: '%s' → %d papers (%d days old, 0 API calls)",
@@ -657,9 +578,7 @@ def openalex_search(
         records = [_openalex_to_record(it) for it in items[:max_results]]
         for p in records:
             cache_put(p)
-        search_cache_put(
-            query, "openalex", max_results, [p.primary_id for p in records]
-        )
+        search_cache_put(query, "openalex", max_results, [p.primary_id for p in records])
         return records
 
     # Cursor pagination for large result sets
@@ -677,9 +596,7 @@ def openalex_search(
             if filters:
                 params["filter"] = ",".join(f"{k}:{v}" for k, v in filters.items())
 
-            url = "https://api.openalex.org/works?" + "&".join(
-                f"{k}={v}" for k, v in params.items()
-            )
+            url = "https://api.openalex.org/works?" + "&".join(f"{k}={v}" for k, v in params.items())
             data = _openalex_raw_get(url)
             if not data:
                 break
@@ -738,9 +655,7 @@ def openalex_get_by_doi(doi: str) -> PaperRecord | None:
 
 @retry_with_backoff(max_attempts=3)
 def openalex_get_by_id(openalex_id: str) -> PaperRecord | None:
-    url = (
-        "https://api.openalex.org/works/" + openalex_id + "?select=" + _OPENALEX_SELECT
-    )
+    url = "https://api.openalex.org/works/" + openalex_id + "?select=" + _OPENALEX_SELECT
     try:
         d = _openalex_raw_get(url)
         return _openalex_to_record(d) if d else None
@@ -848,11 +763,7 @@ def _obj_to_dict(o: Any) -> dict:
     if isinstance(o, dict):
         return dict(o)
     if hasattr(o, "__dict__") and not isinstance(o, type):
-        return {
-            k: getattr(o, k, None)
-            for k in dir(o)
-            if not k.startswith("_") and not callable(getattr(o, k, None))
-        }
+        return {k: getattr(o, k, None) for k in dir(o) if not k.startswith("_") and not callable(getattr(o, k, None))}
     return {}
 
 
@@ -1069,9 +980,7 @@ def arxiv_search(query: str, max_results: int = 25) -> list[PaperRecord]:
                     abstract=r.summary,
                     authors=authors,
                     year=int(r.published.year) if r.published else None,
-                    publication_date=(
-                        r.published.strftime("%Y-%m-%d") if r.published else ""
-                    ),
+                    publication_date=(r.published.strftime("%Y-%m-%d") if r.published else ""),
                     venue="arXiv",
                     type="preprint",
                     is_open_access=True,
@@ -1185,11 +1094,7 @@ def _merge_records(a: PaperRecord, b: PaperRecord) -> PaperRecord:
         elif isinstance(av, list) and isinstance(bv, list):
             seen, combined = set(), []
             for item in av + bv:
-                key = (
-                    json.dumps(item, sort_keys=True)
-                    if isinstance(item, (dict, list))
-                    else str(item)
-                )
+                key = json.dumps(item, sort_keys=True) if isinstance(item, (dict, list)) else str(item)
                 if key not in seen:
                     seen.add(key)
                     combined.append(item)
@@ -1206,13 +1111,7 @@ def _is_supplemental_doi(doi: str) -> bool:
     Patterns: .s001, .s002, .supp, _si, supplement, supporting
     """
     d = doi.lower()
-    return bool(
-        re.search(r"\.s\d{3}\b", d)
-        or ".supp" in d
-        or "_si" in d
-        or "supplement" in d
-        or "supporting" in d
-    )
+    return bool(re.search(r"\.s\d{3}\b", d) or ".supp" in d or "_si" in d or "supplement" in d or "supporting" in d)
 
 
 def _dedup_block(p: PaperRecord) -> tuple[str, str]:
@@ -1232,9 +1131,7 @@ def _dedup_block(p: PaperRecord) -> tuple[str, str]:
     return (surname, year)
 
 
-def dedup_papers(
-    papers: Iterable[PaperRecord], title_threshold: float = 0.85
-) -> list[PaperRecord]:
+def dedup_papers(papers: Iterable[PaperRecord], title_threshold: float = 0.85) -> list[PaperRecord]:
     """Dedup by DOI (exact) + arXiv ID (exact) + BLOCKED title similarity.
 
     Filters supplemental DOIs (.s001, .supp, ...). Merges metadata across
@@ -1245,9 +1142,7 @@ def dedup_papers(
     """
     STRICT = min(title_threshold + 0.07, 0.95)
     clusters: dict[str, PaperRecord] = {}
-    blocks: dict[
-        tuple[str, str], list[tuple[str, str]]
-    ] = {}  # block → [(norm, cluster_id)]
+    blocks: dict[tuple[str, str], list[tuple[str, str]]] = {}  # block → [(norm, cluster_id)]
     fallback_index: list[tuple[str, str, str]] = []  # (norm, year, cluster_id)
 
     def _title_match(p: PaperRecord, norm: str) -> str | None:
@@ -1344,17 +1239,12 @@ def render_compact_summary(
         ident = p.doi or p.arxiv_id or p.openalex_id or "?"
         lines.append(f"## {i}. {p.title}")
         lines.append(
-            f"- **ID**: `{ident}` | **Year**: {p.year or '?'} | "
-            f"**Venue**: {p.venue or '?'} | **Source**: {p.source}"
+            f"- **ID**: `{ident}` | **Year**: {p.year or '?'} | **Venue**: {p.venue or '?'} | **Source**: {p.source}"
         )
         if auth:
             lines.append(f"- **Authors**: {auth}")
         if p.citation_count is not None:
-            infl = (
-                f" | Influential: {p.influential_citation_count}"
-                if p.influential_citation_count
-                else ""
-            )
+            infl = f" | Influential: {p.influential_citation_count}" if p.influential_citation_count else ""
             lines.append(f"- **Citations**: {p.citation_count}{infl}")
         if p.is_retracted:
             lines.append("- **WARNING: RETRACTED**")
@@ -1381,9 +1271,7 @@ def load_corpus(path: str | Path) -> list[PaperRecord]:
     return [PaperRecord.from_dict(d) for d in data.get("papers", [])]
 
 
-def save_corpus(
-    papers: Iterable[PaperRecord], path: str | Path, meta: dict | None = None
-) -> None:
+def save_corpus(papers: Iterable[PaperRecord], path: str | Path, meta: dict | None = None) -> None:
     """Save corpus to JSON with optional metadata (atomic: tmp + rename)."""
     from _artifact import save_artifact
 
@@ -1431,9 +1319,7 @@ def _epmc_to_record(it: dict) -> PaperRecord:
         language=it.get("language") or "",
         mesh=keywords,
         source="epmc",
-        raw_metadata={
-            "epmc": {k: it.get(k) for k in ("id", "pmcid", "source", "citedByCount")}
-        },
+        raw_metadata={"epmc": {k: it.get(k) for k in ("id", "pmcid", "source", "citedByCount")}},
     )
 
 
@@ -1514,9 +1400,7 @@ def eartharxiv_search(query: str, max_results: int = 15) -> list[PaperRecord]:
         log.debug("Crossref circuit open — skipping EarthArXiv search")
         return []
     try:
-        papers = crossref_search(
-            query, max_results=max_results, filter_dict={"prefix": "10.31223"}
-        )
+        papers = crossref_search(query, max_results=max_results, filter_dict={"prefix": "10.31223"})
     except RuntimeError as e:
         log.warning("EarthArXiv search failed via Crossref: %s", e)
         return []
@@ -1547,9 +1431,7 @@ def usgs_search(query: str, max_results: int = 15) -> list[PaperRecord]:
         log.debug("Crossref circuit open — skipping USGS search")
         return []
     try:
-        papers = crossref_search(
-            query, max_results=max_results, filter_dict={"prefix": "10.3133"}
-        )
+        papers = crossref_search(query, max_results=max_results, filter_dict={"prefix": "10.3133"})
     except RuntimeError as e:
         log.warning("USGS search failed via Crossref: %s", e)
         return []

@@ -555,7 +555,7 @@ def egger_test(effects: list[float], variances: list[float]) -> PublicationBias:
     X = np.column_stack([np.ones(k), precision])
     try:
         coeffs, residuals, rank, sv = np.linalg.lstsq(X, sbd, rcond=None)
-        intercept, slope = coeffs[0], coeffs[1]
+        intercept, _slope = coeffs[0], coeffs[1]
         # SE of intercept: residual_std / sqrt(sum of (precision - mean)^2)
         if len(residuals) > 0:
             rss = residuals[0]
@@ -678,7 +678,7 @@ def vevea_hedges_selection_model(
                 method="L-BFGS-B",
                 bounds=[(-50.0, 50.0), (math.log(0.01), math.log(100.0))],
             )
-        except Exception:  # noqa: BLE001 — optimizer robustness, fall through
+        except Exception:
             continue
         if best is None or res.fun < best.fun:
             best = res

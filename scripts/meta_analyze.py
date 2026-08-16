@@ -774,7 +774,7 @@ def run_meta_analysis(
                     if len(grp) < 2:
                         continue
                     pr = pool_effects(
-                        [g for g in grp],
+                        list(grp),
                         model=model,
                         tau2_method=tau2_method,
                         hksj=hksj,
@@ -851,7 +851,7 @@ def run_meta_analysis(
                 if vh is not None:
                     pub_bias_data["selection_model"] = vh
                 pub_bias_data["p_curve"] = p_curve_test(effects_arr, variances_arr)
-            except Exception as e:  # noqa: BLE001 — optional diagnostics
+            except Exception as e:
                 log.debug("Selection model / p-curve failed: %s", e)
         except Exception as e:
             log.warning("Egger test failed: %s", e)
@@ -1081,7 +1081,7 @@ def main() -> int:
                     f"({pr['ci_lower']:.3f} to {pr['ci_upper']:.3f}), "
                     f"I²={pr['heterogeneity']['i_squared']:.1f}%"
                 )
-            except Exception as e:  # noqa: BLE001 — one bad group must not kill others
+            except Exception as e:
                 log.warning("Unit pool %s failed: %s", lbl, e)
         # headline = largest group; others preserved in payload
         result = None

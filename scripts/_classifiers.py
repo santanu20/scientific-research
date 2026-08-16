@@ -22,40 +22,101 @@ log = logging.getLogger("scientific_research.classifiers")
 # =============================================================================
 _DISCIPLINE_KEYWORDS: dict[str, list] = {
     "geochemistry": [
-        ("isotope", 2), ("δ18o", 5), ("delta18", 5), ("geochem", 5),
-        ("trace element", 2), ("ree", 2), ("fe3+", 5), ("fe2+", 3),
-        ("redox", 3), ("oxygen fugacity", 5), ("mantle", 1), ("melt", 1),
-        ("crustal", 1), ("weathering", 2), ("diagenesis", 2),
-        ("organic matter", 2), ("δ13c", 5), ("δ34s", 5), ("sr-nd", 4),
-        ("radiogenic", 3), ("sims", 5), ("secondary ion", 4),
+        ("isotope", 2),
+        ("δ18o", 5),
+        ("delta18", 5),
+        ("geochem", 5),
+        ("trace element", 2),
+        ("ree", 2),
+        ("fe3+", 5),
+        ("fe2+", 3),
+        ("redox", 3),
+        ("oxygen fugacity", 5),
+        ("mantle", 1),
+        ("melt", 1),
+        ("crustal", 1),
+        ("weathering", 2),
+        ("diagenesis", 2),
+        ("organic matter", 2),
+        ("δ13c", 5),
+        ("δ34s", 5),
+        ("sr-nd", 4),
+        ("radiogenic", 3),
+        ("sims", 5),
+        ("secondary ion", 4),
         # geological geochemistry terms (added 2026-07-12)
-        ("lile", 4), ("hfse", 4), ("large-ion lithophile", 5),
-        ("high field strength", 5), ("partition coefficient", 4),
-        ("incompatible", 3), ("compatible", 3), ("fluid-mobile", 4),
-        ("slab fluid", 4), ("chondrite", 3), ("chondritic", 3),
-        ("normalization", 2), ("primitive mantle", 4),
-        ("nb anomaly", 5), ("ta anomaly", 5), ("sr isotope", 3),
-        ("nd isotope", 3), ("εnd", 5), ("87sr/86sr", 5),
-        ("fractionation", 2), ("enrichment", 2), ("depletion", 2),
-        ("metasomat", 3), ("aqueous fluid", 3), ("solubility", 2),
+        ("lile", 4),
+        ("hfse", 4),
+        ("large-ion lithophile", 5),
+        ("high field strength", 5),
+        ("partition coefficient", 4),
+        ("incompatible", 3),
+        ("compatible", 3),
+        ("fluid-mobile", 4),
+        ("slab fluid", 4),
+        ("chondrite", 3),
+        ("chondritic", 3),
+        ("normalization", 2),
+        ("primitive mantle", 4),
+        ("nb anomaly", 5),
+        ("ta anomaly", 5),
+        ("sr isotope", 3),
+        ("nd isotope", 3),
+        ("εnd", 5),
+        ("87sr/86sr", 5),
+        ("fractionation", 2),
+        ("enrichment", 2),
+        ("depletion", 2),
+        ("metasomat", 3),
+        ("aqueous fluid", 3),
+        ("solubility", 2),
     ],
     "geology": [
-        ("basalt", 2), ("granite", 2), ("sediment", 2), ("stratigraph", 4),
-        ("formation", 1), ("geological", 3), ("outcrop", 3),
-        ("core sample", 2), ("tectonic", 3), ("fault", 2), ("fold", 1),
-        ("metamorphic", 2), ("igneous", 2), ("volcanic", 1),
+        ("basalt", 2),
+        ("granite", 2),
+        ("sediment", 2),
+        ("stratigraph", 4),
+        ("formation", 1),
+        ("geological", 3),
+        ("outcrop", 3),
+        ("core sample", 2),
+        ("tectonic", 3),
+        ("fault", 2),
+        ("fold", 1),
+        ("metamorphic", 2),
+        ("igneous", 2),
+        ("volcanic", 1),
         ("deformation", 2),
         # geological terms (added 2026-07-12)
-        ("thermometry", 4), ("barometry", 4), ("thermobarometry", 5),
-        ("geotherm", 3), ("geobarometer", 4), ("p-t path", 5),
-        ("p-t condition", 5), ("pt-t", 3), ("metamorphic grade", 4),
-        ("facies", 3), ("protolith", 4), ("orogeny", 4),
-        ("orogenic", 3), ("craton", 3), ("cratonic", 3),
-        ("terrane", 3), ("schist", 2), ("gneiss", 2),
-        ("metamorph", 3), ("equilibrium", 2), ("assemblage", 2),
-        ("paragenesis", 4), ("lithology", 3), ("stratigraphy", 3),
-        ("subduction", 2), ("collision", 2), ("rifting", 3),
-        ("intrusion", 2), ("emplacement", 2),
+        ("thermometry", 4),
+        ("barometry", 4),
+        ("thermobarometry", 5),
+        ("geotherm", 3),
+        ("geobarometer", 4),
+        ("p-t path", 5),
+        ("p-t condition", 5),
+        ("pt-t", 3),
+        ("metamorphic grade", 4),
+        ("facies", 3),
+        ("protolith", 4),
+        ("orogeny", 4),
+        ("orogenic", 3),
+        ("craton", 3),
+        ("cratonic", 3),
+        ("terrane", 3),
+        ("schist", 2),
+        ("gneiss", 2),
+        ("metamorph", 3),
+        ("equilibrium", 2),
+        ("assemblage", 2),
+        ("paragenesis", 4),
+        ("lithology", 3),
+        ("stratigraphy", 3),
+        ("subduction", 2),
+        ("collision", 2),
+        ("rifting", 3),
+        ("intrusion", 2),
+        ("emplacement", 2),
     ],
     "geophysics": [
         ("seismic", 5),
@@ -75,27 +136,61 @@ _DISCIPLINE_KEYWORDS: dict[str, list] = {
         ("lithosphere", 2),
     ],
     "petrology": [
-        ("phase diagram", 5), ("pseudosection", 5), ("melt inclusion", 5),
-        ("liquidus", 4), ("solidus", 4), ("crystallization", 2),
-        ("cumulate", 4), ("peridotite", 4), ("eclogite", 4),
-        ("amphibolite", 3), ("metapelite", 4), ("experimental petrology", 5),
+        ("phase diagram", 5),
+        ("pseudosection", 5),
+        ("melt inclusion", 5),
+        ("liquidus", 4),
+        ("solidus", 4),
+        ("crystallization", 2),
+        ("cumulate", 4),
+        ("peridotite", 4),
+        ("eclogite", 4),
+        ("amphibolite", 3),
+        ("metapelite", 4),
+        ("experimental petrology", 5),
         ("phase equilibria", 4),
         # mineral + rock terms (added 2026-07-12)
-        ("garnet", 3), ("biotite", 3), ("clinopyroxene", 4),
-        ("orthopyroxene", 4), ("plagioclase", 3), ("amphibole", 3),
-        ("kyanite", 4), ("sillimanite", 4), ("staurolite", 4),
-        ("chlorite", 3), ("epidote", 3), ("muscovite", 3),
-        ("lherzolite", 5), ("harzburgite", 4), ("websterite", 4),
-        ("granulite", 4), ("schist", 2), ("gneiss", 2),
-        ("geothermometry", 5), ("geobarometry", 5),
-        ("kd", 3), ("distribution coefficient", 4),
-        ("partitioning", 3), ("exchange reaction", 4),
-        ("solid solution", 3), ("miscibility gap", 4),
-        ("afm", 3), ("akermanite", 4), ("anorthite", 3),
-        ("albite", 3), ("forsterite", 4), ("fayalite", 4),
-        ("enstatite", 4), ("diopside", 4), ("hornblende", 4),
-        ("pargasite", 5), ("phlogopite", 4), ("spinel", 3),
-        ("quartz", 1), ("calcite", 2), ("dolomite", 2),
+        ("garnet", 3),
+        ("biotite", 3),
+        ("clinopyroxene", 4),
+        ("orthopyroxene", 4),
+        ("plagioclase", 3),
+        ("amphibole", 3),
+        ("kyanite", 4),
+        ("sillimanite", 4),
+        ("staurolite", 4),
+        ("chlorite", 3),
+        ("epidote", 3),
+        ("muscovite", 3),
+        ("lherzolite", 5),
+        ("harzburgite", 4),
+        ("websterite", 4),
+        ("granulite", 4),
+        ("schist", 2),
+        ("gneiss", 2),
+        ("geothermometry", 5),
+        ("geobarometry", 5),
+        ("kd", 3),
+        ("distribution coefficient", 4),
+        ("partitioning", 3),
+        ("exchange reaction", 4),
+        ("solid solution", 3),
+        ("miscibility gap", 4),
+        ("afm", 3),
+        ("akermanite", 4),
+        ("anorthite", 3),
+        ("albite", 3),
+        ("forsterite", 4),
+        ("fayalite", 4),
+        ("enstatite", 4),
+        ("diopside", 4),
+        ("hornblende", 4),
+        ("pargasite", 5),
+        ("phlogopite", 4),
+        ("spinel", 3),
+        ("quartz", 1),
+        ("calcite", 2),
+        ("dolomite", 2),
     ],
     "structural_geology": [
         ("stress", 3),
@@ -141,17 +236,36 @@ _DISCIPLINE_KEYWORDS: dict[str, list] = {
         ("well", 1),
     ],
     "economic_geology": [
-        ("ore deposit", 5), ("mineralization", 4), ("alteration", 3),
-        ("gold", 3), ("copper", 2), ("sulfide", 3), ("porphyry", 5),
-        ("epithermal", 5), ("sedex", 5),
+        ("ore deposit", 5),
+        ("mineralization", 4),
+        ("alteration", 3),
+        ("gold", 3),
+        ("copper", 2),
+        ("sulfide", 3),
+        ("porphyry", 5),
+        ("epithermal", 5),
+        ("sedex", 5),
         # alteration + ore mineral terms (added 2026-07-12)
-        ("potassic", 4), ("propylitic", 4), ("phyllic", 4),
-        ("argillic", 4), ("stockwork", 4), ("chalcopyrite", 5),
-        ("bornite", 5), ("molybdenite", 5), ("magmatic-hydrothermal", 5),
-        ("hydrothermal fluid", 4), ("vein", 1), ("breccia", 3),
-        ("skarn", 4), ("greisen", 4), ("volcanogenic massive sulfide", 5),
-        ("vms", 4), ("ioCG", 4), ("uranium", 3),
-        ("fluid inclusion", 4), ("halogen fugacity", 5),
+        ("potassic", 4),
+        ("propylitic", 4),
+        ("phyllic", 4),
+        ("argillic", 4),
+        ("stockwork", 4),
+        ("chalcopyrite", 5),
+        ("bornite", 5),
+        ("molybdenite", 5),
+        ("magmatic-hydrothermal", 5),
+        ("hydrothermal fluid", 4),
+        ("vein", 1),
+        ("breccia", 3),
+        ("skarn", 4),
+        ("greisen", 4),
+        ("volcanogenic massive sulfide", 5),
+        ("vms", 4),
+        ("ioCG", 4),
+        ("uranium", 3),
+        ("fluid inclusion", 4),
+        ("halogen fugacity", 5),
     ],
     "geochronology": [
         ("u-pb", 5),
@@ -437,17 +551,13 @@ def extract_key_finding(text: str, max_chars: int = 300) -> str:
 
     # Fallback: find data-bearing sentences in second half of abstract
     second_half = sentences[len(sentences) // 2 :]
-    data_sentences = [
-        s
-        for s in second_half
-        if _DATA_SENTENCE.search(s) and not _NON_FINDING_CUES.match(s.strip())
-    ]
+    data_sentences = [s for s in second_half if _DATA_SENTENCE.search(s) and not _NON_FINDING_CUES.match(s.strip())]
     if data_sentences:
         return data_sentences[-1].strip()[:max_chars]
 
     # No data-bearing or result-cue sentence found.
     # Return empty — better no finding than a misleading fragment.
-    return
+    return ""
 
 
 # =============================================================================
@@ -549,8 +659,7 @@ def detect_study_type(text: str) -> str | None:
     ):
         return "computational"
     if any(
-        kw in text_lower
-        for kw in ["theoretical", "analytical solution", "first principles", "perturbation theory"]
+        kw in text_lower for kw in ["theoretical", "analytical solution", "first principles", "perturbation theory"]
     ):
         return "theoretical"
     if any(
@@ -597,9 +706,7 @@ def detect_study_type(text: str) -> str | None:
         ]
     ):
         return "experimental"
-    if any(
-        kw in text_lower for kw in ["we observed", "telescope", "satellite data", "survey data"]
-    ):
+    if any(kw in text_lower for kw in ["we observed", "telescope", "satellite data", "survey data"]):
         return "observational"
 
     return None
@@ -916,9 +1023,7 @@ def detect_research_type(query: str) -> str:
 
     # Priority 5: short broad topic (1-3 words, no prepositional narrowing)
     tokens = [t for t in q_lower.split() if len(t) > 1]
-    if len(tokens) <= 3 and not any(
-        w in q_lower for w in (" in ", " of ", " during ", " from ", " using ")
-    ):
+    if len(tokens) <= 3 and not any(w in q_lower for w in (" in ", " of ", " during ", " from ", " using ")):
         return "survey"
 
     # Default: specific subtopic focus

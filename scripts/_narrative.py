@@ -74,14 +74,6 @@ def _normalize_for_narrative(papers: list) -> list:
 # =============================================================================
 
 
-
-
-
-
-
-
-
-
 def _author_short(authors: list[str]) -> str:
     """Short author citation: 'Smith et al.' or 'Smith & Jones'.
     Normalizes ALL-CAPS names to Title Case."""
@@ -346,9 +338,7 @@ def _detect_method_theme(paper: dict) -> str:
     text = f"{title} {finding} {abstract}"
 
     # Pre-check: Thermobar software must be caught before Conventional pattern
-    if "thermobar" in title and any(
-        w in text for w in ["software", "package", "program", "tool", "python"]
-    ):
+    if "thermobar" in title and any(w in text for w in ["software", "package", "program", "tool", "python"]):
         return "Software / Computational thermobarometry"
 
     for theme_name, pattern in _METHOD_PATTERNS:
@@ -376,11 +366,7 @@ def _detect_method_theme(paper: dict) -> str:
 
     # Last fallback: discipline-based grouping from pico or top-level
     pico = paper.get("pico") or {}
-    disc = (
-        (paper.get("discipline") or pico.get("discipline") or "")
-        .lower()
-        .replace("_", " ")
-    )
+    disc = (paper.get("discipline") or pico.get("discipline") or "").lower().replace("_", " ")
     if disc and disc not in ("general", "other", ""):
         return disc.capitalize()
     study_t = (pico.get("study_type") or "").lower().replace("_", " ")
@@ -564,9 +550,7 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("c", "k", "celsius", "kelvin", "degc", "deg_c"):
         return "temperature"
     # Stress vs pressure — MPa can be either
-    if unit_lower == "mpa" and (
-        "stress" in mtype_lower or "differential" in mtype_lower
-    ):
+    if unit_lower == "mpa" and ("stress" in mtype_lower or "differential" in mtype_lower):
         return "stress"
     # Pressure
     if unit_lower in ("kbar", "gpa", "mpa", "kb"):
@@ -575,9 +559,7 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("ma", "ga", "ka"):
         return "age"
     # Depth
-    if unit_lower in ("km", "m") and (
-        "depth" in mtype_lower or "crustal" in mtype_lower
-    ):
+    if unit_lower in ("km", "m") and ("depth" in mtype_lower or "crustal" in mtype_lower):
         return "depth"
     # Magnitude
     if unit_lower in ("mw", "ml", "ms", "mb", "m") and "magnitude" in mtype_lower:
@@ -589,9 +571,7 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
     if unit_lower in ("g/cm3", "g/cm^3", "kg/m3", "kg/m^3", "g/cc"):
         return "density"
     # Stress
-    if unit_lower in ("mpa",) and (
-        "stress" in mtype_lower or "differential" in mtype_lower
-    ):
+    if unit_lower in ("mpa",) and ("stress" in mtype_lower or "differential" in mtype_lower):
         return "stress"
     # Heat flow
     if unit_lower in ("mw/m2", "mw/m^2", "mw/m2", "hfu"):
@@ -621,11 +601,7 @@ def _classify_measurement(mtype: str, value, unit: str) -> str:
         return "age"
     if "depth" in mtype_lower:
         return "depth"
-    if (
-        "magnitude" in mtype_lower
-        or "seismic" in mtype_lower
-        and "moment" in mtype_lower
-    ):
+    if "magnitude" in mtype_lower or ("seismic" in mtype_lower and "moment" in mtype_lower):
         return "magnitude"
     if "velocity" in mtype_lower or "vp" == mtype_lower or "vs" == mtype_lower:
         return "velocity"
@@ -724,11 +700,7 @@ def _normalize_paper_measurements(papers: list) -> None:
                 m.get("unit", ""),
             )
             if val is not None:
-                mtype = (
-                    "temperature"
-                    if unit == "C"
-                    else ("pressure" if unit == "kbar" else "age")
-                )
+                mtype = "temperature" if unit == "C" else ("pressure" if unit == "kbar" else "age")
                 normalized.append({"measurement": mtype, "value": val, "unit": unit})
         p["measurements"] = normalized
 
@@ -789,9 +761,7 @@ def _extract_numbers_from_text(text: str) -> list:
         # Check for delta context
         after_match_p = text[m.end() : m.end() + 30]
         before_match_p = text[max(0, m.start() - 30) : m.start()]
-        if _DELTA_CONTEXT.search(after_match_p) or _DELTA_CONTEXT.search(
-            before_match_p
-        ):
+        if _DELTA_CONTEXT.search(after_match_p) or _DELTA_CONTEXT.search(before_match_p):
             continue
         try:
             val = float(m.group(1))
@@ -809,10 +779,7 @@ def _extract_numbers_from_text(text: str) -> list:
                 val2_k = val2
             if _PHYS_PRESS_KBAR_MIN <= val_k <= _PHYS_PRESS_KBAR_MAX:
                 results.append((val_k, "kbar"))
-            if (
-                val2_k is not None
-                and _PHYS_PRESS_KBAR_MIN <= val2_k <= _PHYS_PRESS_KBAR_MAX
-            ):
+            if val2_k is not None and _PHYS_PRESS_KBAR_MIN <= val2_k <= _PHYS_PRESS_KBAR_MAX:
                 results.append((val2_k, "kbar"))
         except (ValueError, IndexError):
             pass
@@ -878,9 +845,7 @@ def _synthesize_measurements(theme_papers: list[dict]) -> str:
         vmax = max(values)
         vmean = stats_mod.mean(values)
         vstd = stats_mod.stdev(values) if len(values) >= 2 else 0
-        parts.append(
-            f"{mtype}: {vmin:.1f}–{vmax:.1f} (mean {vmean:.1f} ± {vstd:.1f}, n={len(values)})"
-        )
+        parts.append(f"{mtype}: {vmin:.1f}–{vmax:.1f} (mean {vmean:.1f} ± {vstd:.1f}, n={len(values)})")
 
     if not parts:
         return ""
@@ -928,9 +893,7 @@ def _build_theme_synthesis(
     n = len(theme_papers)
     years = [p.get("year") for p in theme_papers if p.get("year")]
     year_str = (
-        f"({min(years)}–{max(years)})"
-        if years and min(years) != max(years)
-        else (f"({min(years)})" if years else "")
+        f"({min(years)}–{max(years)})" if years and min(years) != max(years) else (f"({min(years)})" if years else "")
     )
 
     parts = []
@@ -983,9 +946,7 @@ def _build_theme_synthesis(
             parts.append(". ".join(sentences) + ".")
             remaining_refs = [str(r) for _, _, r, _ in findings[4:8]]
             if remaining_refs:
-                parts.append(
-                    f"Additional studies [{', '.join(remaining_refs)}] report broadly consistent results."
-                )
+                parts.append(f"Additional studies [{', '.join(remaining_refs)}] report broadly consistent results.")
 
     # Limitations
     limitations = _extract_limitations(theme_papers)
@@ -1006,7 +967,7 @@ def _build_cross_cutting(
         return ""
 
     parts = []
-    theme_labels = [t["label"] for t in themes[:5]]
+    [t["label"] for t in themes[:5]]
 
     # Identify the dominant theme
     dominant = themes[0]
@@ -1080,9 +1041,9 @@ def _build_research_gaps(
     if years and len(years) >= 10:
         from collections import Counter
 
-        year_counts = Counter(years)
+        Counter(years)
         max_year = max(years)
-        min_year = min(years)
+        min(years)
         # Check if recent years are well-covered
         recent = sum(1 for y in years if y >= max_year - 3)
         if recent < len(years) * 0.15:
@@ -1279,7 +1240,7 @@ def _cluster_findings_by_agreement(
     kw_sets = []
     for item in items:
         text = item["finding"].lower()
-        tokens = set(t.strip(".,;:!?\"'()[]{}") for t in text.split() if len(t) > 4)
+        tokens = {t.strip(".,;:!?\"'()[]{}") for t in text.split() if len(t) > 4}
         kw_sets.append(tokens)
 
     # Greedy clustering: group items with >20% keyword overlap
@@ -1294,9 +1255,7 @@ def _cluster_findings_by_agreement(
         for j in range(i + 1, n):
             if j in assigned:
                 continue
-            overlap = len(kw_sets[i] & kw_sets[j]) / max(
-                len(kw_sets[i] | kw_sets[j]), 1
-            )
+            overlap = len(kw_sets[i] & kw_sets[j]) / max(len(kw_sets[i] | kw_sets[j]), 1)
             if overlap > 0.15:
                 cluster.append(j)
                 assigned.add(j)
@@ -1322,10 +1281,10 @@ def _cluster_findings_by_agreement(
                 # Check keyword overlap between groups
                 kw1 = set()
                 for it in g1_items:
-                    kw1 |= set(t for t in it["finding"].lower().split() if len(t) > 4)
+                    kw1 |= {t for t in it["finding"].lower().split() if len(t) > 4}
                 kw2 = set()
                 for it in g2_items:
-                    kw2 |= set(t for t in it["finding"].lower().split() if len(t) > 4)
+                    kw2 |= {t for t in it["finding"].lower().split() if len(t) > 4}
                 overlap = len(kw1 & kw2) / max(len(kw1 | kw2), 1)
                 if overlap > 0.15:
                     # Check if measurements differ
@@ -1358,17 +1317,10 @@ def _build_consensus_sentence(group: dict, verb_offset: int) -> str:
 
     # Try to extract common content
     # Find shared significant words across all items
-    shared_words = set(it["finding"].split() for it in items)
+    shared_words = {it["finding"].split() for it in items}
     if len(shared_words) > 1:
         common = set.intersection(
-            *[
-                set(
-                    t.strip(".,;:!?\"'()[]{}").lower()
-                    for t in it["finding"].split()
-                    if len(t) > 5
-                )
-                for it in items
-            ]
+            *[{t.strip(".,;:!?\"'()[]{}").lower() for t in it["finding"].split() if len(t) > 5} for it in items]
         )
     else:
         common = set()
@@ -1469,11 +1421,7 @@ def _build_integrative_synthesis(
     years = [p.get("year") for p in theme_papers if p.get("year")]
     year_str = ""
     if years:
-        year_str = (
-            f"{min(years)}-{max(years)}"
-            if min(years) != max(years)
-            else str(min(years))
-        )
+        year_str = f"{min(years)}-{max(years)}" if min(years) != max(years) else str(min(years))
 
     for i, p in enumerate(theme_papers):
         p["_ref"] = ref_offset + 1 + i
@@ -1508,11 +1456,7 @@ def _build_integrative_synthesis(
                     "finding": finding[:250],
                     "measurements": _extract_numbers_from_text(finding),
                     "paper_id": p.get("paper_id", ""),
-                    "tokens": set(
-                        t.strip(".,;:!?\"'()[]{}").lower()
-                        for t in finding.split()
-                        if len(t) > 4
-                    ),
+                    "tokens": {t.strip(".,;:!?\"'()[]{}").lower() for t in finding.split() if len(t) > 4},
                 }
             )
 
@@ -1557,10 +1501,7 @@ def _cluster_papers_hdbscan(papers: list, n_min: int = 3) -> list[dict]:
         from _embeddings import embed_texts
         from sklearn.cluster import HDBSCAN
 
-        texts = [
-            ((p.get("title") or "") + " " + (p.get("key_finding") or ""))[:500]
-            for p in papers
-        ]
+        texts = [((p.get("title") or "") + " " + (p.get("key_finding") or ""))[:500] for p in papers]
         embeddings = embed_texts(texts)
         if embeddings is None:
             return _group_by_theme(papers)
@@ -1602,9 +1543,7 @@ def _cluster_papers_hdbscan(papers: list, n_min: int = 3) -> list[dict]:
                 from collections import Counter
 
                 most_common = Counter(themes_found).most_common(1)
-                label_name = (
-                    most_common[0][0] if most_common else f"Cluster {label + 1}"
-                )
+                label_name = most_common[0][0] if most_common else f"Cluster {label + 1}"
             result.append(
                 {
                     "label": label_name,
@@ -1646,9 +1585,7 @@ def _cluster_by_claim(items: list[dict]) -> list[dict]:
         for j in range(i + 1, len(items)):
             if j in assigned:
                 continue
-            overlap = len(common_tokens & items[j]["tokens"]) / max(
-                len(common_tokens | items[j]["tokens"]), 1
-            )
+            overlap = len(common_tokens & items[j]["tokens"]) / max(len(common_tokens | items[j]["tokens"]), 1)
             if overlap > 0.18:
                 cluster_items.append(items[j])
                 assigned.add(j)
@@ -1718,9 +1655,7 @@ def _cluster_by_claim_semantic(items: list[dict]) -> list[dict]:
         for cluster_items_list in clusters:
             if not cluster_items_list:
                 continue
-            refs = sorted(
-                set(it.get("ref", 0) for it in cluster_items_list if it.get("ref"))
-            )
+            refs = sorted({it.get("ref", 0) for it in cluster_items_list if it.get("ref")})
             claim_terms = set()
             temps = []
             pressures = []
@@ -1731,9 +1666,7 @@ def _cluster_by_claim_semantic(items: list[dict]) -> list[dict]:
                     if "temp" in mtype.lower() and isinstance(values, list):
                         temps.extend(v for v in values if isinstance(v, (int, float)))
                     elif "press" in mtype.lower() and isinstance(values, list):
-                        pressures.extend(
-                            v for v in values if isinstance(v, (int, float))
-                        )
+                        pressures.extend(v for v in values if isinstance(v, (int, float)))
             result.append(
                 {
                     "refs": refs,
@@ -1773,16 +1706,12 @@ def _build_claim_sentence(cluster: dict, idx: int) -> str:
     pressures = cluster["pressures"]
     if len(temps) >= 2:
         tmed = _stats.median(temps)
-        meas_parts.append(
-            f"temperatures of {min(temps):.0f}-{max(temps):.0f}C (median {tmed:.0f}C)"
-        )
+        meas_parts.append(f"temperatures of {min(temps):.0f}-{max(temps):.0f}C (median {tmed:.0f}C)")
     elif len(temps) == 1:
         meas_parts.append(f"temperatures of {temps[0]:.0f}C")
     if len(pressures) >= 2:
-        pmed = _stats.median(pressures)
-        meas_parts.append(
-            f"pressures of {min(pressures):.1f}-{max(pressures):.1f} kbar"
-        )
+        _stats.median(pressures)
+        meas_parts.append(f"pressures of {min(pressures):.1f}-{max(pressures):.1f} kbar")
     elif len(pressures) == 1:
         meas_parts.append(f"pressures of {pressures[0]:.1f} kbar")
 
@@ -1880,10 +1809,7 @@ def _synthesize_measurements_v2(theme_papers: list[dict]) -> str:
             import random
 
             random.seed(42)  # deterministic
-            boot_medians = [
-                _stats.median(random.choices(values, k=len(values)))
-                for _ in range(1000)
-            ]
+            boot_medians = [_stats.median(random.choices(values, k=len(values))) for _ in range(1000)]
             boot_medians.sort()
             ci_lo = boot_medians[int(0.025 * len(boot_medians))]
             ci_hi = boot_medians[int(0.975 * len(boot_medians))]
@@ -1948,17 +1874,11 @@ def _build_cross_cutting_v2(
         comparison_parts = []
         for label, mp in method_measures.items():
             if mp["T"] and len(mp["T"]) >= 2:
-                comparison_parts.append(
-                    f"{label}: T={min(mp['T']):.0f}-{max(mp['T']):.0f}C"
-                )
+                comparison_parts.append(f"{label}: T={min(mp['T']):.0f}-{max(mp['T']):.0f}C")
             if mp["P"] and len(mp["P"]) >= 2:
-                comparison_parts.append(
-                    f"{label}: P={min(mp['P']):.0f}-{max(mp['P']):.0f}kbar"
-                )
+                comparison_parts.append(f"{label}: P={min(mp['P']):.0f}-{max(mp['P']):.0f}kbar")
         if comparison_parts:
-            parts.append(
-                "Cross-method comparison: " + "; ".join(comparison_parts[:5]) + "."
-            )
+            parts.append("Cross-method comparison: " + "; ".join(comparison_parts[:5]) + ".")
 
     # 3. Convergence/divergence
     all_temps = []
@@ -1979,9 +1899,7 @@ def _build_cross_cutting_v2(
         )
     if len(all_pressures) >= 5:
         p_median = _stats.median(all_pressures)
-        parts.append(
-            f"Pressure estimates have a median of {p_median:.1f} kbar (n={len(all_pressures)})."
-        )
+        parts.append(f"Pressure estimates have a median of {p_median:.1f} kbar (n={len(all_pressures)}).")
 
     # 4. Methodological diversity
     if len(themes) >= 3:
@@ -2010,7 +1928,7 @@ def _build_research_gaps_v2(
     """V2 research gaps with quantitative analysis."""
     parts = []
     n = len(all_papers)
-    theme_labels = {t["label"] for t in themes}
+    {t["label"] for t in themes}
 
     # 1. Underrepresented methods
     small_themes = [t for t in themes if len(t["papers"]) <= 2]
@@ -2042,17 +1960,12 @@ def _build_research_gaps_v2(
             ("field-based", ["field", "outcrop", "sample", "collected"]),
             ("review", ["review", "synthesis", "meta-analysis"]),
         ]
-        all_text = " ".join(
-            (p.get("title") or "") + " " + (p.get("abstract") or "") for p in all_papers
-        ).lower()
+        all_text = " ".join((p.get("title") or "") + " " + (p.get("abstract") or "") for p in all_papers).lower()
         for family_name, cues in method_families:
             if not any(cue in all_text for cue in cues):
                 method_gaps.append(family_name)
         if method_gaps:
-            parts.append(
-                f"The corpus lacks {', '.join(method_gaps[:3])} studies, "
-                f"representing a methodological gap."
-            )
+            parts.append(f"The corpus lacks {', '.join(method_gaps[:3])} studies, representing a methodological gap.")
 
     # 4. Geographic diversity (pattern-based; undercounts — phrase honestly)
     regions_found = set()
@@ -2075,11 +1988,7 @@ def _build_research_gaps_v2(
         for m in p.get("measurements", []):
             mtype = (m.get("measurement") or "").lower()
             munit = (m.get("unit") or "").strip()
-            if not (
-                "temp" in mtype
-                or "press" in mtype
-                or munit in ("C", "K", "kbar", "GPa", "MPa")
-            ):
+            if not ("temp" in mtype or "press" in mtype or munit in ("C", "K", "kbar", "GPa", "MPa")):
                 continue
             try:
                 all_measurements.append(float(m.get("value", 0)))
@@ -2122,16 +2031,12 @@ _ROCK_TYPE_PATTERNS = [
     # Metamorphic
     (
         "metapelite",
-        re.compile(
-            r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:metapelite|metasediment|pelitic|metapelitic|pelite)\b", re.IGNORECASE),
     ),
     ("eclogite", re.compile(r"\b(?:eclogite|eclogitic)\b", re.IGNORECASE)),
     (
         "granulite",
-        re.compile(
-            r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:granulite|granulitic|charnockite|enderbite)\b", re.IGNORECASE),
     ),
     ("amphibolite", re.compile(r"\b(?:amphibolite|amphibolitic)\b", re.IGNORECASE)),
     (
@@ -2152,9 +2057,7 @@ _ROCK_TYPE_PATTERNS = [
     ("quartzite", re.compile(r"\b(?:quartzite|quartzitic)\b", re.IGNORECASE)),
     (
         "marble",
-        re.compile(
-            r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:marble(?:s)?|crystalline\s+limestone|metacarbonate)\b", re.IGNORECASE),
     ),
     (
         "serpentinite",
@@ -2166,9 +2069,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "migmatite",
-        re.compile(
-            r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:migmat(?:ite|itic)|anatex|leucosome|melatome)\b", re.IGNORECASE),
     ),
     (
         "mylonite",
@@ -2192,9 +2093,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "rhyolite",
-        re.compile(
-            r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:rhyolite|rhyolitic|obsidian|ignimbrite|ash\s+flow)\b", re.IGNORECASE),
     ),
     ("andesite", re.compile(r"\b(?:andesite|andesitic)\b", re.IGNORECASE)),
     ("dacite", re.compile(r"\b(?:dacite|dacitic)\b", re.IGNORECASE)),
@@ -2205,9 +2104,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "tuff",
-        re.compile(
-            r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:tuff(?:aceous)?|volcanic\s+ash|pyroclastic)\b", re.IGNORECASE),
     ),
     # Igneous — plutonic
     (
@@ -2219,9 +2116,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "gabbro",
-        re.compile(
-            r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:gabbro(?:ic)?|norite|troctolite|anorthosite)\b", re.IGNORECASE),
     ),
     ("diorite", re.compile(r"\b(?:diorite|dioritic|monzodiorite)\b", re.IGNORECASE)),
     (
@@ -2242,9 +2137,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "shale",
-        re.compile(
-            r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:shale|shaly|mudstone|siltstone|argillite|claystone)\b", re.IGNORECASE),
     ),
     (
         "limestone",
@@ -2259,9 +2152,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "chert",
-        re.compile(
-            r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:chert|chert(?:y|ic)|jasper|radiolarite|diatomite)\b", re.IGNORECASE),
     ),
     (
         "conglomerate",
@@ -2287,9 +2178,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "coal",
-        re.compile(
-            r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:coal|coal\s+seam|lignite|anthracite|bituminous)\b", re.IGNORECASE),
     ),
     # Mantle / deep Earth
     (
@@ -2309,9 +2198,7 @@ _ROCK_TYPE_PATTERNS = [
     ),
     (
         "porphyry deposit",
-        re.compile(
-            r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:porphyry\s+(?:deposit|copper|gold)|epithermal)\b", re.IGNORECASE),
     ),
 ]
 
@@ -2322,11 +2209,7 @@ def _detect_rock_type(paper: dict) -> str:
     Also detects UHP context to split eclogite into UHP vs non-UHP.
     """
     text = (
-        (paper.get("title") or "")
-        + " "
-        + (paper.get("key_finding") or "")
-        + " "
-        + (paper.get("abstract") or "")
+        (paper.get("title") or "") + " " + (paper.get("key_finding") or "") + " " + (paper.get("abstract") or "")
     ).lower()
     for rock_type, pattern in _ROCK_TYPE_PATTERNS:
         if pattern.search(text):
@@ -2366,14 +2249,13 @@ def _build_field_evolution(
         p["_rock_type"] = _detect_rock_type(p)
 
     early = [p for p in all_papers if (p.get("year") or 9999) <= 2010]
-    middle = [p for p in all_papers if 2011 <= (p.get("year") or 9999) <= 2018]
+    [p for p in all_papers if 2011 <= (p.get("year") or 9999) <= 2018]
     recent = [p for p in all_papers if (p.get("year") or 9999) >= 2019]
 
     if early and recent:
-        early_methods = set(_detect_method_theme(p) for p in early)
-        recent_methods = set(_detect_method_theme(p) for p in recent)
+        early_methods = {_detect_method_theme(p) for p in early}
+        recent_methods = {_detect_method_theme(p) for p in recent}
         new_methods = recent_methods - early_methods
-        old_methods = early_methods - recent_methods
 
         if new_methods:
             parts.append(
@@ -2401,9 +2283,7 @@ def _build_field_evolution(
 
     # Detect key scientific debates/topics
     debates = []
-    if "uncertain" in all_findings_text and (
-        "calibrat" in all_findings_text or "model" in all_findings_text
-    ):
+    if "uncertain" in all_findings_text and ("calibrat" in all_findings_text or "model" in all_findings_text):
         debates.append("calibration and model uncertainty")
     if "retrograde" in all_findings_text or "reset" in all_findings_text:
         debates.append("retrograde resetting of mineral compositions")
@@ -2411,9 +2291,7 @@ def _build_field_evolution(
         debates.append("the assumption of chemical equilibrium")
     if "bulk composition" in all_findings_text:
         debates.append("sensitivity to bulk composition assumptions")
-    if "inclusion" in all_findings_text and (
-        "pressure" in all_findings_text or "elastic" in all_findings_text
-    ):
+    if "inclusion" in all_findings_text and ("pressure" in all_findings_text or "elastic" in all_findings_text):
         debates.append("elastic thermobarometry of mineral inclusions")
 
     if debates:
@@ -2455,9 +2333,7 @@ def _build_field_evolution(
         rt_parts = []
         for rt, vals in sorted(rock_type_press.items(), key=lambda x: -len(x[1])):
             if len(vals) >= 2:
-                rt_parts.append(
-                    f"{rt}: {min(vals):.1f}-{max(vals):.1f} kbar (n={len(vals)})"
-                )
+                rt_parts.append(f"{rt}: {min(vals):.1f}-{max(vals):.1f} kbar (n={len(vals)})")
         if rt_parts:
             parts.append(
                 "Pressure estimates vary systematically by rock type: "
@@ -2591,11 +2467,7 @@ def _detect_study_type(paper: dict) -> str:
     Calibration studies calibrate thermobarometers.
     """
     text = (
-        (paper.get("title") or "")
-        + " "
-        + (paper.get("abstract") or "")
-        + " "
-        + (paper.get("key_finding") or "")
+        (paper.get("title") or "") + " " + (paper.get("abstract") or "") + " " + (paper.get("key_finding") or "")
     ).lower()
     for study_type, pattern in _STUDY_TYPE_PATTERNS:
         if pattern.search(text):
@@ -2703,9 +2575,7 @@ def _build_method_comparison_synthesis(
         for md in earliest_methods[:6]:
             yr = int(md["avg_year"])
             timeline_parts.append(f"{md['label'].lower()} (avg {yr}, n={md['n']})")
-        parts.append(
-            "Temporal distribution from corpus: " + "; ".join(timeline_parts) + "."
-        )
+        parts.append("Temporal distribution from corpus: " + "; ".join(timeline_parts) + ".")
 
     # Per-method comparative sentences
     for md in method_data:
@@ -2779,9 +2649,7 @@ def _filter_with_findings(papers: list[dict]) -> list[dict]:
     return [p for p in papers if (p.get("key_finding") or "").strip()]
 
 
-_STEM_SUFFIXES = re.compile(
-    r"(?:s|es|ed|ing|tion|tions|ity|ities|ment|ments|al|ly|ogy|ological|ological)$"
-)
+_STEM_SUFFIXES = re.compile(r"(?:s|es|ed|ing|tion|tions|ity|ities|ment|ments|al|ly|ogy|ological|ological)$")
 
 
 def _stem(word: str) -> str:
@@ -2797,12 +2665,12 @@ def _stem(word: str) -> str:
 
 def _keyword_relevance(paper: dict, topic: str) -> float:
     """Legacy keyword overlap score (fallback for semantic)."""
-    topic_stems = set(_stem(t) for t in topic.split() if len(t) > 2)
+    topic_stems = {_stem(t) for t in topic.split() if len(t) > 2}
     title = (paper.get("title") or "").lower()
     finding = (paper.get("key_finding") or "").lower()
     abstract = (paper.get("abstract") or "").lower()
     paper_text = f"{title} {finding} {abstract}"
-    paper_stems = set(_stem(t) for t in paper_text.split() if len(t) > 2)
+    paper_stems = {_stem(t) for t in paper_text.split() if len(t) > 2}
     if not topic_stems:
         return 0.0
     return len(topic_stems & paper_stems) / len(topic_stems)
@@ -2871,9 +2739,7 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
             bge_scores = {id(p): s for p, s in bge_ranked}
             scores = [bge_scores.get(id(p), 0.0) for p in papers]
             kw_scores = [_keyword_relevance(p, topic) for p in papers]
-            hybrid = [
-                (p, max(s, k * 0.5)) for p, s, k in zip(papers, scores, kw_scores)
-            ]
+            hybrid = [(p, max(s, k * 0.5)) for p, s, k in zip(papers, scores, kw_scores)]
             hybrid.sort(key=lambda x: -x[1])
             relevant = [(p, s) for p, s in hybrid if s >= 0.15]
             if relevant:
@@ -2910,21 +2776,15 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
 _VERB_MAP = [
     (re.compile(r"^(?:we|our)\s+(?:found|find)\b", re.IGNORECASE), "found that"),
     (
-        re.compile(
-            r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.IGNORECASE
-        ),
+        re.compile(r"^(?:we|our)\s+(?:show|showed|demonstrate|demonstrated)\b", re.IGNORECASE),
         "demonstrated that",
     ),
     (
-        re.compile(
-            r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.IGNORECASE
-        ),
+        re.compile(r"^(?:we|our)\s+(?:report|reported|present|presented)\b", re.IGNORECASE),
         "reported that",
     ),
     (
-        re.compile(
-            r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.IGNORECASE
-        ),
+        re.compile(r"^(?:we|our)\s+(?:propose|proposed|introduce|introduced)\b", re.IGNORECASE),
         "proposed that",
     ),
     (
@@ -3075,12 +2935,8 @@ def _detect_significance(
     if not prev_finding or not curr_finding:
         return None
 
-    prev_tokens = set(
-        t.lower().strip(".,;:!?\"'()[]{}") for t in prev_finding.split() if len(t) > 3
-    )
-    curr_tokens = set(
-        t.lower().strip(".,;:!?\"'()[]{}") for t in curr_finding.split() if len(t) > 3
-    )
+    prev_tokens = {t.lower().strip(".,;:!?\"'()[]{}") for t in prev_finding.split() if len(t) > 3}
+    curr_tokens = {t.lower().strip(".,;:!?\"'()[]{}") for t in curr_finding.split() if len(t) > 3}
     if not prev_tokens or not curr_tokens:
         return None
 
@@ -3184,9 +3040,7 @@ def _is_quality_finding(finding: str) -> bool:
         return False
     # Check for numeric gibberish (mostly digits with few words)
     words = finding.split()
-    digit_ratio = sum(1 for w in words if any(c.isdigit() for c in w)) / max(
-        len(words), 1
-    )
+    digit_ratio = sum(1 for w in words if any(c.isdigit() for c in w)) / max(len(words), 1)
     if digit_ratio > 0.5:
         return False
     return True
@@ -3273,11 +3127,7 @@ def _select_transition(
             return "Several years later, "
 
     # 2. Discipline-shift transition (replace underscores with spaces)
-    prev_disc = (
-        ((prev_paper or {}).get("discipline") or "").replace("_", " ")
-        if prev_paper
-        else ""
-    )
+    prev_disc = ((prev_paper or {}).get("discipline") or "").replace("_", " ") if prev_paper else ""
     curr_disc = (curr_paper.get("discipline") or "").replace("_", " ")
     if prev_disc and curr_disc and prev_disc != curr_disc:
         return f"From a {curr_disc} perspective, "
@@ -3354,11 +3204,11 @@ def _compute_theme_keywords(paper: dict) -> set[str]:
         "demonstrate",
         "report",
     }
-    tokens = set(
+    tokens = {
         t.strip(".,;:!?\"'()[]{}")
         for t in text.split()
         if len(t) > 4 and t.strip(".,;:!?\"'()[]{}").lower() not in _STOPWORDS
-    )
+    }
     return tokens
 
 
@@ -3399,9 +3249,7 @@ def _detect_paragraph_break(
 _CONTENT_VERB_MAP = [
     (re.compile(r"\bfirst\b", re.IGNORECASE), "pioneered the demonstration that"),
     (
-        re.compile(
-            r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.IGNORECASE
-        ),
+        re.compile(r"\b(?:model|simulation|numerical|calculat|comput)\w*\b", re.IGNORECASE),
         "modeled",
     ),
     (re.compile(r"\b(?:review|synthesi\w+|compil\w+)\b", re.IGNORECASE), "reviewed"),
@@ -3455,9 +3303,7 @@ def _interp_connector(interpretation: str) -> str:
     interp_lower = interpretation[:50].lower()
     if interp_lower.startswith(("we conclude", "we propose", "we infer")):
         return "They concluded that"
-    if interp_lower.startswith(
-        ("these results", "these findings", "these observations", "these data")
-    ):
+    if interp_lower.startswith(("these results", "these findings", "these observations", "these data")):
         return "These results suggest that"
     if interp_lower.startswith(("this implies", "this suggests")):
         return "This implies that"
@@ -3491,10 +3337,7 @@ def _cluster_by_similarity(papers: list[dict], max_batch: int = 3) -> list[list[
         from sklearn.metrics.pairwise import cosine_similarity
     except ImportError:
         # Fallback: chronological batching
-        return [
-            list(range(i, min(i + max_batch, len(papers))))
-            for i in range(0, len(papers), max_batch)
-        ]
+        return [list(range(i, min(i + max_batch, len(papers)))) for i in range(0, len(papers), max_batch)]
 
     import numpy as _np
 
@@ -3648,14 +3491,10 @@ def build_chronological_narrative(
         theme_label = theme["label"]
         n_theme = len(theme_papers)
 
-        parts.append(
-            f"### {theme_label} ({n_theme} {'study' if n_theme == 1 else 'studies'})"
-        )
+        parts.append(f"### {theme_label} ({n_theme} {'study' if n_theme == 1 else 'studies'})")
         parts.append("")
 
-        synthesis, theme_cited = _build_integrative_synthesis(
-            theme_papers, topic, theme_label, ref_offset, correlation
-        )
+        synthesis, theme_cited = _build_integrative_synthesis(theme_papers, topic, theme_label, ref_offset, correlation)
         parts.append(synthesis)
 
         # Add theme_cited to cited list FIRST (preserves reference order)
@@ -3748,7 +3587,7 @@ def build_chronological_narrative(
         # Apply in descending order so [10]→[12] doesn't clobber [1]→[2].
         import re as _re
 
-        n_refs = len(cited)
+        len(cited)
 
         def _rewrite_citation(m: _re.Match[str]) -> str:
             old = int(m.group(1))
@@ -3792,9 +3631,7 @@ def _summarize_measurements(measurements: list[dict]) -> str:
             import statistics
 
             mean_val = statistics.mean(values)
-            summaries.append(
-                f"{mtype}: {min(values):.2f}–{max(values):.2f} (mean {mean_val:.2f})"
-            )
+            summaries.append(f"{mtype}: {min(values):.2f}–{max(values):.2f} (mean {mean_val:.2f})")
         elif len(values) == 1:
             summaries.append(f"{mtype} = {values[0]:.2f}")
 
@@ -3847,16 +3684,10 @@ def build_verification_narrative(
                 verdict_detail = f"{len(contrasting)} of {total_addr} papers provide contrasting evidence."
             elif len(supporting) > len(contrasting):
                 verdict = "Mostly supported"
-                verdict_detail = (
-                    f"{len(supporting)} support vs {len(contrasting)} contrast "
-                    f"out of {total_addr} papers."
-                )
+                verdict_detail = f"{len(supporting)} support vs {len(contrasting)} contrast out of {total_addr} papers."
             elif len(contrasting) > len(supporting):
                 verdict = "Mostly contradicted"
-                verdict_detail = (
-                    f"{len(contrasting)} contrast vs {len(supporting)} support "
-                    f"out of {total_addr} papers."
-                )
+                verdict_detail = f"{len(contrasting)} contrast vs {len(supporting)} support out of {total_addr} papers."
             else:
                 verdict = "Contested"
                 verdict_detail = (
@@ -3904,13 +3735,9 @@ def build_verification_narrative(
             return "\n".join(parts), cited
 
     # Fallback: no correlation data — do simple chronological
-    parts.append(
-        "No stance correlation data available — presenting chronological findings."
-    )
+    parts.append("No stance correlation data available — presenting chronological findings.")
     parts.append("")
-    narrative, cited_chron = build_chronological_narrative(
-        papers, claim, "verification"
-    )
+    narrative, cited_chron = build_chronological_narrative(papers, claim, "verification")
     parts.append(narrative)
     return "\n".join(parts), cited_chron
 
@@ -3920,9 +3747,7 @@ def _find_paper_by_id(papers: list[dict], paper_id: str) -> dict | None:
     for p in papers:
         pid = p.get("paper_id", "")
         doi = p.get("doi", "")
-        if paper_id and (
-            pid == paper_id or doi == paper_id or paper_id in pid or pid in paper_id
-        ):
+        if paper_id and (pid == paper_id or doi == paper_id or paper_id in pid or pid in paper_id):
             return p
     return papers[0] if papers else None
 
@@ -4016,9 +3841,7 @@ def build_comparison_narrative(
         return f"No papers available for comparison of '{topic}'.", cited
 
     topical = _filter_topical(papers, topic)
-    with_findings = [
-        p for p in topical if _is_quality_finding(p.get("key_finding") or "")
-    ]
+    with_findings = [p for p in topical if _is_quality_finding(p.get("key_finding") or "")]
     if not with_findings:
         with_findings = _filter_with_findings(topical)
     if not with_findings:
@@ -4042,9 +3865,7 @@ def build_comparison_narrative(
     if total > 200:
         # Trim each group proportionally
         ratio = 200 / total
-        sorted_approaches = [
-            (a, g[: max(1, int(len(g) * ratio))]) for a, g in sorted_approaches
-        ]
+        sorted_approaches = [(a, g[: max(1, int(len(g) * ratio))]) for a, g in sorted_approaches]
         total = sum(len(g) for _, g in sorted_approaches)
 
     parts: list[str] = []
@@ -4070,16 +3891,12 @@ def build_comparison_narrative(
             cited.append(p)
             author = _author_short(_parse_authors(p.get("authors", [])))
             year = p.get("year") or "n.d."
-            finding = _clean_title_finding(
-                _sanitize_finding(p.get("key_finding") or "")
-            )
+            finding = _clean_title_finding(_sanitize_finding(p.get("key_finding") or ""))
             verb, content = _rephrase_finding(finding)
             if verb.endswith(" that"):
                 citations.append(f"- {author} ({year}) [{ref_num}] {verb} {content}")
             else:
-                citations.append(
-                    f"- {author} ({year}) [{ref_num}] reported that {content}"
-                )
+                citations.append(f"- {author} ({year}) [{ref_num}] reported that {content}")
 
         parts.extend(citations)
         parts.append("")
@@ -4149,9 +3966,7 @@ def build_compilation_narrative(
             f"Presenting chronological narrative instead."
         )
         parts.append("")
-        narrative, cited = build_chronological_narrative(
-            papers, topic, "data_compilation"
-        )
+        narrative, cited = build_chronological_narrative(papers, topic, "data_compilation")
         parts.append(narrative)
         return "\n".join(parts), cited
 
@@ -4215,9 +4030,7 @@ def build_compilation_narrative(
         vmean = stats_mod.mean(values)
         vmed = stats_mod.median(values)
         vstd = stats_mod.stdev(values) if n >= 2 else 0.0
-        parts.append(
-            f"| {mtype} | {n} | {vmin:.2f} | {vmax:.2f} | {vmean:.2f} | {vmed:.2f} | {vstd:.2f} |"
-        )
+        parts.append(f"| {mtype} | {n} | {vmin:.2f} | {vmax:.2f} | {vmean:.2f} | {vmed:.2f} | {vstd:.2f} |")
     parts.append("")
 
     # Data table (top entries per type)
@@ -4242,9 +4055,7 @@ def build_compilation_narrative(
             year = paper.get("year") or "n.d."
             val = m.get("value", "?")
             unit = m.get("unit", "")
-            parts.append(
-                f"| {author} [{ref_num}] | {year} | {mtype} | {val} | {unit} |"
-            )
+            parts.append(f"| {author} [{ref_num}] | {year} | {mtype} | {val} | {unit} |")
 
     parts.append("")
 

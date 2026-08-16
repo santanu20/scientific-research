@@ -370,6 +370,7 @@ def _call_ollama(
             capture_output=True,
             text=True,
             timeout=180,
+            check=False,
         )
         if proc.returncode != 0:
             raise RuntimeError(
@@ -633,7 +634,7 @@ def extract_paper(
                             topic=topic,
                             fallback=_empty_result(),
                         )
-                    except Exception:  # noqa: BLE001 — segment isolation
+                    except Exception:
                         continue
                     if not sub:
                         continue
@@ -1085,7 +1086,7 @@ def llm_screen_paper(
     )
     try:
         response = _call_ollama(chosen, prompt, task="simple")
-    except Exception as e:  # noqa: BLE001 — caller handles permissive fallback
+    except Exception as e:
         log.debug("screen judge call failed: %s", e)
         return None
     try:
@@ -1121,7 +1122,7 @@ def llm_screen_paper_ensemble(
     # Build a diverse judge panel: distinct model names, prefer size spread
     models = _detect_models()
     panel = [m["name"] for m in models if m["name"] != chosen_model][: n_judges - 1]
-    panel = [chosen_model] + panel
+    panel = [chosen_model, *panel]
     votes: list[dict] = []
     for m in panel:
         v = llm_screen_paper(paper, query, model=m, research_type=research_type)

@@ -129,7 +129,7 @@ def run_pipeline(
                 outputs=outputs,
                 results_dir=results_dir,
             )
-        except Exception as e:  # noqa: BLE001 — audit trail is best-effort
+        except Exception as e:
             log.warning("Provenance record for '%s' failed: %s", stage, e)
 
     # Skip S2 entirely if user didn't select it as a source
@@ -482,7 +482,7 @@ def run_pipeline(
             try:
                 merged, result = verify_paper(paper, rw_index=rw_index)
                 return merged if result.resolved else None
-            except Exception as e:  # noqa: BLE001 — per-paper isolation, logged loud
+            except Exception as e:
                 log.warning("verify failed for %s: %s", paper.primary_id, e)
                 return None
 

@@ -383,6 +383,7 @@ def _extract_text_from_pdf(pdf_path: str) -> tuple[str, bool]:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
         text = result.stdout.strip()
         if len(text) > 100:
@@ -633,7 +634,7 @@ def _merge_pico(regex_result: dict, llm_result: dict) -> dict:
     merged = dict(regex_result)
 
     # New field-agnostic fields (pass through from LLM)
-    for field in (
+    for field_name in (
         "discipline",
         "study_type",
         "subject",
@@ -645,9 +646,9 @@ def _merge_pico(regex_result: dict, llm_result: dict) -> dict:
         "geological_concepts",
         "quantitative_data",
     ):
-        llm_val = llm_result.get(field)
+        llm_val = llm_result.get(field_name)
         if llm_val is not None:
-            merged[field] = llm_val
+            merged[field_name] = llm_val
 
     # Legacy PICO: map from new field-agnostic format
     subj = llm_result.get("subject", {})
@@ -701,8 +702,6 @@ def _merge_effects(regex_result: dict, llm_result: dict) -> dict:
 
     # Convert to mean_sd_groups format for meta_analyze.py
     mean_sd_groups = []
-    effect_sizes_list = []
-    p_values = []
 
     # Check if LLM returned paired groups (old format) or single measurements (new format)
     for es in llm_effects:

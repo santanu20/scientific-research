@@ -1,0 +1,35 @@
+# Deterministic lint gate for this repo (overrides any ambient/user ruff config).
+# A10 fix: previously 249 errors from an unpinned ambient rule set — meaningless
+# across sessions. This file pins the contract: rules that catch REAL defect
+# classes here (undefined/unused names, dead locals, comprehension + str-concat
+# drift, subprocess hygiene), with deliberate patterns explicitly ignored.
+
+target-version = "py313"
+line-length = 120
+
+[lint]
+select = [
+    "E",        # pycodestyle errors
+    "W",        # pycodestyle warnings
+    "F",        # pyflakes (real bugs: undefined names, unused vars/imports)
+    "I",        # import order
+    "C4",       # comprehension hygiene
+    "ISC004",   # implicit string concat in collection literals
+    "FLY002",   # static join -> f-string
+    "PERF102",  # incorrect dict iterator
+    "PERF402",  # manual list copy
+    "PIE810",   # multiple startswith/endswith calls
+    "PLW1510",  # subprocess-run-without-check
+    "TRY203",   # useless try-except
+    "RUF005",   # collection literal concatenation
+    "RUF015",   # unnecessary iterable allocation for first element
+    "RUF021",   # parenthesize chained operators
+    "RUF034",   # useless if-else
+    "RUF100",   # unused noqa
+]
+ignore = [
+    "E501",   # line length: legacy long lines; enforced socially, not by gate
+    "E402",   # imports-after-bootstrap is the documented _bootstrap architecture
+    "E731",   # lambda assignment: local style, 2 deliberate sites
+    "RUF012", # mutable class default: module-level singleton holders
+]

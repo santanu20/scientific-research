@@ -138,6 +138,7 @@ def brief(tmp_path_factory):
         capture_output=True,
         text=True,
         timeout=120,
+        check=False,
         env={"PATH": "/usr/bin:/bin", "SCIENTIFIC_RESEARCH_NO_SKILL_VENV": "1"},
     )
     assert r.returncode == 0, r.stderr[-500:]

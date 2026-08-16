@@ -344,7 +344,7 @@ def _backfill_abstracts_crossref(papers: list) -> int:
 
         cr = habanero.Crossref()
         recs = cr.works(ids=dois)
-    except Exception as e:  # noqa: BLE001 — network/dep resilience, logged loud
+    except Exception as e:
         log.warning("Abstract backfill failed (Crossref batch): %s", e)
         return 0
     items = recs if isinstance(recs, list) else recs.get("message", {}).get("items", [])
@@ -590,6 +590,7 @@ def web_search_paper_discovery(
             capture_output=True,
             text=True,
             timeout=120,
+            check=False,
             env=sub_env,
         )
     except _sp.TimeoutExpired:
@@ -699,6 +700,7 @@ def web_search_agentic_discovery(
             capture_output=True,
             text=True,
             timeout=180,
+            check=False,
             env=sub_env,
         )
     except _sp.TimeoutExpired:

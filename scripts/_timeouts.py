@@ -1,11 +1,13 @@
-"""Centralized timeout constants for the research pipeline.
+"""Centralized timeout constants for external web-API calls.
 
-All timeouts in one place — no scattered magic numbers across files.
-Each can be overridden via environment variable for debugging/tuning.
+Holds the timeouts that are actually wired through TIMEOUTS.* call sites
+(_sources.py, verify.py). Each can be overridden via environment variable
+for debugging/tuning. New external-API timeouts should be added here rather
+than inlined at call sites.
 
 Usage:
     from _timeouts import TIMEOUTS
-    urllib.request.urlopen(req, timeout=TIMEOUTS.ollama_health)
+    httpx.get(url, timeout=TIMEOUTS.crossref_search)
 """
 
 from __future__ import annotations
@@ -17,25 +19,8 @@ class _Timeouts:
     """Centralized timeout configuration.
 
     Values read from environment variables (for runtime tuning) or
-    fall back to sensible defaults. Every timeout in the pipeline
-    should reference these constants, never inline magic numbers.
+    fall back to sensible defaults.
     """
-
-    @property
-    def ollama_health(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_HEALTH", "3"))
-
-    @property
-    def ollama_extract(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_EXTRACT", "60"))
-
-    @property
-    def ollama_synthesis(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_SYNTHESIS", "180"))
-
-    @property
-    def ollama_smoothing(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_SMOOTH", "60"))
 
     @property
     def crossref_search(self) -> int:
@@ -54,28 +39,12 @@ class _Timeouts:
         return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_S2", "10"))
 
     @property
-    def wikidata(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_WIKIDATA", "30"))
-
-    @property
-    def wikipedia(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_WIKIPEDIA", "5"))
-
-    @property
     def unpaywall(self) -> int:
         return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_UNPAYWALL", "15"))
 
     @property
-    def pdf_download(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_PDF_DOWNLOAD", "30"))
-
-    @property
-    def llm_intent(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_LLM_INTENT", "30"))
-
-    @property
-    def bge_embedding(self) -> int:
-        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_BGE", "60"))
+    def doaj(self) -> int:
+        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_DOAJ", "15"))
 
 
 TIMEOUTS = _Timeouts()

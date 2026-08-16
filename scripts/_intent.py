@@ -1383,54 +1383,6 @@ def parse_intent(query: str) -> ResearchIntent:
 # =============================================================================
 
 
-def expand_with_intent(intent: ResearchIntent) -> str:
-    """Generate a domain-specific search query from parsed intent.
-
-    Uses topic template synonyms + landmark authors + material synonyms.
-    Falls back to existing ontology expansion if no template.
-    """
-    if not intent.is_geoscience:
-        return intent.raw_query
-
-    parts = [intent.raw_query]
-
-    # Add material synonyms
-    if intent.material_synonyms:
-        seen = set(w.lower() for w in parts)
-        for syn in intent.material_synonyms[:10]:
-            if syn.lower() not in seen:
-                parts.append(syn)
-                seen.add(syn.lower())
-
-    # Add method/template synonyms
-    if intent.template and intent.template.synonyms:
-        seen = set(w.lower() for w in parts)
-        for syn in intent.template.synonyms:
-            if syn.lower() not in seen:
-                parts.append(syn)
-                seen.add(syn.lower())
-    elif intent.method_synonyms:
-        seen = set(w.lower() for w in parts)
-        for syn in intent.method_synonyms:
-            if syn.lower() not in seen:
-                parts.append(syn)
-                seen.add(syn.lower())
-
-    # Add landmark authors
-    if intent.template and intent.template.landmarks:
-        for author in intent.template.landmarks:
-            parts.append(author)
-
-    expanded = " ".join(parts)
-    if expanded != intent.raw_query:
-        log.info(
-            "Intent expansion: '%s' -> %d terms",
-            intent.raw_query[:40],
-            len(expanded.split()),
-        )
-    return expanded
-
-
 # =============================================================================
 # Intent-aware filtering
 # =============================================================================

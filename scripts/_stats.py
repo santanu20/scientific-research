@@ -53,15 +53,6 @@ def hedges_g(d: float, n1: int, n2: int) -> float:
     return d * correction
 
 
-def glass_delta(
-    mean_treatment: float, sd_treatment: float, n_treatment: int, mean_control: float
-) -> float:
-    """Glass's Δ — uses control-group SD only (for unequal variances)."""
-    if sd_treatment == 0:
-        return 0.0
-    return (mean_treatment - mean_control) / sd_treatment
-
-
 def odds_ratio(a: int, b: int, c: int, d: int) -> float:
     """Odds ratio from 2x2 contingency table.
     a,b,c,d = [event/exposure, event/control, no-event/exposure, no-event/control].
@@ -76,28 +67,6 @@ def risk_ratio(a: int, b: int, c: int, d: int) -> float:
     if a + b == 0 or c + d == 0:
         return float("nan")
     return (a / (a + b)) / (c / (c + d))
-
-
-def mean_difference(mean1: float, mean2: float) -> float:
-    """Raw (unstandardized) mean difference."""
-    return mean1 - mean2
-
-
-def standardized_mean_difference(
-    mean1: float,
-    sd1: float,
-    n1: int,
-    mean2: float,
-    sd2: float,
-    n2: int,
-    correction: str = "hedges",
-) -> float:
-    """Standardized mean difference with optional small-sample correction.
-    correction: 'none' (Cohen's d) | 'hedges' (Hedges' g, default)."""
-    d = cohens_d(mean1, sd1, n1, mean2, sd2, n2)
-    if correction == "hedges":
-        return hedges_g(d, n1, n2)
-    return d
 
 
 def log_transform_or(or_value: float) -> float:
@@ -546,13 +515,6 @@ def or_to_d(orr: float) -> float:
 def d_to_or(d: float) -> float:
     """Convert Cohen's d → odds ratio."""
     return math.exp(d * 1.8142)
-
-
-def number_needed_to_treat(arr: float) -> float:
-    """NNT from absolute risk reduction. Returns positive NNT (harmful if ARR<0)."""
-    if arr == 0:
-        return float("inf")
-    return 1.0 / arr
 
 
 # =============================================================================

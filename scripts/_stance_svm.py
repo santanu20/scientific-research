@@ -206,28 +206,6 @@ def _get_model() -> dict | None:
     return _model_cache
 
 
-def predict_svm(sentence: str) -> tuple[str, float]:
-    """Predict stance using SVM.
-
-    Returns (stance_label, confidence).
-    Falls back to ("unknown", 0.0) if model unavailable.
-    """
-    model = _get_model()
-    if model is None:
-        return ("unknown", 0.0)
-
-    X = model["vectorizer"].transform([sentence])
-    probs = model["classifier"].predict_proba(X)[0]
-    classes = model["classifier"].classes_
-
-    # Get top prediction
-    best_idx = probs.argmax()
-    stance = str(classes[best_idx])
-    confidence = float(probs[best_idx])
-
-    return (stance, confidence)
-
-
 def predict_svm_scores(sentence: str) -> dict[str, float]:
     """Get probability scores for all stance classes.
 

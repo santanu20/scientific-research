@@ -650,8 +650,9 @@ def main() -> int:
         fetch_citations=fetch_citations,
         no_llm_stance=not args.use_llm_stance,
     )
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+    from _artifact import save_artifact
+
+    save_artifact(result, args.output)
     print(f"Wrote correlation.json → {args.output}")
 
     args.report.write_text(render_correlation_report(result))

@@ -61,19 +61,6 @@ _ollama_circuit_open: bool = False
 _OLLAMA_CIRCUIT_THRESHOLD: int = 3
 
 
-def reset_ollama_circuit() -> None:
-    """Reset the Ollama circuit breaker for a new pipeline run.
-
-    Called at the start of each ``run_pipeline()`` so a transient Ollama
-    crash in one topic doesn't cascade to all subsequent topics.
-    """
-    global _ollama_consecutive_failures, _ollama_circuit_open
-    if _ollama_circuit_open:
-        log.info("Ollama circuit breaker reset for new pipeline run")
-    _ollama_consecutive_failures = 0
-    _ollama_circuit_open = False
-
-
 # Prompt version — bump when prompt changes to invalidate cache
 _PROMPT_VERSION = "v3.0"
 
@@ -337,15 +324,6 @@ def set_llm_params(num_ctx: int | None = None, num_predict: int | None = None) -
     global _ctx_override, _predict_override
     _ctx_override = num_ctx
     _predict_override = num_predict
-
-
-def get_available_models() -> list[dict]:
-    """Get list of available Ollama text-generation models for UI selection.
-
-    Returns list of dicts: [{"name": str, "size_gb": float}, ...]
-    """
-    models = _detect_models()
-    return [{"name": m["name"], "size_gb": m["size_bytes"] / 1e9} for m in models]
 
 
 def get_model(task: str = "moderate") -> str | None:
@@ -718,136 +696,6 @@ Fields per object:
 - quantitative_data: P-T ranges, ages, compositions WITH units, or empty string
 
 Return ONLY the JSON array."""
-
-
-def extract_papers_batch(
-    papers: list[dict],
-    topic: str = "",
-    batch_size: int = 3,
-) -> list[dict]:
-    """Extract structured data from multiple paper abstracts in batches.
-
-    Groups papers into batches of ``batch_size`` (default 3) and sends one
-    LLM call per batch — 3-5× fewer round-trips than per-paper extraction.
-
-    Each paper dict must have keys: ``abstract`` (str), ``title`` (str).
-    Optional: ``fallback`` (dict from regex/lexicon pre-extraction).
-
-    Falls back to individual ``extract_paper`` calls when:
-    - LLM is unavailable
-    - A batch response fails to parse as a JSON array
-    - The array length does not match the batch size (count mismatch)
-
-    Uses the same SHA256 per-paper cache as ``extract_paper``, so cached
-    papers are served from disk without hitting the LLM. Only uncached
-    papers are batched.
-
-    Returns a list of extraction dicts in the SAME ORDER as the input.
-    """
-    if not papers:
-        return []
-
-    model = get_model("moderate")
-    if not model or _ollama_circuit_open:
-        # No LLM — fall back to per-paper regex extraction
-        return [
-            extract_paper(
-                p.get("abstract", ""),
-                title=p.get("title", ""),
-                topic=topic,
-                fallback=p.get("fallback"),
-            )
-            for p in papers
-        ]
-
-    # Phase 1: serve cached papers + collect uncached for batching
-    results: list[dict | None] = [None] * len(papers)
-    uncached_indices: list[int] = []
-    for i, p in enumerate(papers):
-        abstract = p.get("abstract", "")
-        if not abstract or not abstract.strip():
-            results[i] = p.get("fallback") or _empty_result()
-            continue
-        cache_key = _cache_key(abstract, model, "extract")
-        cached = _cached_get(cache_key)
-        if cached is not None:
-            results[i] = cached
-        else:
-            uncached_indices.append(i)
-
-    if not uncached_indices:
-        log.debug("Batch extraction: all %d papers served from cache", len(papers))
-        return results  # type: ignore[return-value]
-
-    # Phase 2: batch the uncached papers
-    for batch_start in range(0, len(uncached_indices), batch_size):
-        batch_idx_slice = uncached_indices[batch_start : batch_start + batch_size]
-        batch_papers = [papers[i] for i in batch_idx_slice]
-
-        # Build the papers block for the prompt
-        paper_lines = []
-        for j, p in enumerate(batch_papers, 1):
-            title = p.get("title", "(not provided)")
-            abstract = (p.get("abstract") or "")[:3000]
-            paper_lines.append(f"Paper {j}:\nTitle: {title}\nAbstract: {abstract}")
-        papers_block = "\n\n".join(paper_lines)
-
-        prompt = _BATCH_EXTRACTION_PROMPT.format(
-            n=len(batch_papers),
-            topic=topic or "(not specified)",
-            papers_block=papers_block,
-        )
-
-        batch_success = False
-        try:
-            response_text = _call_ollama(model, prompt, task="moderate")
-            if response_text and response_text.strip():
-                # Try strict JSON array parse first
-                try:
-                    batch_result = json.loads(response_text)
-                except json.JSONDecodeError:
-                    batch_result = _extract_json_array_from_text(response_text)
-
-                if isinstance(batch_result, list) and len(batch_result) == len(
-                    batch_papers
-                ):
-                    # Validate + cache each result
-                    for j, raw in enumerate(batch_result):
-                        if not isinstance(raw, dict):
-                            batch_success = False
-                            break
-                        validated = _validate_extraction(raw)
-                        paper_idx = batch_idx_slice[j]
-                        abstract = batch_papers[j].get("abstract", "")
-                        cache_key = _cache_key(abstract, model, "extract")
-                        _cached_put(cache_key, validated)
-                        results[paper_idx] = validated
-                    else:
-                        batch_success = True
-                        log.debug(
-                            "Batch extraction: %d/%d papers extracted in one call",
-                            len(batch_papers),
-                            len(uncached_indices),
-                        )
-        except (urllib.error.URLError, OSError) as e:
-            log.warning("Batch LLM call failed: %s — falling back to individual", e)
-
-        # Phase 3: fallback to individual extraction for failed batches
-        if not batch_success:
-            log.debug(
-                "Batch failed for %d papers — individual extraction", len(batch_papers)
-            )
-            for j, p in enumerate(batch_papers):
-                paper_idx = batch_idx_slice[j]
-                if results[paper_idx] is None:
-                    results[paper_idx] = extract_paper(
-                        p.get("abstract", ""),
-                        title=p.get("title", ""),
-                        topic=topic,
-                        fallback=p.get("fallback"),
-                    )
-
-    return [r if r is not None else _empty_result() for r in results]
 
 
 def _extract_json_array_from_text(text: str) -> list | None:

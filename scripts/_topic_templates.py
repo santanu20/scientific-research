@@ -403,11 +403,6 @@ def get_template(name: str) -> TopicTemplate | None:
     return _TEMPLATES.get(name)
 
 
-def all_templates() -> dict[str, TopicTemplate]:
-    """Return all registered templates."""
-    return dict(_TEMPLATES)
-
-
 # =============================================================================
 # 1. Thermometry
 # =============================================================================

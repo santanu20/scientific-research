@@ -57,13 +57,6 @@ def _get_tfidf():
 # =============================================================================
 # TF-IDF similarity (matrix cell filler backbone)
 # =============================================================================
-def tfidf_matrix(texts: list[str]) -> np.ndarray:
-    """Fit + transform a list of texts → TF-IDF matrix (n_texts × vocab)."""
-    if not texts:
-        return np.zeros((0, 0))
-    return _get_tfidf().fit_transform(texts).toarray()
-
-
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     """Cosine similarity for 1D vectors. Returns 0 for zero vectors."""
     na, nb = np.linalg.norm(a), np.linalg.norm(b)

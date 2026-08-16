@@ -405,19 +405,19 @@ def collect_single_measurements(
             else:
                 v = 1.0  # no uncertainty → equal weighting
             _eff_obj = StudyEffect(
-                    paper_id=pid,
-                    doi=paper.doi,
-                    name=(paper.title or pid)[:50],
-                    effect=val,
-                    variance=v,
-                    ci_lower=val - 1.96 * (v**0.5) if unc else val,
-                    ci_upper=val + 1.96 * (v**0.5) if unc else val,
-                    scale="value",
-                    scale_label=f"{outcome} ({unit})",
-                    subgroup=outcome[:40],
-                    notes=f"n={n}, unit={unit}"
-                    + (f", orig={orig_unit}" if orig_unit != unit else "")
-                    + (f", ±{unc}" if unc else ""),
+                paper_id=pid,
+                doi=paper.doi,
+                name=(paper.title or pid)[:50],
+                effect=val,
+                variance=v,
+                ci_lower=val - 1.96 * (v**0.5) if unc else val,
+                ci_upper=val + 1.96 * (v**0.5) if unc else val,
+                scale="value",
+                scale_label=f"{outcome} ({unit})",
+                subgroup=outcome[:40],
+                notes=f"n={n}, unit={unit}"
+                + (f", orig={orig_unit}" if orig_unit != unit else "")
+                + (f", ±{unc}" if unc else ""),
             )
             _eff_obj._year = paper.year  # decade decomposition input (Phase 3)
             out.append(_eff_obj)
@@ -620,7 +620,9 @@ def pool_effects(
     return out
 
 
-def grade_certainty(k: int, i2: float, effect: float, ci_lower: float, ci_upper: float) -> dict:
+def grade_certainty(
+    k: int, i2: float, effect: float, ci_lower: float, ci_upper: float
+) -> dict:
     """GRADE-style certainty downgrade (deterministic rules, 2026-08-15).
 
     Starts High; downgrades one level per rule fired:
@@ -759,7 +761,7 @@ def run_meta_analysis(
             by_dec: dict[str, list[StudyEffect]] = _dd(list)
             for st in studies:
                 yr = None
-                for eff_d in (st.notes or ""):
+                for eff_d in st.notes or "":
                     pass
                 yr = getattr(st, "_year", None)
                 if yr is None:
@@ -772,8 +774,10 @@ def run_meta_analysis(
                     if len(grp) < 2:
                         continue
                     pr = pool_effects(
-                        [g for g in grp], model=model,
-                        tau2_method=tau2_method, hksj=hksj,
+                        [g for g in grp],
+                        model=model,
+                        tau2_method=tau2_method,
+                        hksj=hksj,
                     )
                     subgroup_results.append(
                         {
@@ -1140,8 +1144,9 @@ def main() -> int:
 def _write_outputs(args, result, payload: dict, unit_pools: list[dict]) -> None:
     """Write meta.json + report.md + forest. Shared by single-unit and
     unit-pooled paths (B5b)."""
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+    from _artifact import save_artifact
+
+    save_artifact(payload, args.output)
     print(f"Wrote meta.json → {args.output}")
     # Build report — include publication bias if computed
     pub_bias_section = ""

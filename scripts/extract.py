@@ -909,8 +909,9 @@ def main() -> int:
         },
         "extractions": [r.to_dict() for r in results],
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+    from _artifact import save_artifact
+
+    save_artifact(payload, args.output)
     print(f"Wrote {len(results)} extractions → {args.output}")
 
     args.report.write_text(render_extraction_report(results))

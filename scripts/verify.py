@@ -43,6 +43,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from _timeouts import TIMEOUTS
 from _sources import (
     PaperRecord,
     arxiv_search,
@@ -77,7 +78,7 @@ def doaj_lookup_journal(journal_name: str) -> dict:
     safe = journal_name.replace('"', "'").strip()[:100]
     url = f"https://doaj.org/api/v2/search/journals/title:{safe}?page=1&pageSize=3"
     try:
-        r = httpx.get(url, timeout=15)
+        r = httpx.get(url, timeout=TIMEOUTS.doaj)
         r.raise_for_status()
         d = r.json()
         for result in d.get("results", []):
@@ -123,7 +124,7 @@ def unpaywall_lookup(doi: str) -> dict:
 
     url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
     try:
-        r = httpx.get(url, timeout=15)
+        r = httpx.get(url, timeout=TIMEOUTS.unpaywall)
         if r.status_code == 404:
             return {"oa_pdf_url": None, "reason": "DOI not in Unpaywall"}
         r.raise_for_status()
@@ -850,12 +851,11 @@ def main() -> int:
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
         },
     )
-    # Append verification results as a side file
+    # Append verification results as a side file (atomic)
+    from _artifact import save_artifact
+
     sidecar = args.output.parent / "verification_results.json"
-    sidecar.parent.mkdir(parents=True, exist_ok=True)
-    sidecar.write_text(
-        json.dumps([r.to_dict() for r in all_results], indent=2, ensure_ascii=False)
-    )
+    save_artifact([r.to_dict() for r in all_results], sidecar)
     print(f"Wrote {len(verified_records)} verified papers → {args.output}")
     print(f"Wrote {len(all_results)} verification results → {sidecar}")
 

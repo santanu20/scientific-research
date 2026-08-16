@@ -124,7 +124,7 @@ def load_meta(path: Path | str) -> dict:
     return data
 
 
-def save_artifact(data: dict, path: Path | str) -> Path:
+def save_artifact(data: dict | list, path: Path | str) -> Path:
     """Atomic JSON write (tmp + rename) for any pipeline artifact."""
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -140,6 +140,7 @@ if __name__ == "__main__":
 
 # shared JSON/paper helpers (deduped from synthesize/_narrative)
 
+
 def _load_json(path: Path | None) -> dict | None:
     """Load JSON file, return None if path is None or doesn't exist."""
     if path is None or not path.exists():
@@ -149,7 +150,6 @@ def _load_json(path: Path | None) -> dict | None:
     except (json.JSONDecodeError, OSError) as e:
         log.warning("Failed to load %s: %s", path, e)
         return None
-
 
 
 def _extract_papers(
@@ -262,11 +262,7 @@ def _extract_papers(
 # =============================================================================
 
 
-
 # shared JSON/paper helpers (deduped from synthesize/_narrative, 2026-08-15)
-
-
-
 
 
 def _sanitize_finding(text: str) -> str:

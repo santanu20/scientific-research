@@ -131,57 +131,6 @@ def _parse_quant_data(extr: dict) -> None:
             pass
 
 
-def filter_pt_values(
-    extractions: list[dict],
-    discipline: str = "",
-) -> tuple[list[dict], list[str]]:
-    """Filter implausible P-T values from extractions. Also parses
-    quantitative_data strings into structured measurements."""
-    # First: parse quantitative_data strings into measurements
-    for extr in extractions:
-        _parse_quant_data(extr)
-    # Then: filter by plausibility
-    disc_key = _match_discipline(discipline)
-    ranges = DISCIPLINE_PT_RANGES.get(disc_key, _DEFAULT_RANGE)
-    t_min, t_max = ranges["T"]
-    p_min, p_max = ranges["P"]
-    warnings: list[str] = []
-    for extr in extractions:
-        title = (extr.get("title") or "?")[:50]
-        for m in extr.get("measurements", []):
-            if not isinstance(m, dict):
-                continue
-            mname = (m.get("measurement") or "").lower()
-            val = m.get("value")
-            try:
-                val_f = float(val) if val is not None else None
-            except (TypeError, ValueError):
-                continue
-            if val_f is None:
-                continue
-            if ("temp" in mname or mname in ("t", "temperature")) and (
-                val_f < t_min or val_f > t_max
-            ):
-                warnings.append(
-                    f"T={val_f}°C out of range [{t_min}, {t_max}] for "
-                    f"{disc_key}: '{title}' — flagged"
-                )
-                m["value"] = None
-                m["_flagged"] = f"implausible T for {disc_key}"
-            elif ("press" in mname or mname in ("p", "pressure")) and (
-                val_f < p_min or val_f > p_max
-            ):
-                warnings.append(
-                    f"P={val_f} kbar out of range [{p_min}, {p_max}] for "
-                    f"{disc_key}: '{title}' — flagged"
-                )
-                m["value"] = None
-                m["_flagged"] = f"implausible P for {disc_key}"
-    if warnings:
-        log.info("P-T filter: flagged %d values for '%s'", len(warnings), disc_key)
-    return extractions, warnings
-
-
 # =============================================================================
 # 2. Geological theme vocabulary — comprehensive across ALL geology
 # Each entry: (theme_label, semantic_description_for_embedding)

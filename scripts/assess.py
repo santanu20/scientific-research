@@ -16,7 +16,6 @@ SOTA references:
 Each paper gets ONE scaffold (tool selected automatically). LLM fills domains.
 """
 
-
 from __future__ import annotations
 
 # --- Skill venv bootstrap (shared: see _bootstrap.py) ---
@@ -25,7 +24,6 @@ if __name__ == "__main__":
 
     _bootstrap.ensure_env()
 # --- End bootstrap ---
-
 
 
 import argparse
@@ -57,7 +55,11 @@ def select_rob_tool(study_design: str) -> str:
     if "rct" in d or "randomized" in d or "randomised" in d:
         return "RoB 2"
     if "cohort" in d or "case-control" in d or "observational" in d:
-        return "ROBINS-I" if "intervention" in d or "comparator" in d else "Newcastle-Ottawa"
+        return (
+            "ROBINS-I"
+            if "intervention" in d or "comparator" in d
+            else "Newcastle-Ottawa"
+        )
     if "diagnostic" in d or "sensitivity" in d or "specificity" in d:
         return "QUADAS-2"
     return "ROBINS-I"  # default for empirical
@@ -101,13 +103,19 @@ def build_assessment(
 
     # Fill domain-level judgments from overall risk (if available from extraction)
     if risk_of_bias and risk_of_bias != "unknown":
-        domain_value = risk_of_bias.replace("_", " ")  # "some_concerns" → "some concerns"
+        domain_value = risk_of_bias.replace(
+            "_", " "
+        )  # "some_concerns" → "some concerns"
         for domain_name in rob_judgments:
             rob_judgments[domain_name] = domain_value
 
     # LLM RoB assessment is OPT-IN only (--use-llm flag or env var)
     # Default: skip LLM, return scaffold with "unknown" domains
-    use_llm = (os.environ.get("SCIENTIFIC_RESEARCH_USE_LLM") or "").lower() in ("1", "true", "yes")
+    use_llm = (os.environ.get("SCIENTIFIC_RESEARCH_USE_LLM") or "").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
     if use_llm and not llm_risk_of_bias and abstract and abstract.strip():
         try:
             import json as _json
@@ -220,21 +228,29 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    p.add_argument("--self-check", action="store_true",
-                        help="verify deps + key imports, then exit 0")  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
+    p.add_argument(
+        "--self-check",
+        action="store_true",
+        help="verify deps + key imports, then exit 0",
+    )  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
     p.add_argument("verified", type=Path, help="verified.json from verify.py")
     p.add_argument(
         "--extractions",
         type=Path,
         help="optional extracted.json for design hints (improves tool selection)",
     )
-    p.add_argument("-o", "--output", type=Path, default=Path("research_outputs/assessment.json"))
-    p.add_argument("--report", type=Path, default=Path("research_outputs/assessment_report.md"))
+    p.add_argument(
+        "-o", "--output", type=Path, default=Path("research_outputs/assessment.json")
+    )
+    p.add_argument(
+        "--report", type=Path, default=Path("research_outputs/assessment_report.md")
+    )
     p.add_argument("-v", "--verbose", action="count", default=0)
     args = p.parse_args()
     level = logging.WARNING - 10 * args.verbose
     logging.basicConfig(
-        level=max(level, logging.DEBUG), format="%(asctime)s %(levelname)-5s %(name)s: %(message)s"
+        level=max(level, logging.DEBUG),
+        format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
     )
 
     papers = load_corpus(args.verified)
@@ -268,7 +284,8 @@ def main() -> int:
                     quality_hints[ex["paper_id"]] = str(qs)
             if rob_hints:
                 log.info(
-                    "Loaded RoB from extraction for %d papers (no LLM calls needed)", len(rob_hints)
+                    "Loaded RoB from extraction for %d papers (no LLM calls needed)",
+                    len(rob_hints),
                 )
         except Exception as e:
             log.warning("Could not parse extraction RoB: %s", e)
@@ -291,8 +308,9 @@ def main() -> int:
         },
         "assessments": [asdict(a) for a in assessments],
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
+    from _artifact import save_artifact
+
+    save_artifact(payload, args.output)
     print(f"Wrote {len(assessments)} assessments → {args.output}")
 
     args.report.write_text(render_assessment_report(assessments))

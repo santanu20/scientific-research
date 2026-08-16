@@ -971,59 +971,6 @@ def s2_get_paper(identifier: str) -> PaperRecord | None:
 
 
 @retry_with_backoff(max_attempts=1)
-def s2_get_papers_batch(identifiers: list[str]) -> dict[str, PaperRecord]:
-    """Batch-resolve multiple paper IDs in ONE API call.
-
-    Uses S2's POST /paper/batch endpoint (up to 500 IDs per request).
-    Returns {identifier: PaperRecord} for found papers. Missing papers
-    are omitted from the dict. This replaces N individual s2_get_paper
-    calls with 1 batch call — avoids rate-limit 429s entirely.
-
-    Identifier formats: 'DOI:X', 'ArXiv:X', 'CorpusId:X', 'PMID:X', or paperId.
-    """
-    if not identifiers or not _s2_available():
-        return {}
-    _s2_pace()
-    try:
-        import requests as _requests
-
-        # S2 batch accepts up to 500 IDs — chunk if needed
-        all_results: dict[str, PaperRecord] = {}
-        for chunk_start in range(0, len(identifiers), 500):
-            chunk = identifiers[chunk_start : chunk_start + 500]
-            resp = _requests.post(
-                "https://api.semanticscholar.org/graph/v1/paper/batch",
-                params={"fields": _S2_FIELDS},
-                json={"ids": chunk},
-                timeout=TIMEOUTS.crossref_search,
-            )
-            if resp.status_code == 429:
-                _s2_record_failure()
-                log.warning("S2 batch rate-limited (429) for %d IDs", len(chunk))
-                return all_results  # return partial results
-            resp.raise_for_status()
-            _s2_record_success()
-            data = resp.json()
-            # Response is array of paper objects (null for not-found)
-            for i, paper_data in enumerate(data or []):
-                if paper_data is None:
-                    continue  # paper not in S2
-                record = _s2_to_record(paper_data)
-                all_results[chunk[i]] = record
-        log.info(
-            "S2 batch: resolved %d/%d papers in %d API call(s)",
-            len(all_results),
-            len(identifiers),
-            (len(identifiers) + 499) // 500,
-        )
-        return all_results
-    except Exception as e:
-        _s2_record_failure()
-        log.warning("S2 batch lookup failed: %s — falling back to individual", e)
-        return {}
-
-
-@retry_with_backoff(max_attempts=1)
 def s2_get_references(paper_id: str, max_results: int = 50) -> list[PaperRecord]:
     """Backward citations (papers this paper references).
     S2 API uses `citedPaper.X` field prefix; Python lib wraps it as `.paper` attr."""
@@ -1057,74 +1004,6 @@ def s2_get_references(paper_id: str, max_results: int = 50) -> list[PaperRecord]
         return []
 
 
-@retry_with_backoff(max_attempts=1)
-def s2_get_citations(
-    paper_id: str, max_results: int = 50
-) -> list[tuple[PaperRecord, str]]:
-    """Forward citations via direct REST API (no library retries)."""
-    if not _s2_available():
-        return []
-    _s2_pace()
-    try:
-        import requests as _requests
-
-        fields = ",".join(
-            [f"citingPaper.{f}" for f in _S2_CITATION_FIELDS.split(",")]
-            + ["contexts", "intents"]
-        )
-        resp = _requests.get(
-            f"https://api.semanticscholar.org/graph/v1/paper/{paper_id}/citations",
-            params={"fields": fields, "limit": max_results},
-            timeout=TIMEOUTS.semantic_scholar,
-        )
-        if resp.status_code == 429:
-            _s2_record_failure()
-            log.warning("S2 citations rate-limited (429) for %s", paper_id)
-            return []
-        resp.raise_for_status()
-        _s2_record_success()
-        out: list[tuple[PaperRecord, str]] = []
-        for r in (resp.json().get("data") or [])[:max_results]:
-            cp = r.get("citingPaper") or r.get("paper") or r
-            if not cp:
-                continue
-            contexts = r.get("contexts") or []
-            intents = r.get("intents") or []
-            ctx_str = " ".join(contexts) if contexts else ""
-            intent_str = ",".join(intents) if intents else ""
-            full = (f"[intents:{intent_str}] {ctx_str}").strip()
-            out.append((_s2_to_record(cp), full))
-        return out
-    except Exception as e:
-        _s2_record_failure()
-        log.warning("S2 citations failed for %s: %s", paper_id, e)
-        return []
-
-
-@retry_with_backoff(max_attempts=1)
-def s2_get_recommended(paper_id: str, max_results: int = 25) -> list[PaperRecord]:
-    if not _s2_available():
-        return []
-    _s2_pace()
-    try:
-        import requests as _requests
-
-        resp = _requests.get(
-            f"https://api.semanticscholar.org/recommendations/v1/papers/{paper_id}",
-            params={"fields": _S2_FIELDS, "limit": max_results},
-            timeout=TIMEOUTS.semantic_scholar,
-        )
-        if resp.status_code == 429:
-            _s2_record_failure()
-            return []
-        resp.raise_for_status()
-        _s2_record_success()
-        return [_s2_to_record(p) for p in resp.json().get("recommendedPapers", [])]
-    except Exception as e:
-        log.warning("S2 recommendations failed for %s: %s", paper_id, e)
-        return []
-
-
 # =============================================================================
 # arXiv — circuit breaker + pacing (arXiv recommends max 1 req/s)
 # =============================================================================
@@ -1133,14 +1012,6 @@ _ARXIV_CIRCUIT_THRESHOLD: int = 3
 _arxiv_circuit_open: bool = False
 _arxiv_last_call: float = 0.0
 _ARXIV_MIN_INTERVAL: float = 1.0
-
-
-def reset_arxiv_circuit() -> None:
-    """Reset arXiv circuit breaker for new pipeline runs."""
-    global _arxiv_consecutive_failures, _arxiv_circuit_open, _arxiv_last_call
-    _arxiv_consecutive_failures = 0
-    _arxiv_circuit_open = False
-    _arxiv_last_call = 0.0
 
 
 @retry_with_backoff(max_attempts=3)
@@ -1231,13 +1102,6 @@ def arxiv_search(query: str, max_results: int = 25) -> list[PaperRecord]:
 # =============================================================================
 # Citation export via habanero content negotiation
 # =============================================================================
-def export_citation(doi: str, fmt: str = "bibtex", style: str = "apa") -> str:
-    """Export a single citation via doi.org content negotiation.
-    fmt: 'bibtex' | 'ris' | 'text' | 'citeproc-json' | 'datacite-json'
-    style: only for fmt='text' (CSL style name)."""
-    return cn.content_negotiation(ids=doi, format=fmt, style=style)
-
-
 def citation_count(doi: str) -> int | None:
     try:
         return counts.citation_count(doi=doi)
@@ -1520,15 +1384,14 @@ def load_corpus(path: str | Path) -> list[PaperRecord]:
 def save_corpus(
     papers: Iterable[PaperRecord], path: str | Path, meta: dict | None = None
 ) -> None:
-    """Save corpus to JSON with optional metadata."""
+    """Save corpus to JSON with optional metadata (atomic: tmp + rename)."""
+    from _artifact import save_artifact
+
     payload = {
         "meta": meta or {},
         "papers": [_sanitize_json(p.to_dict()) for p in papers],
     }
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False, default=str)
-    )
+    save_artifact(payload, path)
 
 
 if __name__ == "__main__":

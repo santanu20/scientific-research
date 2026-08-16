@@ -199,21 +199,6 @@ def get_geo_dictionary() -> dict[str, list[str]]:
     return _geo_dict
 
 
-def get_all_terms() -> list[str]:
-    """Get flat list of all geological terms (for fuzzy matching + BGE)."""
-    return get_geo_dictionary().get("all", [])
-
-
-def get_minerals() -> list[str]:
-    """Get list of mineral species."""
-    return get_geo_dictionary().get("minerals", [])
-
-
-def get_rocks() -> list[str]:
-    """Get list of rock types."""
-    return get_geo_dictionary().get("rocks", [])
-
-
 # =============================================================================
 # Journal ISSN discovery via Crossref
 # =============================================================================

@@ -21,3 +21,10 @@ Ledger: FIXED 12 / WONTFIX-U 0 / BLOCKED 0.
 - Inline timeouts in _llm_extract/_documentstore/benchmark/discover keep their values (behavior-preserving L5); _timeouts.py now contains only referenced props.
 - pyright 115 baseline = typing-precision in basic mode; fixing wholesale = large annotation campaign with zero behavior delta (deferred; not a defect class, gate is pinned and reproducible).
 - geokit-prep WIP committed FIRST as isolation commit 52fe552 (was dirty at audit start; committed to keep audit-fix commits one-concern-each; content untouched).
+
+## Post-batch sweep record (F6 fixpoint)
+- Sweep 2 (post-fix full sweep): 1 NEW finding — A5 cascade (geo-dictionary chain orphaned by accessor deletion) → fixed in 639e8be (~110 LoC more).
+- Sweep 3: ZERO new findings (orphan census NONE, ruff 0, F821/F401 clean, suite 283, pyright 115/0w stable).
+- Sweep 4: ZERO new findings (identical gates re-run).
+- Fixpoint: ACHIEVED (two consecutive zero-new-finding sweeps: 3 + 4).
+- §6k full-diff guard (52fe552..HEAD): 1155 insertions / 1762 deletions across 41 files; deleted-symbol dangling-ref scan = 0 real (4 substring collisions with live names); import health 31/31; CLI smoke 14/14.

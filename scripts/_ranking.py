@@ -65,7 +65,11 @@ def _first_author_name(paper: Any) -> str:
     """Extract first author's last name for dedup."""
     authors = getattr(paper, "authors", None) or []
     if authors and isinstance(authors, list) and len(authors) > 0:
-        name = authors[0].get("name", "") if isinstance(authors[0], dict) else str(authors[0])
+        name = (
+            authors[0].get("name", "")
+            if isinstance(authors[0], dict)
+            else str(authors[0])
+        )
         parts = name.split()
         if parts:
             return parts[-1].lower()
@@ -115,12 +119,18 @@ def semantic_relevance_scores(query: str, papers: list) -> np.ndarray:
             query_emb = embeddings[0:1]
             paper_embs = embeddings[1:]
             # Cosine similarity
-            q_norm = query_emb / (_np_bge.linalg.norm(query_emb, axis=1, keepdims=True) + 1e-10)
-            p_norm = paper_embs / (_np_bge.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-10)
+            q_norm = query_emb / (
+                _np_bge.linalg.norm(query_emb, axis=1, keepdims=True) + 1e-10
+            )
+            p_norm = paper_embs / (
+                _np_bge.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-10
+            )
             sims = (p_norm @ q_norm.T).flatten()
             if sims.max() > 0:
                 sims = sims / sims.max()
-            log.info("Using BGE embeddings for semantic relevance (%d papers)", len(papers))
+            log.info(
+                "Using BGE embeddings for semantic relevance (%d papers)", len(papers)
+            )
             return sims
     except Exception as e:
         log.debug("BGE embeddings unavailable, using TF-IDF: %s", e)
@@ -158,7 +168,17 @@ def semantic_relevance_scores(query: str, papers: list) -> np.ndarray:
 
 # Domain synonym map for query expansion
 _SYNONYM_GROUPS = [
-    {"crispr", "cas9", "cas12", "cas13", "guide rna", "grna", "sgrna", "crispr-cas", "crispr/cas"},
+    {
+        "crispr",
+        "cas9",
+        "cas12",
+        "cas13",
+        "guide rna",
+        "grna",
+        "sgrna",
+        "crispr-cas",
+        "crispr/cas",
+    },
     {
         "gene editing",
         "genome editing",
@@ -188,7 +208,13 @@ _SYNONYM_GROUPS = [
     {"basalt", "morb", "mid-ocean ridge", "oceanic crust", "mafic"},
     {"weathering", "chemical weathering", "erosion", "dissolution"},
     {"meta-analysis", "systematic review", "meta analysis"},
-    {"machine learning", "deep learning", "neural network", "artificial intelligence", "ai"},
+    {
+        "machine learning",
+        "deep learning",
+        "neural network",
+        "artificial intelligence",
+        "ai",
+    },
     {"climate", "climate change", "global warming", "temperature"},
     {"protein", "protein structure", "protein folding", "conformation"},
     {"cancer", "tumor", "tumour", "oncology", "neoplasm"},
@@ -236,7 +262,10 @@ def citation_influence_scores(papers: list) -> np.ndarray:
     current_year = time.gmtime().tm_year
     raw = np.array([_safe_float(getattr(p, "citation_count", 0)) for p in papers])
     years = np.array(
-        [max(1, current_year - _safe_float(getattr(p, "year", current_year))) for p in papers]
+        [
+            max(1, current_year - _safe_float(getattr(p, "year", current_year)))
+            for p in papers
+        ]
     )
     velocity = raw / years
 
@@ -480,12 +509,18 @@ def venue_quality_scores(papers: list) -> np.ndarray:
             continue
         api_url = f"https://api.openalex.org/sources/{src_id_short}?select=h_index,works_count,cited_by_count"
         try:
-            req = urllib.request.Request(api_url, headers={"User-Agent": "scientific-research/1.0"})
+            req = urllib.request.Request(
+                api_url, headers={"User-Agent": "scientific-research/1.0"}
+            )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = _json.loads(resp.read().decode())
                 h_idx = data.get("h_index", 0) or 0
                 h_index_cache[src_url] = h_idx
-                log.debug("Venue %s: h_index=%d", data.get("display_name", src_id_short), h_idx)
+                log.debug(
+                    "Venue %s: h_index=%d",
+                    data.get("display_name", src_id_short),
+                    h_idx,
+                )
         except (urllib.error.URLError, OSError, _json.JSONDecodeError) as e:
             log.debug("Source h_index lookup failed for %s: %s", src_id_short, e)
             h_index_cache[src_url] = 0
@@ -547,7 +582,9 @@ def venue_quality_scores(papers: list) -> np.ndarray:
     scores = []
     for p in papers:
         src_id = source_ids.get(id(p), "")
-        venue_name = (venue_names.get(id(p), "") or getattr(p, "venue", "") or "").lower()
+        venue_name = (
+            venue_names.get(id(p), "") or getattr(p, "venue", "") or ""
+        ).lower()
 
         h_idx = h_index_cache.get(src_id, 0)
 
@@ -593,8 +630,6 @@ def recency_scores(papers: list) -> np.ndarray:
     return np.array(scores)
 
 
-
-
 def rank_papers(
     query: str,
     papers: list,
@@ -635,36 +670,50 @@ def rank_papers(
         + w.get("venue", 0.15) * ven
     )
 
-    # Graduated domain score — boost geo papers, kill non-geo
+    # Graduated domain score — boost geo papers, kill non-geo.
+    # Internal module: degrade WITH visibility if enrichment fails (never silent).
     try:
         from _ontology import domain_score
-        scores = np.array([
-            domain_score(
-                (getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")
-            )
-            for p in papers
-        ])
+
+        scores = np.array(
+            [
+                domain_score(
+                    (getattr(p, "title", "") or "")
+                    + " "
+                    + (getattr(p, "abstract", "") or "")
+                )
+                for p in papers
+            ]
+        )
         combined = combined * scores
         n_killed = int((scores <= 0.01).sum())
         n_boosted = int((scores > 1.2).sum())
         if n_killed > 0 or n_boosted > 0:
-            log.info("Domain scoring: %d killed, %d boosted, range %.2f-%.2f",
-                     n_killed, n_boosted, scores.min(), scores.max())
-    except Exception:
-        pass
+            log.info(
+                "Domain scoring: %d killed, %d boosted, range %.2f-%.2f",
+                n_killed,
+                n_boosted,
+                scores.min(),
+                scores.max(),
+            )
+    except Exception as e:
+        log.warning("Domain scoring unavailable — ranking unfiltered: %s", e)
 
     # Intent-aware boost — landmark authors + must-have terms
     try:
         from _intent import intent_boost, parse_intent
+
         intent = parse_intent(query)
         if intent.has_template:
             boosts = np.array(intent_boost(papers, intent))
             combined = combined * boosts
             n_boosted = int((boosts > 1.5).sum())
             if n_boosted > 0:
-                log.info("Intent boost: %d papers boosted (landmarks/must-have)", n_boosted)
-    except Exception:
-        pass
+                log.info(
+                    "Intent boost: %d papers boosted (landmarks/must-have)", n_boosted
+                )
+    except Exception as e:
+        log.warning("Intent boost unavailable — ranking unboosted: %s", e)
 
     # Sort by combined score (descending)
     ranked_indices = np.argsort(-combined)

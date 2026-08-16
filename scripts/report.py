@@ -190,15 +190,19 @@ def main() -> int:
         try:
             corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
             n_records = len(corpus.get("papers", []))
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(
+                f"WARNING: corpus.json unreadable — PRISMA record counts will be [FILL]: {e}"
+            )
     verified_path = args.results_dir / "verified.json"
     if verified_path.exists():
         try:
             verified = json.loads(verified_path.read_text(encoding="utf-8"))
             n_verified = len(verified.get("papers", []))
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(
+                f"WARNING: verified.json unreadable — PRISMA verified counts will be [FILL]: {e}"
+            )
 
     if not manifest:
         print(

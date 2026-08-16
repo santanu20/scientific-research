@@ -38,8 +38,6 @@ log = logging.getLogger("scientific_research.intent")
 # =============================================================================
 
 
-
-
 @dataclass
 class ResearchIntent:
     """Structured research intent parsed from a natural-language query."""
@@ -92,7 +90,15 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         "silicate",
     ),
     "garnet": (
-        ["almandine", "pyrope", "grossular", "spessartine", "andradite", "uvarovite", "Grt"],
+        [
+            "almandine",
+            "pyrope",
+            "grossular",
+            "spessartine",
+            "andradite",
+            "uvarovite",
+            "Grt",
+        ],
         "silicate",
     ),
     "amphibole": (
@@ -131,7 +137,14 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
     ),
     "quartz": (["quartz", "SiO2", "coesite", "stishovite"], "silicate"),
     "mica": (
-        ["muscovite", "biotite", "phlogopite", "paragonite", "lepidolite", "muscovite-biotite"],
+        [
+            "muscovite",
+            "biotite",
+            "phlogopite",
+            "paragonite",
+            "lepidolite",
+            "muscovite-biotite",
+        ],
         "silicate",
     ),
     "chlorite": (["chlorite", "chamosite", "clinochlore"], "silicate"),
@@ -160,7 +173,10 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
     ),
     "monazite": (["monazite", "monazite-(Ce)", "monazite-(La)"], "accessory"),
     "xenotime": (["xenotime", "xenotime-(Y)"], "accessory"),
-    "apatite": (["apatite", "fluorapatite", "chlorapatite", "hydroxylapatite"], "accessory"),
+    "apatite": (
+        ["apatite", "fluorapatite", "chlorapatite", "hydroxylapatite"],
+        "accessory",
+    ),
     "titanite": (["titanite", "sphene"], "accessory"),
     "rutile": (["rutile", "TiO2"], "accessory"),
     "perovskite": (["perovskite", "CaTiO3"], "accessory"),
@@ -170,7 +186,10 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
     "magnetite": (["magnetite", "Fe3O4", "titanomagnetite"], "oxide"),
     "hematite": (["hematite", "Fe2O3", "specularite"], "oxide"),
     "ilmenite": (["ilmenite", "FeTiO3", "titanomagnetite"], "oxide"),
-    "spinel": (["spinel", "magnesiochromite", "pleonaste", "hercynite", "chromite"], "oxide"),
+    "spinel": (
+        ["spinel", "magnesiochromite", "pleonaste", "hercynite", "chromite"],
+        "oxide",
+    ),
     "chromite": (["chromite", "FeCr2O4", "magnesiochromite"], "oxide"),
     "corundum": (["corundum", "Al2O3", "sapphire", "ruby"], "oxide"),
     "pseudobrookite": (["pseudobrookite", "ulvospinel", "armalcolite"], "oxide"),
@@ -220,10 +239,20 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
     "komatiite": (["komatiite", "komatiitic", "boninite"], "volcanic"),
     "phonolite": (["phonolite", "trachyte", "tephrite"], "volcanic"),
     "carbonatite": (
-        ["carbonatite", "nephelinite", "melilitite", "kimberlite", "lamproite", "lamprophyre"],
+        [
+            "carbonatite",
+            "nephelinite",
+            "melilitite",
+            "kimberlite",
+            "lamproite",
+            "lamprophyre",
+        ],
         "volcanic",
     ),
-    "tuff": (["tuff", "tuffaceous", "volcanic ash", "pyroclastic", "ignimbrite"], "volcanic"),
+    "tuff": (
+        ["tuff", "tuffaceous", "volcanic ash", "pyroclastic", "ignimbrite"],
+        "volcanic",
+    ),
     # ── Igneous rocks (plutonic) ──────────────────────────────────────
     "granite": (
         [
@@ -255,7 +284,10 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         ],
         "plutonic",
     ),
-    "anorthosite": (["anorthosite", "anorthositic", "massif-type anorthosite"], "plutonic"),
+    "anorthosite": (
+        ["anorthosite", "anorthositic", "massif-type anorthosite"],
+        "plutonic",
+    ),
     "pegmatite": (["pegmatite", "aplite", "granite pegmatite"], "plutonic"),
     "pyroxenite": (["pyroxenite", "websterite", "olivine websterite"], "plutonic"),
     # ── Metamorphic rocks ─────────────────────────────────────────────
@@ -263,7 +295,10 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         ["eclogite", "eclogitic", "UHP eclogite", "ultrahigh-pressure eclogite"],
         "metamorphic",
     ),
-    "granulite": (["granulite", "granulitic", "charnockite", "enderbite"], "metamorphic"),
+    "granulite": (
+        ["granulite", "granulitic", "charnockite", "enderbite"],
+        "metamorphic",
+    ),
     "amphibolite": (["amphibolite", "amphibolitic"], "metamorphic"),
     "gneiss": (
         [
@@ -310,7 +345,10 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         ["metapelite", "metapelitic", "metasediment", "pelite", "metapsammite"],
         "metamorphic",
     ),
-    "metabasite": (["metabasite", "metabasalt", "metavolcanic", "greenstone"], "metamorphic"),
+    "metabasite": (
+        ["metabasite", "metabasalt", "metavolcanic", "greenstone"],
+        "metamorphic",
+    ),
     # ── Sedimentary rocks ─────────────────────────────────────────────
     "sandstone": (
         [
@@ -325,7 +363,15 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         "sedimentary",
     ),
     "shale": (
-        ["shale", "shaly", "mudstone", "siltstone", "argillite", "claystone", "black shale"],
+        [
+            "shale",
+            "shaly",
+            "mudstone",
+            "siltstone",
+            "argillite",
+            "claystone",
+            "black shale",
+        ],
         "sedimentary",
     ),
     "limestone": (
@@ -345,10 +391,22 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
     ),
     "dolostone": (["dolostone", "dolomite rock"], "sedimentary"),
     "chert": (["chert", "cherty", "jasper", "radiolarite", "diatomite"], "sedimentary"),
-    "conglomerate": (["conglomerate", "breccia", "fanglomerate", "olistostrome"], "sedimentary"),
-    "evaporite": (["evaporite", "halite", "rock salt", "gypsum deposit"], "sedimentary"),
-    "coal": (["coal", "coal seam", "lignite", "anthracite", "bituminous"], "sedimentary"),
-    "BIF": (["banded iron formation", "BIF", "taconite", "itabirite", "jaspilite"], "sedimentary"),
+    "conglomerate": (
+        ["conglomerate", "breccia", "fanglomerate", "olistostrome"],
+        "sedimentary",
+    ),
+    "evaporite": (
+        ["evaporite", "halite", "rock salt", "gypsum deposit"],
+        "sedimentary",
+    ),
+    "coal": (
+        ["coal", "coal seam", "lignite", "anthracite", "bituminous"],
+        "sedimentary",
+    ),
+    "BIF": (
+        ["banded iron formation", "BIF", "taconite", "itabirite", "jaspilite"],
+        "sedimentary",
+    ),
     "turbidite": (["turbidite", "flysch", "contourite", "debris flow"], "sedimentary"),
     # ── Fluids and melts ──────────────────────────────────────────────
     "melt": (
@@ -378,11 +436,20 @@ MATERIALS: dict[str, tuple[list[str], str]] = {
         "fluid",
     ),
     "fluid": (
-        ["hydrothermal fluid", "metamorphic fluid", "brine", "formation water", "ore fluid"],
+        [
+            "hydrothermal fluid",
+            "metamorphic fluid",
+            "brine",
+            "formation water",
+            "ore fluid",
+        ],
         "fluid",
     ),
     "soil": (["soil", "regolith", "paleosol", "saprolite", "laterite"], "regolith"),
-    "groundwater": (["groundwater", "aquifer", "pore water", "formation water"], "fluid"),
+    "groundwater": (
+        ["groundwater", "aquifer", "pore water", "formation water"],
+        "fluid",
+    ),
 }
 
 
@@ -435,13 +502,26 @@ METHODS: dict[str, dict[str, Any]] = {
         "property": "age",
         "unit": "Ma",
         "range": (0, 4600),
-        "synonyms": ["dating", "age determination", "geochronological", "age spectra", "concordia"],
+        "synonyms": [
+            "dating",
+            "age determination",
+            "geochronological",
+            "age spectra",
+            "concordia",
+        ],
     },
     "U-Pb": {
         "property": "age",
         "unit": "Ma",
         "range": (0, 4600),
-        "synonyms": ["U-Pb dating", "zircon U-Pb", "ID-TIMS", "SHRIMP", "concordia", "discordance"],
+        "synonyms": [
+            "U-Pb dating",
+            "zircon U-Pb",
+            "ID-TIMS",
+            "SHRIMP",
+            "concordia",
+            "discordance",
+        ],
     },
     "Ar-Ar": {
         "property": "age",
@@ -459,7 +539,13 @@ METHODS: dict[str, dict[str, Any]] = {
         "property": "age",
         "unit": "Ma",
         "range": (0.1, 1000),
-        "synonyms": ["apatite fission track", "zircon fission track", "AFT", "ZFT", "annealing"],
+        "synonyms": [
+            "apatite fission track",
+            "zircon fission track",
+            "AFT",
+            "ZFT",
+            "annealing",
+        ],
     },
     "helium": {
         "property": "age",
@@ -541,7 +627,12 @@ METHODS: dict[str, dict[str, Any]] = {
         "property": "stress",
         "unit": "MPa",
         "range": (0, 10000),
-        "synonyms": ["paleostress", "stress inversion", "differential stress", "stress tensor"],
+        "synonyms": [
+            "paleostress",
+            "stress inversion",
+            "differential stress",
+            "stress tensor",
+        ],
     },
     "strain": {
         "property": "strain",
@@ -572,7 +663,13 @@ METHODS: dict[str, dict[str, Any]] = {
         "property": "velocity",
         "unit": "km/s",
         "range": (0.5, 15),
-        "synonyms": ["seismic tomography", "velocity model", "travel time", "P-wave", "S-wave"],
+        "synonyms": [
+            "seismic tomography",
+            "velocity model",
+            "travel time",
+            "P-wave",
+            "S-wave",
+        ],
     },
     "conductivity": {
         "property": "conductivity",
@@ -617,7 +714,13 @@ METHODS: dict[str, dict[str, Any]] = {
         "property": "temperature",
         "unit": "C",
         "range": (-50, 100),
-        "synonyms": ["paleoclimate", "paleotemperature", "climate proxy", "CO2 proxy", "paleo-CO2"],
+        "synonyms": [
+            "paleoclimate",
+            "paleotemperature",
+            "climate proxy",
+            "CO2 proxy",
+            "paleo-CO2",
+        ],
     },
     # ── Paleomagnetism ────────────────────────────────────────────────
     "paleomagnetism": {
@@ -653,8 +756,15 @@ METHODS: dict[str, dict[str, Any]] = {
     },
     # ── General petrology ────────────────────────────────────────────
     "inclusions": {
-        "target_property": "composition", "unit": "wt%", "range": (0, 100),
-        "synonyms": ["melt inclusion", "fluid inclusion", "inclusion study", "inclusions"],
+        "target_property": "composition",
+        "unit": "wt%",
+        "range": (0, 100),
+        "synonyms": [
+            "melt inclusion",
+            "fluid inclusion",
+            "inclusion study",
+            "inclusions",
+        ],
     },
     "petrogenesis": {
         "target_property": "composition",
@@ -907,14 +1017,28 @@ _P3 = re.compile(
 )
 # Pattern 4: property-only queries like "oxygen fugacity" or "seismic anisotropy"
 _PROPERTY_PATTERNS = {
-    "fugacity": re.compile(r"\b(?:oxygen|sulfur|sulphur)\s+fugacit\w*\b", re.IGNORECASE),
+    "fugacity": re.compile(
+        r"\b(?:oxygen|sulfur|sulphur)\s+fugacit\w*\b", re.IGNORECASE
+    ),
     "anisotropy": re.compile(r"\b(?:seismic|mantle)\s+anisotrop\w*\b", re.IGNORECASE),
-    "redox": re.compile(r"\b(?:redox\s+state|mantle\s+redox|oxidation\s+state)\b", re.IGNORECASE),
-    "ore": re.compile(r"\b(?:ore\s+deposit|mineralization|ore-forming)\b", re.IGNORECASE),
-    "volcanic_hazards": re.compile(r"\b(?:volcanic\s+hazard\w*|eruption\s+(?:dynamics|risk))\b", re.IGNORECASE),
-    "subduction": re.compile(r"\b(?:subduction|slab\s+(?:rollback|tear|detachment))\b", re.IGNORECASE),
-    "mantle_plume": re.compile(r"\b(?:mantle\s+plume|hotspot|large\s+igneous\s+province)\b", re.IGNORECASE),
-    "impact": re.compile(r"\b(?:impact\s+crater|meteorite\s+impact|shock\s+metamorph)\b", re.IGNORECASE),
+    "redox": re.compile(
+        r"\b(?:redox\s+state|mantle\s+redox|oxidation\s+state)\b", re.IGNORECASE
+    ),
+    "ore": re.compile(
+        r"\b(?:ore\s+deposit|mineralization|ore-forming)\b", re.IGNORECASE
+    ),
+    "volcanic_hazards": re.compile(
+        r"\b(?:volcanic\s+hazard\w*|eruption\s+(?:dynamics|risk))\b", re.IGNORECASE
+    ),
+    "subduction": re.compile(
+        r"\b(?:subduction|slab\s+(?:rollback|tear|detachment))\b", re.IGNORECASE
+    ),
+    "mantle_plume": re.compile(
+        r"\b(?:mantle\s+plume|hotspot|large\s+igneous\s+province)\b", re.IGNORECASE
+    ),
+    "impact": re.compile(
+        r"\b(?:impact\s+crater|meteorite\s+impact|shock\s+metamorph)\b", re.IGNORECASE
+    ),
 }
 
 
@@ -960,7 +1084,9 @@ def _match_context(query_lower: str) -> str | None:
     return None
 
 
-def _derive_topic_key(material: str | None, method: str | None, query_lower: str) -> str | None:
+def _derive_topic_key(
+    material: str | None, method: str | None, query_lower: str
+) -> str | None:
     """Derive the topic template key from material + method."""
     # Method-based topics
     method_to_topic = {
@@ -1064,9 +1190,13 @@ def parse_intent_pattern(query: str) -> ResearchIntent | None:
     # Detect goal from query
     goal = None
     q_lower = query.lower().strip()
-    if any(w in q_lower for w in ["calibrat", "experimental calibration", "standardize"]):
+    if any(
+        w in q_lower for w in ["calibrat", "experimental calibration", "standardize"]
+    ):
         goal = "calibration"
-    elif any(w in q_lower for w in ["review", "overview", "state of the art", "summar"]):
+    elif any(
+        w in q_lower for w in ["review", "overview", "state of the art", "summar"]
+    ):
         goal = "review"
     elif any(w in q_lower for w in ["identif", "classify", "discriminate", "detect"]):
         goal = "identification"
@@ -1120,7 +1250,10 @@ def parse_intent_llm(query: str, timeout: float = 30.0) -> ResearchIntent | None
             {
                 "model": "qwen3.5",
                 "messages": [
-                    {"role": "user", "content": "/no_think\n" + _LLM_PROMPT.format(query=query)}
+                    {
+                        "role": "user",
+                        "content": "/no_think\n" + _LLM_PROMPT.format(query=query),
+                    }
                 ],
                 "stream": False,
                 "think": False,
@@ -1164,7 +1297,9 @@ def parse_intent_llm(query: str, timeout: float = 30.0) -> ResearchIntent | None
         method_syns = METHODS.get(method, {}).get("synonyms", []) if method else []
 
         return ResearchIntent(
-            target_property=parsed.get("property") if parsed.get("property") != "none" else None,
+            target_property=parsed.get("property")
+            if parsed.get("property") != "none"
+            else None,
             material=material,
             method=method,
             context=parsed.get("context") if parsed.get("context") != "none" else None,
@@ -1232,8 +1367,12 @@ def parse_intent(query: str) -> ResearchIntent:
                     intent.template.name,
                     intent.parser_source,
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(
+                "Template '%s' failed to load — generic intent kept: %s",
+                intent.topic_key,
+                e,
+            )
 
     _intent_cache[query] = intent
     return intent
@@ -1284,7 +1423,11 @@ def expand_with_intent(intent: ResearchIntent) -> str:
 
     expanded = " ".join(parts)
     if expanded != intent.raw_query:
-        log.info("Intent expansion: '%s' -> %d terms", intent.raw_query[:40], len(expanded.split()))
+        log.info(
+            "Intent expansion: '%s' -> %d terms",
+            intent.raw_query[:40],
+            len(expanded.split()),
+        )
     return expanded
 
 

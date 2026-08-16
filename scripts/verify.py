@@ -353,20 +353,17 @@ def verify_doi(
             failed.append(f"s2:{e}")
     else:
         failed.append("s2:skipped(circuit-breaker)")
-    # Store in verification cache
-    try:
-        from _search_cache import verify_cache_put
+    # Store in verification cache (internal module — fail loud, H1)
+    from _search_cache import verify_cache_put
 
-        verify_cache_put(
-            doi,
-            {
-                "record": record.to_dict() if record else None,
-                "used": used,
-                "failed": failed,
-            },
-        )
-    except (ImportError, Exception):
-        pass
+    verify_cache_put(
+        doi,
+        {
+            "record": record.to_dict() if record else None,
+            "used": used,
+            "failed": failed,
+        },
+    )
     return (record, used, failed)
 
 

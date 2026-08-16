@@ -57,10 +57,6 @@ from _narrative import (
 # =============================================================================
 
 
-
-
-
-
 # =============================================================================
 # LLM prose smoothing (opt-in via --use-llm)
 # =============================================================================
@@ -193,7 +189,10 @@ def smooth_with_llm(
                 {
                     "model": model,
                     "messages": [
-                        {"role": "user", "content": "/no_think\n" + prompt.format(chunk=chunk)},
+                        {
+                            "role": "user",
+                            "content": "/no_think\n" + prompt.format(chunk=chunk),
+                        },
                     ],
                     "stream": False,
                     "think": False,
@@ -225,7 +224,10 @@ def smooth_with_llm(
             # reject degenerate rewrites (too short = model ignored the chunk)
             if smoothed and len(smoothed) > max(200, 0.4 * len(chunk)):
                 return smoothed
-            log.warning("LLM chunk rewrite too short (%d chars) — keeping original", len(smoothed))
+            log.warning(
+                "LLM chunk rewrite too short (%d chars) — keeping original",
+                len(smoothed),
+            )
             return chunk
         except urllib.error.HTTPError as e:
             log.warning("LLM smoothing HTTP %d — keeping chunk original", e.code)
@@ -242,7 +244,8 @@ def smooth_with_llm(
             cache_file.write_text(smoothed, encoding="utf-8")
             log.info(
                 "LLM smoothing successful (%d chunks, %d chars, cached)",
-                len(chunks), len(smoothed),
+                len(chunks),
+                len(smoothed),
             )
             return smoothed
         log.warning("LLM smoothing produced nothing usable — using template")
@@ -579,7 +582,9 @@ def _build_executive_summary(
     # Sentence 5+: pooled estimates (when meta-analysis ran)
     if meta:
         pools = meta.get("unit_pools") or []
-        top = [p for p in pools if (p.get("pooled_random") or {}).get("effect") is not None][:3]
+        top = [
+            p for p in pools if (p.get("pooled_random") or {}).get("effect") is not None
+        ][:3]
         if top:
             bits = []
             for p in top:
@@ -593,7 +598,12 @@ def _build_executive_summary(
                 "groups gives " + "; ".join(bits) + "."
             )
             if any(
-                isinstance((p.get("pooled_random") or {}).get("heterogeneity", {}).get("i_squared"), (int, float))
+                isinstance(
+                    (p.get("pooled_random") or {})
+                    .get("heterogeneity", {})
+                    .get("i_squared"),
+                    (int, float),
+                )
                 and p["pooled_random"]["heterogeneity"]["i_squared"] > 75
                 for p in top
             ):
@@ -617,8 +627,8 @@ def _build_executive_summary(
                 f"a {c0.ratio}x range across {len(c0.values)} reports — a "
                 f"calibration/method disagreement candidates section details this."
             )
-    except Exception:  # noqa: BLE001 — advisory sentence only
-        pass
+    except Exception as e:  # noqa: BLE001 — advisory sentence only
+        log.warning("Contradiction signal skipped: %s", e)
 
     parts.extend(lines)
     parts.append("")
@@ -1042,8 +1052,8 @@ def synthesize(
             graph_md = format_citation_graph_summary(graph_data)
             if graph_md:
                 parts.append(graph_md)
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("Citation-network section skipped: %s", e)
 
     # References — must cover EVERY [n] used in the body. The narrative
     # builder numbers citations across ALL papers; `cited` may be a subset,

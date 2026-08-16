@@ -151,8 +151,8 @@ try:
 
     _DYNAMIC_JOURNALS = get_geo_journals()
     _GEO_JOURNAL_ISSNS = sorted(set(_GEO_JOURNAL_ISSNS + _DYNAMIC_JOURNALS))
-except Exception:
-    pass  # keep curated list only
+except Exception as e:
+    log.warning("Dynamic geo-journal augment unavailable — curated list only: %s", e)
 
 _GEO_SYNONYM_MAP: dict[str, str] = {
     "thermometry": "geothermometry temperature calibration",
@@ -1088,8 +1088,14 @@ def _is_domain_relevant(paper: object, query: str) -> bool:
     # which a modern review must include. ML terms are now SOFT: excluded
     # only when geoscience evidence is thin (< 2 signals). All other
     # exclusion terms stay hard.
-    _ML_SOFT = ("machine learning", "deep learning", "neural network",
-                "graph neural", "computer vision", "image segmentation")
+    _ML_SOFT = (
+        "machine learning",
+        "deep learning",
+        "neural network",
+        "graph neural",
+        "computer vision",
+        "image segmentation",
+    )
     for m in _GEO_EXCLUSION.finditer(text):
         term = m.group(0).lower()
         if term in _ML_SOFT:
@@ -1120,8 +1126,6 @@ def _is_domain_relevant(paper: object, query: str) -> bool:
 # =============================================================================
 # Multi-source search
 # =============================================================================
-
-
 
 
 def search_multi_source(
@@ -1267,8 +1271,8 @@ def search_multi_source(
                 intent_topics.append(intent.material)
             if intent.method:
                 intent_topics.append(intent.method)
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("Intent parse unavailable — journal boost untargeted: %s", e)
 
         # 1. Journal-targeted Crossref search — boost from 57 geo journals
         source_calls["crossref_geo"] = lambda: _crossref_journal_search(
@@ -1929,7 +1933,9 @@ def main() -> int:
         if len(final) < before_domain:
             log.info(
                 "Domain filter: %d → %d (removed %d off-domain)",
-                before_domain, len(final), before_domain - len(final),
+                before_domain,
+                len(final),
+                before_domain - len(final),
             )
 
     # Co-occurrence filter (Tier 3 cherry-pick) — keep only papers

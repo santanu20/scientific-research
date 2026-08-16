@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import _bootstrap
 
-_bootstrap.ensure_env()
+if __name__ == "__main__":
+    # CLI invocation: ensure skill venv. Library import (geokit pipeline,
+    # tests) must NOT re-exec the interpreter.
+    _bootstrap.ensure_env()
 
 import argparse
 import json

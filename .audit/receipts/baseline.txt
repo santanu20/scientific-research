@@ -1,0 +1,2 @@
+pytest: 277 passed, 1 skipped, 9 deselected, 2.84s (2026-08-16, HEAD f981d35 + dirty geokit-prep)
+ruff 0.16.3: 249 errors / pyright: 125 errors — JSON dumps alongside

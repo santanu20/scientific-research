@@ -1,0 +1,752 @@
+[
+ {
+  "file": "scripts/_claims.py",
+  "line": 111,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"set[Any | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@sorted]\" in function \"sorted\""
+ },
+ {
+  "file": "scripts/_classifiers.py",
+  "line": 313,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"max\" match the provided arguments"
+ },
+ {
+  "file": "scripts/_classifiers.py",
+  "line": 313,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Overload[(key: str, default: None = None, /) -> (int | None), (key: str, default: int, /) -> int, (key: str, default: _T@get, /) -> (int | _T@get)]\" cannot be assigned to parameter \"key\" of type \"(_T@max) -> SupportsRichComparison\" in function \"max\""
+ },
+ {
+  "file": "scripts/_classifiers.py",
+  "line": 450,
+  "rule": "reportReturnType",
+  "msg": "Type \"None\" is not assignable to return type \"str\""
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 47,
+  "rule": "reportMissingImports",
+  "msg": "Import \"fastembed\" could not be resolved"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 485,
+  "rule": "reportAssignmentType",
+  "msg": "Type \"ndarray[_AnyShape, dtype[Any]] | None\" is not assignable to declared type \"list[Unknown] | None\""
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 510,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1034,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1034,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 183,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"get\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 184,
+  "rule": "reportReturnType",
+  "msg": "Type \"dict[str, list[str]] | None\" is not assignable to return type \"dict[str, list[str]]\""
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 278,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[str] | None\" cannot be assigned to parameter \"obj\" of type \"Sized\" in function \"len\""
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 279,
+  "rule": "reportReturnType",
+  "msg": "Type \"list[str] | None\" is not assignable to return type \"list[str]\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1302,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"exclude\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1305,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"exclude\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1370,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"landmarks\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1375,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"must_have\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1387,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"boost_terms\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1388,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"boost_terms\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 931,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 931,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 932,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 932,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 933,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1084,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1085,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1473,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1473,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1474,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1474,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1475,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1574,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Literal[False]\" cannot be assigned to parameter \"copy\" of type \"str\" in function \"__init__\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2027,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3619,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3619,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3620,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3620,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3622,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3640,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"join\" match the provided arguments"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3640,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[object | Unknown]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[str]\" in function \"join\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3649,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"object | Unknown\" cannot be assigned to parameter \"obj\" of type \"Sized\" in function \"len\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3657,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"object | Unknown\" cannot be assigned to parameter \"theme_papers\" of type \"list[dict[Unknown, Unknown]]\" in function \"_build_integrative_synthesis\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3657,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"object | Unknown\" cannot be assigned to parameter \"theme_label\" of type \"str\" in function \"_build_integrative_synthesis\""
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3668,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"object\" is not iterable"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 64,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"toarray\" for class \"tuple[Unknown, Unbound | Any | float | generic[Any] | complex | str | bytes | memoryview[int] | Unknown]\""
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 64,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"toarray\" for class \"str\""
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 64,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"toarray\" for class \"tuple[str, str]\""
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 64,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"toarray\" for class \"tuple[Unknown, Unknown | Any]\""
+ },
+ {
+  "file": "scripts/_render.py",
+  "line": 194,
+  "rule": "reportOptionalOperand",
+  "msg": "Operator \"//\" not supported for \"None\""
+ },
+ {
+  "file": "scripts/_search_cache.py",
+  "line": 182,
+  "rule": "reportUndefinedVariable",
+  "msg": "\"filters_hash\" is not defined"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 380,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"get\" for class \"list[dict[Unknown, Unknown]]\""
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 409,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"__getitem__\" match the provided arguments"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 409,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Literal['message']\" cannot be assigned to parameter \"s\" of type \"slice[Any, Any, Any]\" in function \"__getitem__\""
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 643,
+  "rule": "reportReturnType",
+  "msg": "Type \"list[PaperRecord | None]\" is not assignable to return type \"list[PaperRecord]\""
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 660,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"OpenAlexResponseList | Unknown | None\" cannot be assigned to parameter \"item\" of type \"dict[Unknown, Unknown]\" in function \"_openalex_to_record\""
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 728,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"OpenAlexResponseList | Unknown | None\" cannot be assigned to parameter \"item\" of type \"dict[Unknown, Unknown]\" in function \"_openalex_to_record\""
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 788,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"str | None\" cannot be assigned to parameter \"api_key\" of type \"str\" in function \"__init__\""
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 636,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"_T_co@tuple\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/correlate.py",
+  "line": 116,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"tuple[str, ...]\" cannot be assigned to parameter \"key\" of type \"tuple[str, str]\" in function \"__setitem__\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 469,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"get\" for class \"list[dict[Unknown, Unknown]]\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 641,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"get\" for class \"list[dict[Unknown, Unknown]]\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 642,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"__getitem__\" match the provided arguments"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 642,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Literal['message']\" cannot be assigned to parameter \"s\" of type \"slice[Any, Any, Any]\" in function \"__getitem__\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 766,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"get\" for class \"list[dict[Unknown, Unknown]]\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 768,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"__getitem__\" match the provided arguments"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 768,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Literal['message']\" cannot be assigned to parameter \"s\" of type \"slice[Any, Any, Any]\" in function \"__getitem__\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1075,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"title\" for class \"object\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1076,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot access attribute \"abstract\" for class \"object\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1156,
+  "rule": "reportAssignmentType",
+  "msg": "Type \"list[str] | list[LiteralString]\" is not assignable to declared type \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1182,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['crossref']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1186,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['openalex']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1210,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['s2']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1214,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['eartharxiv']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1220,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['usgs']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1226,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['arxiv']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1230,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"in\" not supported for types \"Literal['epmc']\" and \"list[str] | None\""
+ },
+ {
+  "file": "scripts/eval_screening.py",
+  "line": 140,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"_PaperAdapter\" cannot be assigned to parameter \"paper\" of type \"ScreenablePaper\" in function \"screen_paper\""
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 419,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "\"error\" is not a known attribute of module \"urllib\""
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 718,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 718,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 721,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 721,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 422,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot assign to attribute \"_year\" for class \"StudyEffect\""
+ },
+ {
+  "file": "scripts/screen.py",
+  "line": 90,
+  "rule": "reportUndefinedVariable",
+  "msg": "\"_math\" is not defined"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 230,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "\"error\" is not a known attribute of module \"urllib\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 391,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 483,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 483,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 562,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"join\" match the provided arguments"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 562,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[object]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[str]\" in function \"join\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 659,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"object\" cannot be assigned to parameter \"obj\" of type \"Sized\" in function \"len\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 665,
+  "rule": "reportIndexIssue",
+  "msg": "\"__getitem__\" method not defined on type \"object\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 672,
+  "rule": "reportIndexIssue",
+  "msg": "\"__getitem__\" method not defined on type \"object\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 681,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"object\" is not iterable"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 730,
+  "rule": "reportIndexIssue",
+  "msg": "\"__getitem__\" method not defined on type \"object\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 750,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 751,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 763,
+  "rule": "reportOptionalOperand",
+  "msg": "Operator \"//\" not supported for \"None\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 803,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Path | None\" cannot be assigned to parameter \"path\" of type \"Path | str\" in function \"load_extractions\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 804,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Path | None\" cannot be assigned to parameter \"path\" of type \"Path | str\" in function \"load_verified\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 892,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@min]\" in function \"min\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 892,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"list[Unknown | None]\" cannot be assigned to parameter \"iterable\" of type \"Iterable[SupportsRichComparisonT@max]\" in function \"max\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 940,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 940,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Unknown | None\" cannot be assigned to parameter \"x\" of type \"ConvertibleToFloat\" in function \"__new__\""
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 949,
+  "rule": "reportCallIssue",
+  "msg": "No overloads for \"max\" match the provided arguments"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 949,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Overload[(key: str, default: None = None, /) -> (int | None), (key: str, default: int, /) -> int, (key: str, default: _T@get, /) -> (int | _T@get)]\" cannot be assigned to parameter \"key\" of type \"(_T@max) -> SupportsRichComparison\" in function \"max\""
+ },
+ {
+  "file": "tests/test_b_fixes.py",
+  "line": 185,
+  "rule": "reportOptionalMemberAccess",
+  "msg": "\"group\" is not a known attribute of \"None\""
+ },
+ {
+  "file": "tests/test_p0_al_screening.py",
+  "line": 57,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"dict[str | None, str]\" cannot be assigned to parameter \"labels\" of type \"dict[str, str]\" in function \"prioritize_active_learning\""
+ },
+ {
+  "file": "tests/test_p0_al_screening.py",
+  "line": 69,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"str | None\" cannot be assigned to parameter \"key\" of type \"str\" in function \"__setitem__\""
+ },
+ {
+  "file": "tests/test_p0_upgrades.py",
+  "line": 197,
+  "rule": "reportOptionalOperand",
+  "msg": "Operator \"-\" not supported for \"None\""
+ },
+ {
+  "file": "tests/test_p0_upgrades.py",
+  "line": 198,
+  "rule": "reportOperatorIssue",
+  "msg": "Operator \"<\" not supported for types \"float\" and \"float | None\""
+ },
+ {
+  "file": "tests/test_p1_ensemble_screening.py",
+  "line": 39,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"None\" is not iterable"
+ },
+ {
+  "file": "tests/test_p1_ensemble_screening.py",
+  "line": 60,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"None\" is not iterable"
+ },
+ {
+  "file": "tests/test_phase3_store_claims.py",
+  "line": 133,
+  "rule": "reportAttributeAccessIssue",
+  "msg": "Cannot assign to attribute \"_year\" for class \"StudyEffect\""
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 556,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"Literal[2024]\" cannot be assigned to parameter \"publication_date\" of type \"str\" in function \"__init__\""
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 18,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 19,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 24,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 25,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 26,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 29,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"None\" is not iterable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 35,
+  "rule": "reportOptionalSubscript",
+  "msg": "Object of type \"None\" is not subscriptable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 39,
+  "rule": "reportGeneralTypeIssues",
+  "msg": "\"None\" is not iterable"
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 48,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"str | None\" cannot be assigned to parameter \"key\" of type \"str\" in function \"__getitem__\""
+ },
+ {
+  "file": "tests/test_units_stopping.py",
+  "line": 49,
+  "rule": "reportArgumentType",
+  "msg": "Argument of type \"str | None\" cannot be assigned to parameter \"key\" of type \"str\" in function \"__getitem__\""
+ }
+]

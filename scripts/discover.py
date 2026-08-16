@@ -1134,6 +1134,7 @@ def search_multi_source(
     filters: dict | None = None,
     use_web_search: bool = False,
     use_web_search_agentic: bool = False,
+    original_query: str | None = None,
 ) -> list[PaperRecord]:
     """Search across multiple sources IN PARALLEL, return merged list.
 
@@ -1145,6 +1146,12 @@ def search_multi_source(
     from concurrent.futures import TimeoutError as FuturesTimeout
 
     expanded_query = _expand_search_query(query)
+    if original_query and filters is not None:
+        # provenance for orchestrators: the USER query behind this
+        # (possibly expanded) search — downstream co-occurrence/intent
+        # filters should key on this, not the expanded string
+        filters = dict(filters)
+        filters["original_query"] = original_query
 
     sources = sources or DEFAULT_SOURCES.split(",")
     out: list[PaperRecord] = []

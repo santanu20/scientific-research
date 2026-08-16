@@ -99,6 +99,7 @@ class PaperRecord:
     pmid: str | None = None
     title: str = ""
     abstract: str = ""
+    full_text: str | None = None  # optional full text (geokit PDF pipeline)
     authors: list[dict] = field(default_factory=list)
     year: int | None = None
     venue: str = ""

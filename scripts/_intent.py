@@ -28,7 +28,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from _types import TopicTemplate
+from _topic_types import TopicTemplate
 
 log = logging.getLogger("scientific_research.intent")
 

@@ -1,0 +1,1496 @@
+[
+ {
+  "file": "scripts/_citation_graph.py",
+  "line": 104,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_citation_graph.py",
+  "line": 114,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_citation_graph.py",
+  "line": 155,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_claims.py",
+  "line": 80,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_claims.py",
+  "line": 111,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_claims.py",
+  "line": 372,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_classifiers.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_documentstore.py",
+  "line": 82,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/_documentstore.py",
+  "line": 131,
+  "code": "RUF012",
+  "msg": "Mutable default value for class attribute"
+ },
+ {
+  "file": "scripts/_effect_parser.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_effect_parser.py",
+  "line": 375,
+  "code": "RUF034",
+  "msg": "Useless `if`-`else` condition"
+ },
+ {
+  "file": "scripts/_effect_parser.py",
+  "line": 432,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "scripts/_effect_parser.py",
+  "line": 812,
+  "code": "F841",
+  "msg": "Local variable `paired_positions` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 67,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 67,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 77,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 92,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 118,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_embeddings.py",
+  "line": 235,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 195,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 200,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 205,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 239,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 248,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 512,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 803,
+  "code": "F841",
+  "msg": "Local variable `pico` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1081,
+  "code": "PERF402",
+  "msg": "Use `list` or `list.copy` to create a copy of a list"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1090,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1095,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1100,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geo_enrich.py",
+  "line": 1106,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 77,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 115,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 130,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 143,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 185,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 196,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 253,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 280,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 280,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_geodict.py",
+  "line": 293,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1178,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1235,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1235,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1260,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1268,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1274,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_intent.py",
+  "line": 1283,
+  "code": "PERF402",
+  "msg": "Use `list` or `list.copy` to create a copy of a list"
+ },
+ {
+  "file": "scripts/_llm_extract.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_llm_extract.py",
+  "line": 389,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/_llm_extract.py",
+  "line": 658,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1009,
+  "code": "F841",
+  "msg": "Local variable `theme_labels` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1083,
+  "code": "F841",
+  "msg": "Local variable `year_counts` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1085,
+  "code": "F841",
+  "msg": "Local variable `min_year` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1282,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1325,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1328,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1361,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1365,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1511,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1621,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1722,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1747,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 1782,
+  "code": "F841",
+  "msg": "Local variable `pmed` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2013,
+  "code": "F841",
+  "msg": "Local variable `theme_labels` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2334,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2369,
+  "code": "F841",
+  "msg": "Local variable `middle` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2373,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2374,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2376,
+  "code": "F841",
+  "msg": "Local variable `old_methods` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2800,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2805,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2844,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2891,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 2891,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3078,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3081,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3190,
+  "code": "SIM103",
+  "msg": "Return the condition `not digit_ratio > 0.5` directly"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3357,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3392,
+  "code": "SIM103",
+  "msg": "Return the condition `(prev_idx + 1) % 5 == 0` directly"
+ },
+ {
+  "file": "scripts/_narrative.py",
+  "line": 3751,
+  "code": "F841",
+  "msg": "Local variable `n_refs` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 559,
+  "code": "F841",
+  "msg": "Local variable `text_lower` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 885,
+  "code": "F401",
+  "msg": "`_classifiers.extract_key_finding` imported but unused; consider using `importlib.util.find_spec` to test for availabili"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 969,
+  "code": "SIM103",
+  "msg": "Return the condition `re.search(r\"[A-Za-z]\", candidate)` directly"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 984,
+  "code": "TRY203",
+  "msg": "Remove exception handler; error is immediately re-raised"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 1098,
+  "code": "C401",
+  "msg": "Unnecessary generator (rewrite as a set comprehension)"
+ },
+ {
+  "file": "scripts/_nlp.py",
+  "line": 1448,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 125,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 653,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 653,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 666,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_ranking.py",
+  "line": 666,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_render.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_render.py",
+  "line": 575,
+  "code": "C408",
+  "msg": "Unnecessary `dict()` call (rewrite as a literal)"
+ },
+ {
+  "file": "scripts/_search_cache.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_search_cache.py",
+  "line": 182,
+  "code": "F821",
+  "msg": "Undefined name `filters_hash`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 169,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 210,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 236,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 410,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 421,
+  "code": "FLY002",
+  "msg": "Consider f-string instead of string join"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 576,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 594,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 604,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 703,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 745,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 758,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 778,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 931,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 973,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1031,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1065,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1109,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1134,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1255,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1604,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_sources.py",
+  "line": 1639,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_stance_svm.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_stance_svm.py",
+  "line": 280,
+  "code": "PLC0206",
+  "msg": "Extracting value from dictionary without calling `.items()`"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 515,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 515,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 595,
+  "code": "RUF059",
+  "msg": "Unpacked variable `rank` is never used"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 595,
+  "code": "RUF059",
+  "msg": "Unpacked variable `sv` is never used"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 596,
+  "code": "F841",
+  "msg": "Local variable `slope` is assigned to but never used"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 627,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 639,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/_stats.py",
+  "line": 719,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/assess.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/assess.py",
+  "line": 150,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/assess.py",
+  "line": 252,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/assess.py",
+  "line": 273,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 88,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 88,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 260,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 260,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 328,
+  "code": "PERF102",
+  "msg": "When using only the values of a dict use the `values()` method"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 332,
+  "code": "F841",
+  "msg": "Local variable `checks` is assigned to but never used"
+ },
+ {
+  "file": "scripts/benchmark.py",
+  "line": 424,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/correlate.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/correlate.py",
+  "line": 89,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/correlate.py",
+  "line": 134,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/correlate.py",
+  "line": 329,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 154,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 154,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 478,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 539,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 575,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 645,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 645,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 685,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 772,
+  "code": "S112",
+  "msg": "`try`-`except`-`continue` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 772,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1114,
+  "code": "SIM103",
+  "msg": "Return the condition `domain_penalty(text) != 0.0` directly"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1270,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1270,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1329,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1384,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1390,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1420,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 1842,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/discover.py",
+  "line": 2000,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/export_citations.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/export_citations.py",
+  "line": 190,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/export_citations.py",
+  "line": 215,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/export_citations.py",
+  "line": 296,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 381,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 564,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 608,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 636,
+  "code": "F402",
+  "msg": "Import `field` from line 36 shadowed by loop variable"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 661,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 704,
+  "code": "F841",
+  "msg": "Local variable `effect_sizes_list` is assigned to but never used"
+ },
+ {
+  "file": "scripts/extract.py",
+  "line": 705,
+  "code": "F841",
+  "msg": "Local variable `p_values` is assigned to but never used"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 703,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 822,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 852,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 865,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 1213,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/meta_analyze.py",
+  "line": 1227,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/monitor.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/monitor.py",
+  "line": 61,
+  "code": "DTZ007",
+  "msg": "Naive datetime constructed using `datetime.datetime.strptime()` without %z"
+ },
+ {
+  "file": "scripts/monitor.py",
+  "line": 81,
+  "code": "DTZ007",
+  "msg": "Naive datetime constructed using `datetime.datetime.strptime()` without %z"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 201,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 222,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 238,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 299,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 400,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 421,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 596,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 661,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 679,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 679,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 687,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 725,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 762,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/pipeline.py",
+  "line": 848,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/report.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/report.py",
+  "line": 121,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/screen.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/screen.py",
+  "line": 90,
+  "code": "F821",
+  "msg": "Undefined name `_math`"
+ },
+ {
+  "file": "scripts/screen_llm.py",
+  "line": 198,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 110,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 233,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 250,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 286,
+  "code": "PIE810",
+  "msg": "Call `startswith` once with a `tuple`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 358,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 461,
+  "code": "ISC004",
+  "msg": "Unparenthesized implicit string concatenation in collection"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 620,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 851,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 883,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 1045,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/synthesize.py",
+  "line": 1045,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 100,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 141,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 316,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 331,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 351,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 368,
+  "code": "S110",
+  "msg": "`try`-`except`-`pass` detected, consider logging the exception"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 368,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 385,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 400,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "scripts/verify.py",
+  "line": 829,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "tests/test_b_fixes.py",
+  "line": 65,
+  "code": "F841",
+  "msg": "Local variable `by_pid` is assigned to but never used"
+ },
+ {
+  "file": "tests/test_brief_citations.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "tests/test_live_breaker_reset.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "tests/test_live_breaker_reset.py",
+  "line": 107,
+  "code": "BLE001",
+  "msg": "Do not catch blind exception: `Exception`"
+ },
+ {
+  "file": "tests/test_narrative_characterization.py",
+  "line": 121,
+  "code": "PLW1510",
+  "msg": "`subprocess.run` without explicit `check` argument"
+ },
+ {
+  "file": "tests/test_p1_ensemble_screening.py",
+  "line": 60,
+  "code": "RUF059",
+  "msg": "Unpacked variable `reason` is never used"
+ },
+ {
+  "file": "tests/test_p1_ensemble_screening.py",
+  "line": 121,
+  "code": "RUF059",
+  "msg": "Unpacked variable `reason` is never used"
+ },
+ {
+  "file": "tests/test_p1_selection_models.py",
+  "line": 35,
+  "code": "SIM102",
+  "msg": "Use a single `if` statement instead of nested `if` statements"
+ },
+ {
+  "file": "tests/test_ratelimits.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 1,
+  "code": "EXE001",
+  "msg": "Shebang is present but file is not executable"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 179,
+  "code": "DTZ001",
+  "msg": "`datetime.datetime()` called without a `tzinfo` argument"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 197,
+  "code": "DTZ001",
+  "msg": "`datetime.datetime()` called without a `tzinfo` argument"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 497,
+  "code": "RUF059",
+  "msg": "Unpacked variable `conf` is never used"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 531,
+  "code": "RUF015",
+  "msg": "Prefer `next(iter(out.values()))` over single element slice"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 622,
+  "code": "RUF059",
+  "msg": "Unpacked variable `merged` is never used"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 632,
+  "code": "RUF059",
+  "msg": "Unpacked variable `result` is never used"
+ },
+ {
+  "file": "tests/test_skill.py",
+  "line": 742,
+  "code": "RUF059",
+  "msg": "Unpacked variable `freqs` is never used"
+ }
+]

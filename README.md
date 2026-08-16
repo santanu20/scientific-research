@@ -6,7 +6,7 @@ Heavy-work toolkit for deep scientific academic **research** (web-source only).
 
 5-phase pipeline: **SCOPING → DISCOVERY → VERIFICATION → CORRELATION → SYNTHESIS**.
 
-~46K LLM tokens per 50-paper research run.
+Non-LLM by default (regex + SVM + keyword classifiers); LLM is opt-in (`--use-llm`).
 
 ## Scope
 
@@ -28,11 +28,13 @@ Heavy-work toolkit for deep scientific academic **research** (web-source only).
 
 ```bash
 # Required deps (in project venv)
-uv add habanero pyalex semanticscholar arxiv numpy scipy
+uv add habanero pyalex semanticscholar arxiv numpy scipy scikit-learn \
+    httpx pypdf matplotlib   # matches scripts/_bootstrap.py BASE_INSTALLS
 
 # Optional (specific features)
-uv add sentence-transformers   # embedding-based screening in screen.py --embeddings
+uv add fastembed               # BGE embeddings (screen.py --embeddings, ranking)
 uv add pyzotero                 # Zotero push in export_citations.py --zotero-key
+# Skill venv self-bootstraps these on first run — manual add only for project venvs
 
 # Run a research workflow (LLM invokes these via the skill)
 SK=~/.config/opencode/skills/scientific-research/scripts
@@ -50,11 +52,11 @@ uv run python $SK/export_citations.py verified.json --format all
 | 1. SCOPING | LLM interactive | clarify question, PICO, criteria | `research_plan.json` |
 | 2. DISCOVERY | `discover.py` | multi-source web search (Crossref + OpenAlex + S2 + arXiv) + Cohen 2018 snowballing + dedup | `corpus.json` + `corpus_summary.md` |
 | 3. VERIFICATION | `verify.py` | §5 H20 DOI/arXiv resolver gate + OpenAlex `is_retracted` + DOAJ + evidence grading (L I-VII) + RoB tool selection | `verified.json` + `verification_results.json` + `verification_report.md` |
-| 3b. SCREENING | `screen.py` | PRISMA Phase 2 (title/abstract triage, keyword + optional embedding mode) | `screened.json` + `screening_report.md` |
+| 3b. SCREENING | `screen.py` | PRISMA Phase 2 (IDF-weighted keyword + optional embedding mode) + `--al` active learning (reorder-only) | `screened.json` + `screening_report.md` |
 | 4a. EXTRACTION | `extract.py` | PICO/SPIDER + effect sizes (mean±SD, events, OR/RR/HR, Cohen's d) + methodology keywords | `extracted.json` + `extraction_report.md` |
 | 4b. ASSESSMENT | `assess.py` | RoB scaffolds (RoB 2 / ROBINS-I / QUADAS-2 / Newcastle-Ottawa) + GRADE profiles | `assessment.json` + `assessment_report.md` |
 | 4c. CORRELATION | `correlate.py` | citation graph (Mermaid) + bibliographic coupling + concept clusters + temporal histogram + author network + funding analysis + correlation matrix scaffold + Scite-style citation context pre-classification | `correlation.json` + `correlation.md` + `graph.mmd` |
-| 4d. META-ANALYSIS | `meta_analyze.py` | DerSimonian-Laird fixed/random pooling + heterogeneity (Cochrane Q, I², τ²) + forest plot + subgroup analysis | `meta.json` + `forest.mmd` |
+| 4d. META-ANALYSIS | `meta_analyze.py` | REML random pooling (DL escape hatch) + HKSJ CI + heterogeneity (Cochran Q, I², τ²) + prediction interval + LOO influence + Vevea-Hedges selection + p-curve + forest plot + decade subgroups + unit-partitioned pools | `meta.json` + `forest.mmd` |
 | 5. SYNTHESIS | `synthesize.py` | 5 research types (verification/survey/subtopic/comparative/data_compilation), chronological narrative with [N] citations, interpretation enrichment, significance inference, theme clustering. `--use-llm` for prose smoothing. | `research_brief.md` |
 | 5b. EXPORT | `export_citations.py` | BibTeX + RIS + APA + CSL JSON + optional Zotero push | `references.{bib,ris,md,csl.json}` |
 | opt. MONITOR | `monitor.py` | living-document alerts on new papers since date | `alerts.json` |
@@ -130,8 +132,10 @@ Set `SCIENTIFIC_RESEARCH_KB` env var to override knowledge base location.
 ├── SKILL.md                          # orchestrator prompt
 ├── README.md                         # this file
 ├── pytest.ini                        # test config
+├── ruff.toml                        # pinned lint gate (deterministic)
+├── pyrightconfig.json               # type-check config (ruff+pyright versions pinned in _bootstrap)
 ├── tests/
-│   └── test_skill.py                 # unit tests (72 tests)
+│   └── test_skill.py                 # unit tests (283 offline, 9 live-network deselected)
 └── scripts/
     ├── _sources.py                   # 4 source wrappers + parallel search + retry
     ├── _search_cache.py              # knowledge base (manifests + paper store)

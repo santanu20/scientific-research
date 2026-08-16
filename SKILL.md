@@ -157,6 +157,23 @@ SCIENTIFIC_RESEARCH_TIMEOUT_S2=30         # default 10s
 Circuit-breaker thresholds + pacing intervals live in `_ratelimits.RateLimitRegistry`
 (defaults: Crossref threshold=3/0.5s, OpenAlex 5/1.0s, S2 5/3s, arXiv 3/1.0s).
 
+**Full environment-variable reference** (all optional; defaults in parentheses):
+
+| Variable | Purpose |
+|---|---|
+| `SCIENTIFIC_RESEARCH_EMAIL` | Polite-pool contact identity for OpenAlex + Crossref (`scientific-research@geokit.dev`) |
+| `SCIENTIFIC_RESEARCH_KB` | Knowledge-base dir (`~/.local/share/scientific-research`) |
+| `SCIENTIFIC_RESEARCH_CACHE` | Disposable cache dir (`~/.cache/scientific_research`) |
+| `SCIENTIFIC_RESEARCH_TIMEOUT_*` | Per-API timeouts — CROSSREF/DOI_LOOKUP/OPENALEX/S2/UNPAYWALL/DOAJ (see `_timeouts.py`) |
+| `SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH` | Auto-enable web-search supplement |
+| `SCIENTIFIC_RESEARCH_LLM_MODEL` | Override Ollama model pick (`qwen3.5:2b`-style tag) |
+| `SCIENTIFIC_RESEARCH_LLM_CALLBACK` | Delegate ALL LLM calls to an agent-owned executable (contract above) |
+| `SCIENTIFIC_RESEARCH_RW_CSV` | Retraction Watch CSV path override (default: auto-discovered clone) |
+| `SCIENTIFIC_RESEARCH_STANCE_DATA` | Extra stance-SVM training data (JSONL) |
+| `SCIENTIFIC_RESEARCH_EMBED_MODEL` | fastembed model override (`BAAI/bge-base-en-v1.5`) |
+| `SCIENTIFIC_RESEARCH_NO_SKILL_VENV` / `SCIENTIFIC_RESEARCH_NO_BOOTSTRAP` | Opt out of venv re-exec / auto-install |
+| `S2_API_KEY` / `SEMANTIC_SCHOLAR_API_KEY` | Semantic Scholar API key (higher rate limits) |
+
 The skill scripts live at:
 `~/.config/opencode/skills/scientific-research/scripts/`
 

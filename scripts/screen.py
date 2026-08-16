@@ -28,6 +28,7 @@ if __name__ == "__main__":
 import argparse
 import json
 import logging
+import math
 import sys
 import time
 from dataclasses import dataclass
@@ -76,7 +77,9 @@ def _score_paper_keywords(
     return (float(score), matched_inc, matched_exc)
 
 
-def set_keyword_idf(papers: list[PaperRecord], include: list[str], exclude: list[str]) -> None:
+def set_keyword_idf(
+    papers: list[PaperRecord], include: list[str], exclude: list[str]
+) -> None:
     """Compute batch IDF for keywords over the corpus; attach to scorer."""
     n = max(len(papers), 1)
     idf: dict[str, float] = {}
@@ -87,7 +90,7 @@ def set_keyword_idf(papers: list[PaperRecord], include: list[str], exclude: list
             for p in papers
             if kl in ((p.title or "") + " " + (p.abstract or "")).lower()
         )
-        idf[kl] = _math.log((n + 1) / (df + 1)) + 1.0
+        idf[kl] = math.log((n + 1) / (df + 1)) + 1.0
     _score_paper_keywords._batch_idf = idf
 
 

@@ -145,7 +145,10 @@ _migrate_from_legacy()
 # Search index (single manifest)
 # =============================================================================
 def search_cache_get(
-    query: str, sources: str, max_per_source: int, force_refresh: bool = False,
+    query: str,
+    sources: str,
+    max_per_source: int,
+    force_refresh: bool = False,
     filters_hash: str = "",
 ) -> tuple[list[str] | None, int]:
     """Check search manifest for prior results.
@@ -173,11 +176,21 @@ def search_cache_get(
         )
         return (ids, age_days)
     else:
-        log.info("Knowledge base STALE: '%s' (%d days old) — re-fetching", query[:40], age_days)
+        log.info(
+            "Knowledge base STALE: '%s' (%d days old) — re-fetching",
+            query[:40],
+            age_days,
+        )
     return (None, -1)
 
 
-def search_cache_put(query: str, sources: str, max_per_source: int, paper_ids: list[str]) -> None:
+def search_cache_put(
+    query: str,
+    sources: str,
+    max_per_source: int,
+    paper_ids: list[str],
+    filters_hash: str = "",
+) -> None:
     """Add/update search entry in manifest."""
     key = _hash(f"{query}|{sources}|{max_per_source}|{filters_hash}")
     manifest = _load_manifest(SEARCH_MANIFEST)
@@ -239,7 +252,9 @@ def kb_stats() -> dict:
     # LLM cache (temporary)
     llm_dir = Path.home() / ".cache" / "scientific_research" / "llm_extract"
     llm_count = len(list(llm_dir.glob("*.json"))) if llm_dir.exists() else 0
-    llm_size = sum(f.stat().st_size for f in llm_dir.glob("*.json")) if llm_dir.exists() else 0
+    llm_size = (
+        sum(f.stat().st_size for f in llm_dir.glob("*.json")) if llm_dir.exists() else 0
+    )
 
     return {
         "knowledge_base": str(KB_BASE),

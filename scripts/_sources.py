@@ -624,31 +624,28 @@ def openalex_search(
     Checks search cache first — if this query was searched recently (<30 days),
     loads paper IDs from cache and fetches records from paper cache (0 API calls).
     """
-    # Check knowledge base
-    try:
-        from _search_cache import search_cache_get, search_cache_put
+    # Check knowledge base (internal module — fail loud on broken install, H1)
+    from _search_cache import search_cache_get, search_cache_put
 
-        cached_ids, age_days = search_cache_get(
-            query, "openalex", max_results, force_refresh=force_refresh
-        )
-        if cached_ids:
-            papers = [cache_get(pid) for pid in cached_ids if cache_has(pid)]
-            if papers and len(papers) >= len(cached_ids) * 0.8:
-                log.info(
-                    "Knowledge base HIT: '%s' → %d papers (%d days old, 0 API calls)",
-                    query[:40],
-                    len(papers),
-                    age_days,
-                )
-                return papers
-            else:
-                log.debug(
-                    "Search cache partial hit: %d/%d papers in cache",
-                    len(papers) if papers else 0,
-                    len(cached_ids),
-                )
-    except ImportError:
-        pass
+    cached_ids, age_days = search_cache_get(
+        query, "openalex", max_results, force_refresh=force_refresh
+    )
+    if cached_ids:
+        papers = [cache_get(pid) for pid in cached_ids if cache_has(pid)]
+        if papers and len(papers) >= len(cached_ids) * 0.8:
+            log.info(
+                "Knowledge base HIT: '%s' → %d papers (%d days old, 0 API calls)",
+                query[:40],
+                len(papers),
+                age_days,
+            )
+            return papers
+        else:
+            log.debug(
+                "Search cache partial hit: %d/%d papers in cache",
+                len(papers) if papers else 0,
+                len(cached_ids),
+            )
 
     # API fetch
     if max_results <= 200:
@@ -660,12 +657,9 @@ def openalex_search(
         records = [_openalex_to_record(it) for it in items[:max_results]]
         for p in records:
             cache_put(p)
-        try:
-            search_cache_put(
-                query, "openalex", max_results, [p.primary_id for p in records]
-            )
-        except (ImportError, NameError):
-            pass
+        search_cache_put(
+            query, "openalex", max_results, [p.primary_id for p in records]
+        )
         return records
 
     # Cursor pagination for large result sets
@@ -708,12 +702,7 @@ def openalex_search(
     # Cache results
     for p in records:
         cache_put(p)
-    try:
-        search_cache_put(
-            query, "openalex", max_results, [p.primary_id for p in records]
-        )
-    except (ImportError, NameError):
-        pass
+    search_cache_put(query, "openalex", max_results, [p.primary_id for p in records])
     return records
 
 
@@ -1614,12 +1603,9 @@ def epmc_search(query: str, max_results: int = 25) -> list[PaperRecord]:
             break
     for p in records:
         cache_put(p)
-    try:
-        from _search_cache import search_cache_put
+    from _search_cache import search_cache_put
 
-        search_cache_put(query, "epmc", max_results, [p.primary_id for p in records])
-    except (ImportError, NameError):
-        pass
+    search_cache_put(query, "epmc", max_results, [p.primary_id for p in records])
     return records
 
 

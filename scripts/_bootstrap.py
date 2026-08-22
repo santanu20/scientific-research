@@ -50,6 +50,8 @@ BASE_INSTALLS = (
     "httpx",
     "pypdf",
     "matplotlib",  # PRISMA flow diagram rendering (discover.py)
+    "fastembed",  # BGE embeddings — semantic scoring + context centroids
+    "networkx",  # citation-network analysis section
     "pytest",  # test-suite runner (kept in venv for `uv run pytest` parity)
     "ruff==0.16.3",  # lint gate — PINNED (A10): unpinned tools drift between sessions
     "pyright==1.1.411",  # type gate — PINNED (A10)

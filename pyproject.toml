@@ -1,0 +1,26 @@
+[project]
+name = "scientific-research-skill"
+version = "2.0.0"
+description = "Dynamic context-driven scientific literature research pipeline"
+requires-python = ">=3.12"
+dependencies = [
+    "habanero",
+    "pyalex",
+    "semanticscholar",
+    "arxiv",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "httpx",
+    "pypdf",
+    "matplotlib",
+    "fastembed>=0.8.0",
+    "networkx>=3.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff==0.16.3",
+    "pyright==1.1.411",
+]

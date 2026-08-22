@@ -47,4 +47,9 @@ class _Timeouts:
         return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_DOAJ", "15"))
 
 
+    @property
+    def wikipedia(self) -> int:
+        """Wikipedia REST summary API (entity kinds/aliases, _context.py)."""
+        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_WIKIPEDIA", "10"))
+
 TIMEOUTS = _Timeouts()

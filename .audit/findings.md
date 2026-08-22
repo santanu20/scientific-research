@@ -68,3 +68,13 @@ Fixpoint status: sweep-2 of iteration loop complete (briefs v5→v7 clean of jun
 | Small-pool cooccurrence loophole | FIXED live — df==1 dropped when ≥2 multi-confirmed exist (Kharif regression killed) |
 | Live validation | DONE — 4 topics force-refresh full chain; QC table 25/25 clean |
 | pyright | 100/0 (improved from 115 baseline) |
+
+# GEOKIT SYNC ROUND (2026-08-22)
+| Item | Status |
+|---|---|
+| Skill commits | 7 total, worktree clean |
+| Geokit capture commit | 25757222 (their r2 preserved) |
+| Geokit sync commit | G2 overlay + bootstrap-fix follow-up |
+| Deleted-module importers in geokit | zero (verified pre-rm) |
+| Live validation from geokit venv | p2 15/15, g15 11/11 — briefs QC clean |
+| Reverse-port | _context.py + _honesty.py vendored unwired |

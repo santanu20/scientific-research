@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import time
 from collections import Counter
 from typing import Any
@@ -37,13 +38,25 @@ log = logging.getLogger("scientific_research.ranking")
 # Citation influence weighted highest — a foundational paper with 5000 citations
 # should never be excluded regardless of age. Recency is a small boost, not a penalty.
 # Venue quality uses OpenAlex source h_index (Nature=500+ vs low-IF journal=10).
+# Context-dominant weighting: similarity to THE QUERY plus IDF-weighted
+# query-facet coverage carry 60%. Popularity signals only differentiate
+# WITHIN the pool the query already retrieved — they can never pull an
+# off-topic paper above an on-topic one. No field vocabulary anywhere:
+# every signal is derived from query x pool at runtime.
 WEIGHTS = {
-    "semantic": 0.30,  # TF-IDF relevance to query (with query expansion)
-    "citation": 0.25,  # log(citations) + citation velocity
-    "network": 0.20,  # coupling + co-citation + PageRank
-    "recency": 0.10,  # small boost for recent work (not a penalty)
-    "venue": 0.15,  # journal h_index (venue quality)
+    "semantic": 0.40,
+    "facet": 0.20,
+    "citation": 0.15,
+    "network": 0.10,
+    "recency": 0.05,
+    "venue": 0.10,
 }
+
+# Dynamic relevance floor (pool-relative, not absolute):
+RELEVANT_SEM_FRACTION = 0.25  # of the pool's best semantic score
+RELEVANT_MEDIAN_FRACTION = 0.70  # and of the pool's MEDIAN (kills polysemy stragglers)
+RELEVANT_FACET_FRACTION = 0.50  # or covers half the query's facets
+MIN_USEFUL_CORPUS = 3  # weak-context papers excluded once this many strong exist
 
 # Diversity caps
 MAX_PER_FIRST_AUTHOR = 3
@@ -65,11 +78,7 @@ def _first_author_name(paper: Any) -> str:
     """Extract first author's last name for dedup."""
     authors = getattr(paper, "authors", None) or []
     if authors and isinstance(authors, list) and len(authors) > 0:
-        name = (
-            authors[0].get("name", "")
-            if isinstance(authors[0], dict)
-            else str(authors[0])
-        )
+        name = authors[0].get("name", "") if isinstance(authors[0], dict) else str(authors[0])
         parts = name.split()
         if parts:
             return parts[-1].lower()
@@ -119,18 +128,13 @@ def semantic_relevance_scores(query: str, papers: list) -> np.ndarray:
             query_emb = embeddings[0:1]
             paper_embs = embeddings[1:]
             # Cosine similarity
-            q_norm = query_emb / (
-                _np_bge.linalg.norm(query_emb, axis=1, keepdims=True) + 1e-10
-            )
-            p_norm = paper_embs / (
-                _np_bge.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-10
-            )
+            q_norm = query_emb / (_np_bge.linalg.norm(query_emb, axis=1, keepdims=True) + 1e-10)
+            p_norm = paper_embs / (_np_bge.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-10)
             sims = (p_norm @ q_norm.T).flatten()
-            if sims.max() > 0:
-                sims = sims / sims.max()
-            log.info(
-                "Using BGE embeddings for semantic relevance (%d papers)", len(papers)
-            )
+            # ABSOLUTE cosine similarity [0, 1] — no pool-max rescale,
+            # so a weak match stays weak even in a poor pool.
+            sims = np.clip(sims, 0.0, 1.0)
+            log.info("Using BGE embeddings for semantic relevance (%d papers)", len(papers))
             return sims
     except Exception as e:
         log.debug("BGE embeddings unavailable, using TF-IDF: %s", e)
@@ -157,94 +161,62 @@ def semantic_relevance_scores(query: str, papers: list) -> np.ndarray:
         matrix = vectorizer.fit_transform(texts)
         # Cosine similarity between query (row 0) and each paper (rows 1+)
         sims = cosine_similarity(matrix[0:1], matrix[1:]).flatten()
-        # Normalize to [0, 1]
-        if sims.max() > 0:
-            sims = sims / sims.max()
-        return sims
+        return np.clip(sims, 0.0, 1.0)
     except ValueError as e:
         log.warning("TF-IDF failed: %s — using uniform scores", e)
         return np.ones(len(papers)) / max(len(papers), 1)
 
 
+def query_facet_scores(query: str, papers: list) -> np.ndarray:
+    """IDF-weighted coverage of the query's own content terms.
+
+    Fully dynamic context scoring: facets ARE the query terms; IDF comes
+    from the retrieved pool itself. Returns [0, 1] per paper.
+    """
+    if not papers:
+        return np.array([])
+    try:
+        from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
+        stop = ENGLISH_STOP_WORDS
+    except ImportError:  # pragma: no cover - sklearn is a hard dep
+        stop = frozenset()
+
+    tokens = {
+        tok
+        for tok in re.findall(r"[a-z0-9]+", query.lower())
+        if len(tok) >= 3 and tok not in stop
+    }
+    if not tokens:
+        return np.zeros(len(papers))
+
+    docs = [
+        ((getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")).lower()
+        for p in papers
+    ]
+    n_docs = max(len(docs), 1)
+    idf = {
+        tok: math.log((n_docs + 1) / (sum(1 for d in docs if tok in d) + 1)) + 1.0
+        for tok in tokens
+    }
+    total_idf = sum(idf.values()) or 1.0
+    return np.array(
+        [sum(idf[tok] for tok in tokens if tok in doc) / total_idf for doc in docs]
+    )
+
+
 # Domain synonym map for query expansion
-_SYNONYM_GROUPS = [
-    {
-        "crispr",
-        "cas9",
-        "cas12",
-        "cas13",
-        "guide rna",
-        "grna",
-        "sgrna",
-        "crispr-cas",
-        "crispr/cas",
-    },
-    {
-        "gene editing",
-        "genome editing",
-        "genome modification",
-        "gene modification",
-        "genetic engineering",
-        "gene therapy",
-    },
-    {
-        "off-target",
-        "off-target effects",
-        "unintended mutations",
-        "off-target activity",
-        "specificity",
-        "off-target cleavage",
-    },
-    {
-        "isotope",
-        "isotopic",
-        "isotope fractionation",
-        "isotope ratio",
-        "δ18o",
-        "δ13c",
-        "δd",
-        "delta",
-    },
-    {"basalt", "morb", "mid-ocean ridge", "oceanic crust", "mafic"},
-    {"weathering", "chemical weathering", "erosion", "dissolution"},
-    {"meta-analysis", "systematic review", "meta analysis"},
-    {
-        "machine learning",
-        "deep learning",
-        "neural network",
-        "artificial intelligence",
-        "ai",
-    },
-    {"climate", "climate change", "global warming", "temperature"},
-    {"protein", "protein structure", "protein folding", "conformation"},
-    {"cancer", "tumor", "tumour", "oncology", "neoplasm"},
-    {"drug", "drug discovery", "pharmaceutical", "compound", "molecule"},
-    {"perovskite", "solar cell", "photovoltaic", "thin film"},
-    {"quantum", "quantum entanglement", "quantum computing", "qubit"},
-    {"coral", "reef", "coral reef", "calcification"},
-]
+# _SYNONYM_GROUPS removed — static domain vocabulary (dynamic-context mandate).
 
 
 def _expand_query(query: str) -> str:
-    """Expand query with domain synonyms.
+    """Return the query unchanged (dynamic-context mandate, 2026-08-22).
 
-    If any term in the query matches a synonym group, add all
-    synonyms from that group to the query. This dramatically improves
-    TF-IDF matching — "CRISPR gene editing" also matches "Cas9 genome
-    modification".
+    The former 16 hardcoded domain synonym groups expanded only queries
+    in those domains — asymmetric static behavior. Semantic similarity,
+    facet coverage and the relevance floor own recall now.
     """
-    query_lower = query.lower()
-    expanded_terms = set(query_lower.split())
-
-    for group in _SYNONYM_GROUPS:
-        # Check if any term in the query matches this group
-        for term in group:
-            if term in query_lower:
-                # Add all synonyms from this group
-                expanded_terms.update(group)
-                break
-
-    return " ".join(sorted(expanded_terms))
+    return query
 
 
 def citation_influence_scores(papers: list) -> np.ndarray:
@@ -261,12 +233,7 @@ def citation_influence_scores(papers: list) -> np.ndarray:
         return np.array([])
     current_year = time.gmtime().tm_year
     raw = np.array([_safe_float(getattr(p, "citation_count", 0)) for p in papers])
-    years = np.array(
-        [
-            max(1, current_year - _safe_float(getattr(p, "year", current_year)))
-            for p in papers
-        ]
-    )
+    years = np.array([max(1, current_year - _safe_float(getattr(p, "year", current_year))) for p in papers])
     velocity = raw / years
 
     log_total = np.log1p(raw)
@@ -390,9 +357,7 @@ def _co_citation_scores(papers: list) -> np.ndarray:
     return np.zeros(n)
 
 
-def _pagerank_scores(
-    papers: list, damping: float = 0.85, max_iter: int = 100, tol: float = 1e-6
-) -> np.ndarray:
+def _pagerank_scores(papers: list, damping: float = 0.85, max_iter: int = 100, tol: float = 1e-6) -> np.ndarray:
     """PageRank on the within-corpus citation network (numpy vectorized).
 
     A paper is important if it's cited by other important papers.
@@ -509,9 +474,7 @@ def venue_quality_scores(papers: list) -> np.ndarray:
             continue
         api_url = f"https://api.openalex.org/sources/{src_id_short}?select=h_index,works_count,cited_by_count"
         try:
-            req = urllib.request.Request(
-                api_url, headers={"User-Agent": "scientific-research/1.0"}
-            )
+            req = urllib.request.Request(api_url, headers={"User-Agent": "scientific-research/1.0"})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 data = _json.loads(resp.read().decode())
                 h_idx = data.get("h_index", 0) or 0
@@ -582,9 +545,7 @@ def venue_quality_scores(papers: list) -> np.ndarray:
     scores = []
     for p in papers:
         src_id = source_ids.get(id(p), "")
-        venue_name = (
-            venue_names.get(id(p), "") or getattr(p, "venue", "") or ""
-        ).lower()
+        venue_name = (venue_names.get(id(p), "") or getattr(p, "venue", "") or "").lower()
 
         h_idx = h_index_cache.get(src_id, 0)
 
@@ -654,8 +615,10 @@ def rank_papers(
     n = len(papers)
     log.info("Ranking %d papers (weights: %s)", n, w)
 
-    # Compute scores
+    # Compute scores — every signal is query-x-pool derived at runtime;
+    # no static discipline tables participate in ranking.
     sem = semantic_relevance_scores(query, papers)
+    facet = query_facet_scores(query, papers)
     cite = citation_influence_scores(papers)
     net = network_centrality_scores(papers)
     rec = recency_scores(papers)
@@ -663,60 +626,59 @@ def rank_papers(
 
     # Combine
     combined = (
-        w.get("semantic", 0.30) * sem
-        + w.get("citation", 0.25) * cite
-        + w.get("network", 0.20) * net
-        + w.get("recency", 0.10) * rec
-        + w.get("venue", 0.15) * ven
+        w.get("semantic", 0.40) * sem
+        + w.get("facet", 0.20) * facet
+        + w.get("citation", 0.15) * cite
+        + w.get("network", 0.10) * net
+        + w.get("recency", 0.05) * rec
+        + w.get("venue", 0.10) * ven
     )
-
-    # Graduated domain score — boost geo papers, kill non-geo.
-    # Internal module: degrade WITH visibility if enrichment fails (never silent).
-    try:
-        from _ontology import domain_score
-
-        scores = np.array(
-            [
-                domain_score(
-                    (getattr(p, "title", "") or "")
-                    + " "
-                    + (getattr(p, "abstract", "") or "")
-                )
-                for p in papers
-            ]
-        )
-        combined = combined * scores
-        n_killed = int((scores <= 0.01).sum())
-        n_boosted = int((scores > 1.2).sum())
-        if n_killed > 0 or n_boosted > 0:
-            log.info(
-                "Domain scoring: %d killed, %d boosted, range %.2f-%.2f",
-                n_killed,
-                n_boosted,
-                scores.min(),
-                scores.max(),
-            )
-    except Exception as e:
-        log.warning("Domain scoring unavailable — ranking unfiltered: %s", e)
-
-    # Intent-aware boost — landmark authors + must-have terms
-    try:
-        from _intent import intent_boost, parse_intent
-
-        intent = parse_intent(query)
-        if intent.has_template:
-            boosts = np.array(intent_boost(papers, intent))
-            combined = combined * boosts
-            n_boosted = int((boosts > 1.5).sum())
-            if n_boosted > 0:
-                log.info(
-                    "Intent boost: %d papers boosted (landmarks/must-have)", n_boosted
-                )
-    except Exception as e:
-        log.warning("Intent boost unavailable — ranking unboosted: %s", e)
 
     # Sort by combined score (descending)
     ranked_indices = np.argsort(-combined)
+
+    # Dynamic relevance floor (pool-relative): papers with neither real
+    # query-similarity nor half-facet coverage sink below every strong
+    # candidate for top-N slots. Corpus size preserved — weak papers stay
+    # available as fill when the pool is small.
+    sem_max = float(sem.max()) if len(sem) else 0.0
+    median_sem = float(np.median(sem)) if len(sem) else 0.0
+    # Semantic arm must clear BOTH the best-of-pool fraction and a robust
+    # median bar: polysemous strays ("morphometric" fish studies under a
+    # drainage-morphometry query) clear a max-fraction that collapses in
+    # tiny pools, but sit far below the on-topic median.
+    sem_floor = max(
+        RELEVANT_SEM_FRACTION * sem_max, RELEVANT_MEDIAN_FRACTION * median_sem
+    )
+    strong = ((sem >= sem_floor) & (sem_max > 0)) | (
+        facet >= RELEVANT_FACET_FRACTION
+    )
+    n_weak = int((~strong).sum())
+    n_strong = int(strong.sum())
+
+    if n_weak and n_strong >= MIN_USEFUL_CORPUS:
+        # Enough genuine material — known off-topic papers are excluded
+        # outright. Filling a corpus with them corrupts synthesis more
+        # than a smaller honest corpus does.
+        log.info(
+            "Relevance floor: %d weak-context paper(s) EXCLUDED "
+            "(%d strong candidates)",
+            n_weak,
+            n_strong,
+        )
+        ordered_indices = ranked_indices[strong[ranked_indices]]
+    else:
+        if n_weak:
+            log.info(
+                "Relevance floor: %d weak-context paper(s) demoted below strong set",
+                n_weak,
+            )
+        ordered_indices = np.concatenate(
+            [
+                ranked_indices[strong[ranked_indices]],
+                ranked_indices[~strong[ranked_indices]],
+            ]
+        )
 
     # Apply diversity filter
     result = []
@@ -725,11 +687,12 @@ def rank_papers(
     recent_count = 0
     current_year = time.gmtime().tm_year
 
-    for idx in ranked_indices:
+    for idx in ordered_indices:
         p = papers[idx]
         score = float(combined[idx])
         breakdown = {
             "semantic": float(sem[idx]),
+            "facet": float(facet[idx]),
             "citation": float(cite[idx]),
             "network": float(net[idx]),
             "recency": float(rec[idx]),
@@ -763,7 +726,7 @@ def rank_papers(
         # Find recent papers not yet included
         included_ids = {p.primary_id for p, _, _ in result}
         recent_candidates = []
-        for idx in ranked_indices:
+        for idx in ordered_indices:
             p = papers[idx]
             if p.primary_id in included_ids:
                 continue

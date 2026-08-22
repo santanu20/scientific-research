@@ -41,7 +41,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 # Make _sources importable when run as a script
 sys.path.insert(0, str(Path(__file__).parent))
@@ -49,6 +49,7 @@ from _nlp import (
     expand_query as _expand_query_terms,
 )
 from _sources import (
+    _EMAIL,
     PaperRecord,
     arxiv_search,
     cache_get,
@@ -68,6 +69,23 @@ from _sources import (
 
 log = logging.getLogger("scientific_research.discover")
 
+_WEB_SEARCH_CANDIDATES = (
+    "~/.omp/agent/skills/web-search/web_search.py",
+    "~/.config/opencode/skills/web-search/web_search.py",  # legacy twin path
+)
+
+
+def _locate_web_search_script() -> str:
+    """Resolve the web-search skill script; env override wins, legacy path kept as fallback."""
+    override = os.environ.get("WEB_SEARCH_SCRIPT")
+    candidates = ([override] if override else []) + list(_WEB_SEARCH_CANDIDATES)
+    for cand in candidates:
+        path = os.path.expanduser(cand)
+        if os.path.exists(path):
+            return path
+    return os.path.expanduser(_WEB_SEARCH_CANDIDATES[0])
+
+
 # S2 search + references are tightly rate-limited (separate bucket from
 # paper/batch lookup). Drop S2 as a discovery source — use Crossref for
 # search. S2 is still used for batch DOI enrichment (Phase 1.5) and
@@ -82,127 +100,9 @@ DEFAULT_MAX_PER_SOURCE = 50  # per source; total ~100-150 after dedup
 # independently, results are merged + deduplicated.
 # =============================================================================
 
-_GEO_JOURNAL_ISSNS = [
-    # Traditional subscription journals (high-impact)
-    "0016-7037",  # Geochimica et Cosmochimica Acta
-    "0010-7999",  # Contributions to Mineralogy and Petrology
-    "0022-3530",  # Journal of Petrology
-    "0263-4929",  # Journal of Metamorphic Geology
-    "0024-4937",  # Lithos
-    "0009-2541",  # Chemical Geology
-    "0003-004X",  # American Mineralogist
-    "0012-821X",  # Earth and Planetary Science Letters
-    "0301-9268",  # Precambrian Research
-    "1342-937X",  # Gondwana Research
-    "0169-1368",  # Ore Geology Reviews
-    "0361-0128",  # Economic Geology
-    "0026-4598",  # Mineralium Deposita
-    "1674-9871",  # Journal of Earth Science
-    "0024-4949",  # Physics and Chemistry of Minerals
-    # Open-access earth science journals
-    "1869-9510",  # Solid Earth (EGU, fully OA)
-    "2611-4244",  # Geoscience Communication (EGU, OA)
-    "1866-3516",  # Earth System Science Data (EGU, OA)
-    "1991-9603",  # Geoscientific Model Development (EGU, OA)
-    "2296-6463",  # Frontiers in Earth Science (OA)
-    "2075-163X",  # Minerals (MDPI, OA)
-    "2076-3263",  # Geosciences (MDPI, OA)
-    "2045-2322",  # Scientific Reports (Nature, OA)
-    "1932-6203",  # PLOS ONE (OA)
-    "2391-5447",  # Open Geosciences (De Gruyter, OA)
-    "2365-5763",  # Acta Geochimica (Springer, OA)
-    "1525-2027",  # Geochemistry, Geophysics, Geosystems (AGU)
-    "1814-8241",  # Elements (Mineralogical Society)
-    "0040-1951",  # Tectonophysics
-    "0191-8141",  # Journal of Structural Geology
-    "1467-4866",  # Geochemical Transactions (Springer, OA)
-    "2472-3452",  # ACS Earth and Space Chemistry
-    # Additional OA + high-impact earth science journals
-    "2333-5084",  # Earth and Space Science (AGU, OA)
-    "2169-9313",  # JGR: Solid Earth (AGU)
-    "0956-540X",  # Geophysical Journal International
-    "0377-0273",  # Journal of Volcanology and Geothermal Research
-    "0258-8900",  # Bulletin of Volcanology
-    "0883-2927",  # Applied Geochemistry
-    "1866-6280",  # Environmental Earth Sciences (Springer)
-    "1553-040X",  # Geosphere (GSA)
-    "2586-1132",  # Episodes (IUGS, OA)
-    "1885-7971",  # Geologica Acta (OA)
-    "2603-4193",  # Journal of Iberian Geology (OA)
-    "2572-4525",  # Paleoceanography and Paleoclimatology (AGU)
-    "2328-4277",  # Earth's Future (AGU, OA)
-    "2471-1403",  # GeoHealth (AGU, OA)
-    "2190-4979",  # Earth System Dynamics (EGU, OA)
-    "0992-7689",  # Annales Geophysicae (EGU, OA)
-    "1561-8633",  # Natural Hazards and Earth System Sciences (EGU, OA)
-    "0025-3227",  # Marine Geology
-    "2698-5501",  # Geochronology (Copernicus, OA)
-    "0016-7606",  # GSA Bulletin
-    "0091-7613",  # Geology (GSA)
-    "0305-8719",  # Geological Society of London Special Publications
-    "1480-3291",  # Canadian Journal of Earth Sciences
-    "0812-0099",  # Australian Journal of Earth Sciences
-    "0315-0941",  # Geoscience Canada (GAC, OA)
-]
-
-# Augment with Crossref-discovered journals (dynamic, ~600 ISSNs)
-try:
-    from _geodict import get_geo_journals
-
-    _DYNAMIC_JOURNALS = get_geo_journals()
-    _GEO_JOURNAL_ISSNS = sorted(set(_GEO_JOURNAL_ISSNS + _DYNAMIC_JOURNALS))
-except Exception as e:
-    log.warning("Dynamic geo-journal augment unavailable — curated list only: %s", e)
-
-_GEO_SYNONYM_MAP: dict[str, str] = {
-    "thermometry": "geothermometry temperature calibration",
-    "barometry": "geobarometry pressure calibration",
-    "thermobarometry": "geothermobarometry P-T estimation",
-    "arc magma": "island arc basalt andesite volcanic arc",
-    "ree": "rare earth element REE geochemistry",
-    "lile": "large ion lithophile element",
-    "hfse": "high field strength element",
-    "porphyry copper": "porphyry Cu Mo hydrothermal deposit",
-    "alteration": "hydrothermal alteration mineralization",
-    "metamorphic": "metamorphism facies grade",
-    "partial melting": "anatexis melt generation mantle crust",
-    "garnet": "garnet pelitic schist eclogite",
-    "biotite": "biotite Fe-Mg exchange mineral",
-    "clinopyroxene": "clinopyroxene cpx pyroxene",
-    "lherzolite": "lherzolite peridotite mantle xenolith",
-    "subduction": "subduction zone slab dehydration fluid",
-    "metasomatism": "metasomatism fluid-rock interaction",
-    "partition coefficient": "partition coefficient KD distribution",
-    "geotherm": "geotherm geothermal gradient heat flow",
-}
-
-
-def _geo_synonym_variant(query: str) -> str | None:
-    """Build a geological synonym-expanded query variant.
-
-    Returns None if the query has no geological synonym matches.
-    Unlike _expand_search_query (which avoids expansion to prevent
-    dilution), this creates a SEPARATE query variant that runs as its
-    own parallel Crossref search — results are merged, not substituted.
-    """
-    q_lower = query.lower()
-    additions: list[str] = []
-    for term, expansion in _GEO_SYNONYM_MAP.items():
-        if term in q_lower:
-            # Only add terms NOT already in the query
-            for word in expansion.split():
-                if word.lower() not in q_lower:
-                    additions.append(word)
-    if not additions:
-        return None
-    # Cap at 8 additional words to avoid over-expansion
-    return query + " " + " ".join(additions[:8])
-
-
-# =============================================================================
-# Tiered keyword extraction + boolean AND + co-occurrence filter
-# (cherry-picked from geokit discover.py — field-agnostic, no domain term lists)
-# =============================================================================
+# Journal-ISSN boost infrastructure removed — its only consumer
+# (_crossref_journal_search) was deleted under the dynamic-context mandate.
+# _GEO_SYNONYM_MAP removed — static geology vocabulary (dynamic-context mandate, 2026-08-22).
 
 
 def _extract_key_terms(query: str) -> list[str]:
@@ -247,6 +147,19 @@ def _extract_key_terms(query: str) -> list[str]:
         "been",
         "about",
         "into",
+        "along",
+        "across",
+        "between",
+        "among",
+        "within",
+        "through",
+        "throughout",
+        "toward",
+        "towards",
+        "via",
+        "per",
+        "over",
+        "under",
         "this",
         "that",
         "these",
@@ -271,6 +184,7 @@ def _extract_key_terms(query: str) -> list[str]:
         "formation",
         "genesis",
         "comparison",
+        "comparative",
         "correlation",
         "contrast",
         "difference",
@@ -287,6 +201,18 @@ def _extract_key_terms(query: str) -> list[str]:
 
     raw_words = _re.split(r"[\s\-]+", query.strip())
 
+    # Dynamic Title-Case detection: when most words are capitalized
+    # (e.g. "Comparative Petrographic Analysis of the ... Dykes"),
+    # capitalization carries ZERO information — treating every word as a
+    # proper noun poisoned the AND-query with generic terms and truncated
+    # real place-name discriminators away (2026-08-22 fix).
+    alpha_words = [w for w in raw_words if w and w[0].isalpha()]
+    title_case = (
+        sum(1 for w in alpha_words if w[0].isupper()) / len(alpha_words) > 0.6
+        if alpha_words
+        else False
+    )
+
     required_terms: list[str] = []  # Tier 1: proper nouns (strict AND)
     important_terms: list[str] = []  # Tier 2: domain nouns (should match)
     for w in raw_words:
@@ -297,18 +223,20 @@ def _extract_key_terms(query: str) -> list[str]:
         if w_lower in _STOP_WORDS:
             continue
 
-        if w_clean[0].isupper():
+        # Generic-concept filter runs FIRST: a broad-concept word stays
+        # optional even when the query is Title Case ("Analysis" must
+        # never masquerade as a proper noun).
+        if w_lower in _OPTIONAL_TERMS:
+            continue
+
+        if not title_case and w_clean[0].isupper():
             if w_clean not in required_terms:
                 required_terms.append(w_clean)
-        elif w_lower in _OPTIONAL_TERMS:
-            continue
         else:
-            if w_clean not in important_terms:
-                important_terms.append(w_clean)
+            if w_lower not in important_terms:
+                important_terms.append(w_lower)
 
     key_terms = required_terms + important_terms
-    if len(key_terms) > 4:
-        key_terms = key_terms[:4]
     return key_terms
 
 
@@ -320,7 +248,10 @@ def _build_and_query(query: str) -> str:
 
     This prevents APIs from returning 50k+ papers mentioning just one term.
     """
-    key_terms = _extract_key_terms(query)
+    # Shape here, not in the extractor: co-occurrence needs the FULL term
+    # list; the API AND-query wants only the top few discriminators
+    # (proper-noun tier sorts ahead of content words).
+    key_terms = _extract_key_terms(query)[:4]
     if len(key_terms) <= 1:
         return query
     and_query = " AND ".join(key_terms)
@@ -383,47 +314,125 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
         return papers
 
     def _forms(t: str) -> list[str]:
+        """Surface-form variants (language morphology only — no vocabulary).
+
+        Substring matching means a SHORTER variant also catches its own
+        derivatives ("basalt" matches "basaltic"), so suffix-stripped
+        bases strictly widen recall without false-negative risk.
+        """
         tl = t.lower()
-        forms = [tl]
-        if tl.endswith("s") and len(tl) > 4:
-            forms.append(tl[:-1])
+        forms = {tl}
+        if tl.endswith("ies") and len(tl) > 5:
+            forms.update({tl[:-3] + "y", tl[:-1]})
+        elif tl.endswith("s") and len(tl) > 4:
+            forms.add(tl[:-1])
         elif not tl.endswith("s"):
-            forms.append(tl + "s")
-        return forms
+            forms.add(tl + "s")
+        if tl.endswith("ical") and len(tl) > 6:
+            forms.add(tl[:-2])  # geological → geologic
+        if tl.endswith("ing") and len(tl) > 6:
+            forms.add(tl[:-3])          # weathering → weather (matches weathered)
+        if tl.endswith("ed") and len(tl) > 5:
+            forms.add(tl[:-2])          # weathered → weather
+        if tl.endswith("ic") and len(tl) > 4:
+            forms.add(tl[:-2])          # basaltic → basalt
+            forms.add(tl[:-1])          # ...and basalti- substring safety
+        return list(forms)
 
     term_forms = {t: _forms(t) for t in key_terms}
     n_docs = max(len(papers), 1)
 
     def _doc_text(p) -> str:
-        return (
-            (getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")
-        ).lower()
+        return ((getattr(p, "title", "") or "") + " " + (getattr(p, "abstract", "") or "")).lower()
 
-    # IDF over the candidate pool itself
-    idf: dict[str, float] = {}
+    # IDF over the candidate pool itself. Terms with ZERO document
+    # frequency are unverifiable against this pool — keeping them in the
+    # denominator inflated the cutoff with phantom mass and let generic-
+    # word papers slip through while unreachable place names punished
+    # everything (2026-08-22). They are dropped and logged instead.
+    dfs: dict[str, int] = {}
     for t, forms in term_forms.items():
-        df = sum(1 for p in papers if any(f in _doc_text(p) for f in forms))
+        dfs[t] = sum(1 for p in papers if any(f in _doc_text(p) for f in forms))
+    # A term needs >=2 pool confirmations to act as a scorer. On SMALL
+    # pools df==1 generic prose ("selected", "area") wears an IDF crown
+    # and can even become a HEAD term — so df==1 terms are dropped
+    # whenever at least two multi-confirmed terms exist to score against;
+    # below that, no statistics exist and the filter stands down.
+    multi_confirmed = sum(1 for d in dfs.values() if d >= 2)
+
+    idf: dict[str, float] = {}
+    dropped_unverified: list[str] = []
+    for t, forms in term_forms.items():
+        df = dfs[t]
+        if df == 0 or (df == 1 and multi_confirmed >= 2):
+            dropped_unverified.append(t)
+            continue
         idf[t] = math.log((n_docs + 1) / (df + 1)) + 1.0  # smoothed, ≥1
 
+    if dropped_unverified:
+        log.info(
+            "Co-occurrence: %d query term(s) absent from whole pool — "
+            "excluded from scoring: %s",
+            len(dropped_unverified),
+            ", ".join(dropped_unverified),
+        )
+    if not idf:
+        # Pool shares ZERO verifiable query vocabulary — retrieval failure.
+        # Reject loudly (empty list triggers the designed 2→1 re-scope loop)
+        # instead of waving junk through (restores B1 pin semantics).
+        log.warning("Co-occurrence: no query term found anywhere in pool")
+        return []
+    if len(idf) == 1:
+        return papers
+
     total_mass = sum(idf.values())
-    cutoff = 0.5 * total_mass
+
+    # Coverage bar: mass share AND distinct-term count. Mass alone over-
+    # requires when several mid-frequency words split the denominator
+    # (Title-Case queries ship 6-7 terms); the count guard keeps single-
+    # common-word papers out.
+    COVERAGE = 0.45
+    MIN_MATCHED = 2
+    if log.isEnabledFor(logging.DEBUG):
+        for t_ in sorted(idf, key=idf.get, reverse=True):
+            df_ = sum(
+                1 for p in papers
+                if any(f in _doc_text(p) for f in term_forms[t_])
+            )
+            log.debug("coocc term %-18s df=%d idf=%.2f", t_, df_, idf[t_])
 
     filtered = []
     rejected = 0
     for p in papers:
         text = _doc_text(p)
-        matched_mass = sum(
-            idf[t] for t, forms in term_forms.items() if any(f in text for f in forms)
-        )
-        if matched_mass >= cutoff:
+        matched_terms = [
+            t for t, forms in term_forms.items()
+            if t in idf and any(f in text for f in forms)
+        ]
+        matched_mass = sum(idf[t] for t in matched_terms)
+        # Head-term rule: at least one match among the two highest-IDF
+        # verified terms. Generic-word-only matches ("selected", "area")
+        # can no longer clear the bar on dilution arithmetic alone.
+        head_ok = True
+        if idf and matched_terms:
+            ranked_terms = sorted(idf, key=idf.get, reverse=True)
+            head_set = set(ranked_terms[:2])
+            head_ok = bool(head_set & set(matched_terms))
+        elif not matched_terms:
+            head_ok = False
+        if (
+            matched_mass >= COVERAGE * total_mass
+            and len(matched_terms) >= MIN_MATCHED
+            and head_ok
+        ):
             filtered.append(p)
         else:
             rejected += 1
 
     if rejected > 0:
         log.info(
-            "Co-occurrence filter (IDF-weighted, cutoff %.2f/%.2f): kept %d/%d, rejected %d",
-            cutoff,
+            "Co-occurrence filter (coverage %.0f%% of %.2f + >=2 terms): kept %d/%d, rejected %d",
+            COVERAGE * 100,
             total_mass,
             len(filtered),
             len(papers),
@@ -433,25 +442,19 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
 
 
 def _crossref_journal_search(query: str, max_results: int = 15) -> list:
-    """Search Crossref boosted by geological journal container-titles.
+    """Second Crossref pass (relevance-sorted duplicate of the main query).
 
-    Uses habanero's query_bibliographic parameter to boost papers from
-    top geological journals (GCA, CMP, JP, Lithos, Am Min, Chem Geol).
+    Historical note: this used to inject a hardcoded petrology-journal
+    bibliographic boost into EVERY geoscience query, which starved
+    hydro/geomorph/environmental topics of their true hits (2026-08-22).
+    The boost is gone; the dynamic domain gate downstream owns relevance.
     """
     from habanero import Crossref
 
-    journal_boost = (
-        "Contributions to Mineralogy and Petrology "
-        "Geochimica et Cosmochimica Acta "
-        "Lithos Journal of Petrology "
-        "American Mineralogist Chemical Geology "
-        "Journal of Metamorphic Geology Ore Geology Reviews"
-    )
     try:
-        cr = Crossref(mailto="geokit@dev")
+        cr = Crossref(mailto=_EMAIL)
         res = cr.works(
             query=query,
-            query_bibliographic=journal_boost,
             limit=max_results,
             sort="relevance",
             select=[
@@ -466,7 +469,9 @@ def _crossref_journal_search(query: str, max_results: int = 15) -> list:
                 "is-referenced-by-count",
             ],
         )
-        items = res.get("message", {}).get("items", [])
+        # habanero works() is typed dict | list; query form returns dict.
+        res_msg = res if isinstance(res, dict) else {}
+        items = res_msg.get("message", {}).get("items", [])
         records = []
         for item in items:
             rec = _crossref_item_to_record(item)
@@ -529,9 +534,7 @@ def _crossref_item_to_record(item: dict, source: str = "crossref"):
             abstract=abstract,
             authors=authors,
             year=year,
-            venue=item.get("container-title", [""])[0]
-            if item.get("container-title")
-            else "",
+            venue=item.get("container-title", [""])[0] if item.get("container-title") else "",
             type=item.get("type", ""),
             source=source,
             sources_seen=seen,
@@ -541,9 +544,39 @@ def _crossref_item_to_record(item: dict, source: str = "crossref"):
         return None
 
 
-def web_search_paper_discovery(
-    query: str, max_results: int = 15, force_refresh: bool = False
-) -> list:
+def _clean_harvested_doi(raw: str) -> str:
+    """Strip trailing punctuation/brackets that regex harvesting picks up."""
+    doi = raw.rstrip(".,;:)\\]}\"'").lower()
+    while doi and doi.count("(") > doi.count(")"):
+        doi = doi[:-1]
+    return doi
+
+
+def _content_tokens(query: str) -> set[str]:
+    """Content tokens (>=4 chars) of the query — dynamic, no vocabulary."""
+    try:
+        from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
+        stop = set(ENGLISH_STOP_WORDS)
+    except ImportError:  # pragma: no cover - sklearn is a hard dep
+        stop = set()
+
+    return {tok for tok in re.findall(r"[a-z0-9]+", query.lower()) if len(tok) >= 4 and tok not in stop}
+
+
+def _query_overlap_ok(record: object, query_tokens: set[str]) -> bool:
+    """Dynamic relevance gate: record text must share >=1 content token.
+
+    With <=3 query tokens (very narrow questions), require zero-tolerance
+    is too strict — any single overlap still passes. No field lists used.
+    """
+    if not query_tokens:
+        return True
+    text = ((getattr(record, "title", "") or "") + " " + (getattr(record, "abstract", "") or "")).lower()
+    return any(tok in text for tok in query_tokens)
+
+
+def web_search_paper_discovery(query: str, max_results: int = 15, force_refresh: bool = False) -> list:
     """SOTA paper discovery via web-search skill subprocess.
 
     Uses the web-search skill's full infrastructure: 9 metasearch backends
@@ -560,7 +593,7 @@ def web_search_paper_discovery(
 
     import subprocess as _sp
 
-    SCRIPT = os.path.expanduser("~/.config/opencode/skills/web-search/web_search.py")
+    SCRIPT = _locate_web_search_script()
     if not os.path.exists(SCRIPT):
         log.warning("web-search skill not found at %s — skipping", SCRIPT)
         return []
@@ -598,9 +631,7 @@ def web_search_paper_discovery(
         return []
 
     if proc.returncode != 0:
-        log.warning(
-            "web-search failed (exit %d): %s", proc.returncode, proc.stderr[:200]
-        )
+        log.warning("web-search failed (exit %d): %s", proc.returncode, proc.stderr[:200])
         return []
 
     try:
@@ -613,13 +644,15 @@ def web_search_paper_discovery(
     if not results:
         return []
 
-    # Extract DOIs from result URLs/snippets/titles
+    # Extract DOIs from result URLs/snippets/titles.
+    # Snippets routinely cite OTHER papers' DOIs, so every harvested DOI is
+    # later gated by a query-overlap check after Crossref resolution (F4).
     doi_pattern = re.compile(r"10\.\d{4,9}/[^\s\"<>]+", re.IGNORECASE)
     found_dois: set[str] = set()
     for r in results:
         text = f"{r.get('href', '')} {r.get('body', '')} {r.get('title', '')}"
         for m in doi_pattern.finditer(text):
-            found_dois.add(m.group().rstrip(".,;)").lower())
+            found_dois.add(_clean_harvested_doi(m.group()))
 
     if not found_dois:
         log.debug("web_search: %d results but 0 DOIs", len(results))
@@ -635,24 +668,34 @@ def web_search_paper_discovery(
     resolved: list = []
     from habanero import Crossref  # HARD dep
 
-    cr = Crossref(mailto="geokit@dev")
+    cr = Crossref(mailto=_EMAIL)
+    query_tokens = _content_tokens(query)
+    dropped_offtopic = 0
     for doi in list(found_dois)[:max_results]:
         try:
             item = cr.works(ids=doi)
-            if item and item.get("message"):
+            # habanero works(ids=) typed dict | list; DOI path returns dict.
+            if isinstance(item, dict) and item.get("message"):
                 record = _crossref_item_to_record(item["message"], source="web_search")
-                if record:
-                    resolved.append(record)
+                if record is None:
+                    continue
+                if not _query_overlap_ok(record, query_tokens):
+                    dropped_offtopic += 1
+                    continue
+                resolved.append(record)
         except Exception:
             continue
 
+    if dropped_offtopic:
+        log.info(
+            "web_search relevance gate: dropped %d citation-noise paper(s) (zero query-term overlap)",
+            dropped_offtopic,
+        )
     log.info("web_search: resolved %d/%d papers", len(resolved), len(found_dois))
     return resolved
 
 
-def web_search_agentic_discovery(
-    query: str, max_results: int = 15, force_refresh: bool = False
-) -> list:
+def web_search_agentic_discovery(query: str, max_results: int = 15, force_refresh: bool = False) -> list:
     """Deep site-specific paper discovery via web-search agentic --adaptive mode.
 
     Uses Crawl4AI's AdaptiveCrawler to semantically crawl the top search hit
@@ -671,7 +714,7 @@ def web_search_agentic_discovery(
     """
     import subprocess as _sp
 
-    SCRIPT = os.path.expanduser("~/.config/opencode/skills/web-search/web_search.py")
+    SCRIPT = _locate_web_search_script()
     if not os.path.exists(SCRIPT):
         log.warning("web-search skill not found at %s — skipping agentic", SCRIPT)
         return []
@@ -724,9 +767,7 @@ def web_search_agentic_discovery(
     # Collect text from ALL result tiers: search hits, extracted pages, adaptive crawl
     text_sources: list[str] = []
     for r in data.get("results", []):
-        text_sources.append(
-            f"{r.get('href', '')} {r.get('body', '')} {r.get('title', '')}"
-        )
+        text_sources.append(f"{r.get('href', '')} {r.get('body', '')} {r.get('title', '')}")
     for e in data.get("extracted", []):
         text_sources.append((e.get("content") or "")[:5000])
     ap = data.get("adaptive", {})
@@ -761,14 +802,13 @@ def web_search_agentic_discovery(
     resolved: list = []
     from habanero import Crossref  # HARD dep
 
-    cr = Crossref(mailto="geokit@dev")
+    cr = Crossref(mailto=_EMAIL)
     for doi in list(found_dois)[:max_results]:
         try:
             item = cr.works(ids=doi)
-            if item and item.get("message"):
-                record = _crossref_item_to_record(
-                    item["message"], source="web_search_agentic"
-                )
+            # habanero works(ids=) typed dict | list; DOI path returns dict.
+            if isinstance(item, dict) and item.get("message"):
+                record = _crossref_item_to_record(item["message"], source="web_search_agentic")
                 if record:
                     resolved.append(record)
         except Exception:
@@ -785,267 +825,22 @@ def web_search_agentic_discovery(
 
 # =============================================================================
 
-# Strong non-geoscience signals — if present, paper is NOT geoscience
-_GEO_EXCLUSION = re.compile(
-    r"\b(?:magnetic\s+garnet|yttrium\s+iron\s+garnet|\bYIG\b|"
-    r"spintronic|spintronics|"
-    r"semiconductor|thin\s+film|epitax\w*|"
-    r"magneto-optic|magnetoelastic|"
-    r"microwave\s+(?:device|circuit|filter|resonator)|antenna|"
-    r"photonic|plasmonic|metamaterial|"
-    r"neural\s+network|deep\s+learning|machine\s+learning|"
-    r"graph\s+neural|computer\s+vision|image\s+segmentation|"
-    r"robot(?:ics|ic)?|autonomous|"
-    r"lithium.(?:ion|battery)|electrode|cathode|anode|"
-    r"quantum\s+(?:dot|well|hall|cascade|computing)|"
-    r"superconduct(?:or|ivity|ing)|"
-    r"ferrimagnet\w*|antiferromagnet\w*|ferromagnet\w*|"
-    r"topological\s+insulator|"
-    r"nano(?:wire|particle|tube|rod|crystal)|"
-    r"biosensor|gas\s+sensor|"
-    r"\bLED\b|photodetector|solar\s+cell|"
-    r"Czochralski|Bridgman|flux\s+growth|"
-    r"laser\s+(?:medium|crystal|host|cooling)|"
-    r"optical\s+(?:pump|fiber|fibre|waveguide|cavity|interconnect)|"
-    r"rare.Earth\s+doped|Nd:\w|Yb:\w|Er:\w|Tm:\w|"
-    r"upconversion|downconversion|"
-    r"scintillator|phosphor|luminescen|"
-    r"Perovskite\s+solar|perovskite\s+(?:device|LED|detector)|"
-    r"waste.water|pollut.?(?:removal|degradation)|"
-    r"catalytic|photocatalytic|electrocatalytic|"
-    r"anode.material|cathode.material|battery.material|"
-    r"clinical\s+(?:trial|study|outcome)|patient\s+(?:outcome|survival)|"
-    r"disease|therapeutic|tumor|cancer|drug\s+delivery|"
-    r"dosage|treatment\s+group|placebo|symptom|diagnosis|"
-    r"surgical|implant|prosthesis|stent|"
-    r"algorithm\s+(?:design|analysis|complexity|implementation)|"
-    r"software\s+(?:engineer|framework|architecture|design\s+pattern)|"
-    r"benchmark\s+dataset|\bGPU\b|\bCPU\b|database\s+query|"
-    r"compiler|runtime\s+(?:error|environment)|"
-    r"blockchain|cryptocurrency|smart\s+contract|"
-    r"copolymer|cross.link|polymerization|monomer|"
-    r"aerodynam|propulsion|turbine\s+blade|combustion\s+chamber|nozzle|"
-    r"food\s+(?:science|quality|safety)|nutritional|dietary|antioxidant|"
-    r"fermentation\s+(?:process|product)|vitamin|"
-    r"wireless\s+(?:network|communication|sensor)|5G|\bLTE\b|"
-    r"power\s+electronics|motor\s+drive|invertor|"
-    r"image\s+(?:processing|recognition|classif)|"
-    r"natural\s+language|sentiment\s+analysis|chatbot|"
-    r"lattice\s+(?:QCD|gauge|model|field|theory|gas|action|dynamics)|"
-    r"\bIsing\s+(?:model|exactly|universal|critical|spin|2d|3d)\b|"
-    r"\bBose\s+(?:gas|Einstein|condensat|Hubbard)\b|"
-    r"\bself.avoiding\s+walk\b|"
-    r"\bCoulomb\s+gas\b|"
-    r"\bpolymer\s+(?:adsorption|chain|model|solution|melt|brush|blend)\b|"
-    r"\bpartition\s+function\b|"
-    r"\bHamiltonian\s+(?:dynamics|system|matrix|mechanics)\b|"
-    r"\bthermodynamic\s+limit\b|"
-    r"\brenormali[sz]ation\s+group\b|"
-    r"\bmean\s+field\s+(?:theory|approximation|model)\b|"
-    r"\batmospheric\s+(?:model|chemistry|transport|circulation|science)\b|"
-    r"\bclimate\s+model\b|"
-    r"\bnumerical\s+weather\s+prediction\b|"
-    r"\btropospheric\b|"
-    r"\bstratospheric\b|"
-    r"\badsorption\s+isotherm\b|"
-    r"\bexactly\s+solvable\b|"
-    r"\bprotein\s+(?:folding|structure|interaction|binding)\b|"
-    r"\bcell\s+(?:membrane|signaling|cycle|division|culture|line)\b|"
-    r"\bDNA\s+(?:sequencing|repair|replication)\b|"
-    r"\bRNA\s+(?:sequencing|splicing|interference)\b|"
-    r"\benzyme\s+(?:kinetics|catalysis)\b|"
-    r"\bantibody\b|"
-    r"\bapoptosis\b|"
-    r"\bmetabolomics\b|"
-    r"\bproteomics\b|"
-    r"\bgenomics\b|"
-    # Additional stat-mech / math / physics terms
-    r"\bYang.Lee\b|"
-    r"\bhard.core\s+(?:model|lattice|particle|gas|interaction)\b|"
-    r"\bfermion\w*\b|"
-    r"\bquark\w*\b|"
-    r"\bgraph\s+theory\b|"
-    r"\bcombinatorial\b|"
-    r"\bmultimedia\s+fugacity\s+model\b|"
-    r"\bhard.sphere\b|"
-    r"\bLennard.Jones\b|"
-    r"\bVan.der.Waals\b|"
-    r"\bMonte\s+Carlo\s+(?:simulation|study).*(?:lattice|spin|gas|polymer|Ising|particle)\b|"
-    r"\bcondensed\s+matter\b|"
-    r"\bmany.body\s+(?:problem|system|theory|physics)\b|"
-    r"\bquantum\s+(?:field\s+theory|chromodynamic|electrodynam|gravity)\b|"
-    r"\bstochastic\s+(?:process|differential|equation)\b|"
-    r"\bErd\w*s.R\u00e9nyi\b|"
-    r"\bdegree\s+distribution.*(?:graph|network|node)\b|"
-    r"\bscale.free\s+network\b|"
-    r"\bpercolation\s+(?:theory|threshold|model|cluster)\b|"
-    r"\basbestos\b|"
-    r"\bchrysotile\b|"
-    r"\bmesothelioma\b|"
-    r"\bxenon\s+(?:compound|sodium|chemistry)\b|"
-    r"\bdislocation\s+creep\b|"
-    r"\blattice.preferred\s+orientation\b"
-    r")\b",
-    re.IGNORECASE,
-)
 
 # Geoscience query signals — when present in query, activate geo filtering
-_GEO_QUERY_SIGNALS = re.compile(
-    r"\b(?:thermobar|geotherm|petrolog|metamorph|geochron|tecton|"
-    r"crustal|mantle|mineral\s+assemblage|facies|"
-    r"schist|gneiss|eclogite|amphibolite|granulite|peridotite|"
-    r"subduct|orogen|fault\s+rock|mylonite|shear\s+zone|"
-    r"pressure.temperature|P.T\s+path|kbar|"
-    r"garnet|pyroxene|amphibole|olivine|feldspar|"
-    r"mica|quartz|epidote|diamond|coesite|"
-    r"titanite|monazite|zircon|apatite|spinel|corundum|"
-    r"geothermobarometr|geospeedometr|diffusion\s+chronometry|"
-    r"phase\s+equilibri|pseudosection|THERMOCALC|Perple_X|"
-    r"inclusion|entrapment\s+pressure|"
-    r"metapelit|metabas|ultrahigh.pressure|\bUHP\b|"
-    r"retrograde|prograde|exhumation|"
-    r"seism|earthquake|magnitude|\bVp\b|\bVs\b|"
-    r"volcan|eruption|magma|lava|"
-    r"sediment|stratigraph|depositional|facies|"
-    r"basin|delta|submarine|"
-    r"groundwater|aquifer|hydrogeolog|"
-    r"mineraliz|ore\s+deposit|hydrothermal|"
-    r"structural\s+geolog|stress\s+inversion|paleostress|strain|"
-    r"paleomagnet|magnetic\s+fabric|"
-    r"gravity\s+(?:survey|anomal)|magnetic\s+anomal|"
-    r"borehole|drilling|\bODP\b|\bIODP\b|"
-    r"geochem|isotope|\bSr\b.*\bNd\b|trace\s+element|"
-    r"weathering|erosion|geomorpholog|"
-    r"diagen|cementation|porosity|permeab|"
-    r"sulfur\s+fugacit\w*|sulphur\s+fugacit\w*|oxygen\s+fugacit\w*|"
-    r"\bredox\b|redox\s+state|redox\s+condition|"
-    r"sulfide|sulphide|pyrrhotite|pentlandite|anhydrite|"
-    r"scapolite|magmatic\s+volatile|degassing|ore.forming|"
-    r"\bMELTS\b|alphaMELTS|sulfur\s+concentrat|"
-    r"\bfS2\b|\bfO2\b|"
-    r"\bFMQ\b|fayalite.magnetite.quartz|"
-    r"\bNNO\b|\bIW\b|\bQFM\b)"
-    r"\b",
-    re.IGNORECASE,
-)
-
-# Geoscience paper signals — paper must have at least one to be relevant
-_GEO_PAPER_SIGNALS = re.compile(
-    r"\b(?:metamorph|petrolog|geolog|geochron|tecton|crustal|mantle|"
-    r"facies|mineral\s+assemblage|"
-    r"schist|gneiss|eclogite|amphibolite|granulite|peridotite|basalt|"
-    r"subduct|orogen|fault|shear|cleavage|fabric|"
-    r"pressure.temperature|P.T\s+(?:path|estimate|condition)|"
-    r"kbar|MPa(?!.Pa)|GPa(?!.Pa)|"
-    r"garnet\s+(?:bearing|growth|zoning|composit|resorption)|"
-    r"Fe.Mg\s+(?:exchange|partition|thermomet)|"
-    r"geothermobarometr|geospeedometr|"
-    r"phase\s+equilibri|pseudosection|THERMOCALC|Perple_X|"
-    r"inclusion\s+(?:in|host)|entrapment|Raman\s+spectroscop|"
-    r"retrograde|prograde|metapelit|metabas|"
-    r"\bUHP\b|ultrahigh.pressure|exhumation|"
-    r"clinopyroxene|orthopyroxene|hornblende|biotite|muscovite|chlorite|"
-    r"staurolite|cordierite|sillimanite|kyanite|andalusite|"
-    r"crust|lithosphere|asthenosphere|"
-    r"sulfur\s+fugacit\w*|sulphur\s+fugacit\w*|oxygen\s+fugacit\w*|"
-    r"\bfS2\b|\bfO2\b|"
-    r"redox\s+(?:state|condition|buffer)|"
-    r"sulfide\s+saturation|pyrrhotite|pentlandite|anhydrite|"
-    r"magmatic\s+volatile|degassing|ore.forming|"
-    r"\bMELTS\b|alphaMELTS|sulfur\s+(?:concentrat|speciat)|"
-    r"\bFMQ\b|fayalite.magnetite.quartz|"
-    r"\bNNO\b|\bIW\b|\bQFM\b|"
-    r"magma.*(?:chamber|evolution|ascent)|arc\s+magma|"
-    r"mantle.*(?:xenolith|peridotite|source)|"
-    r"xenolith|chalcophile|hydrothermal.*sulfide|"
-    r"EPMA|LA.ICP.MS|Mossbauer|XANES|microprobe|"
-    r"\bmantle\b|\bcrust\b|\btectonic\b|structural\s+geolog|"
-    r"fault\s+zone|shear\s+zone|\bigneous\b|\bvolcanic\b|"
-    r"\bsedimentary\b|metamorphi|\bolivine\b|\bperidotite\b|"
-    r"\bgarnets?\b|\bpyroxenes?\b|\bmagma\b|\bmagmas\b|\bmelts?\b|"
-    r"amphiboles?\b|thermobarometr\w*|geothermomet\w*|hornblendes?\b|"
-    r"experimental\s+petrolog|petrolog|geochem|geophysic|"
-    r"volcanolog|sedimentolog|paleomagnet|geochronolog|"
-    r"mineraliz|hydrothermal|ore\s+deposit)\b",
-    re.IGNORECASE,
-)
 
 
 # Ambiguous terms shared between geology and physics/chemistry/biology
-_AMBIGUOUS_TERMS = frozenset(
-    {
-        "fugacity",
-        "viscosity",
-        "diffusion",
-        "stress",
-        "strain",
-        "conductivity",
-        "permeability",
-        "porosity",
-        "density",
-        "gradient",
-        "anisotropy",
-        "partition",
-        "solubility",
-        "adsorption",
-        "absorption",
-        "saturation",
-        "crystallization",
-        "precipitation",
-        "weathering",
-        "erosion",
-        "magnetization",
-        "susceptibility",
-        "attenuation",
-        "tomography",
-        "inversion",
-        "fracture",
-    }
-)
-
-_STRONG_GEO_CONTEXT = re.compile(
-    r"\b(?:garnet|pyroxene|amphibole|olivine|feldspar|mica|quartz|"
-    r"metamorphi|igneou|sedimentar|volcani|"
-    r"mantle|crustal|orogeni|subduct|"
-    r"eclogite|granulite|amphibolite|peridotite|basalt|"
-    r"thermobarometr|geothermobarometr|pseudosection|"
-    r"seismolog|volcanolog|sedimentolog|geochronolog)\b",
-    re.IGNORECASE,
-)
 
 
 def _expand_search_query(query: str) -> str:
-    """Expand query with disambiguating context for ambiguous non-geoscience terms.
+    """Return the query unchanged.
 
-    Intent-aware expansion (synonyms, landmarks, method terms) is intentionally
-    NOT used for API search — it was found to dilute the query with 50+ terms,
-    reducing Crossref results from 10 to 3 and OpenAlex from 10 to 0.
-
-    Post-search ranking handles relevance without hurting discovery yield:
-    - intent_filter (pipeline.py:142) — removes peripheral concepts
-    - intent_boost (_ranking.py) — boosts landmark authors + must-have terms
-    - semantic_relevance_scores (pipeline.py:190) — TF-IDF/BGE on original query
+    2026-08-22 dynamic-context mandate: the former geology-ontology
+    expansion (geo-signal gates + ambiguous-term append of eight geology
+    words) injected static discipline context into API searches. Ranking,
+    facet coverage and the topical gate own relevance dynamically now.
+    Kept as identity for call-site stability.
     """
-    if not query:
-        return query
-
-    # Ontology expansion (for ambiguous terms only)
-    q_lower = query.lower()
-    if not _GEO_QUERY_SIGNALS.search(q_lower):
-        return query
-    if _STRONG_GEO_CONTEXT.search(q_lower):
-        return query
-    query_words = set(q_lower.split())
-    if query_words & _AMBIGUOUS_TERMS:
-        from _ontology import expand_query_with_ontology  # internal module
-
-        expanded = expand_query_with_ontology(query)
-        if expanded != query:
-            return expanded
-        return (
-            query
-            + " geology petrology geochemistry mantle magma mineral metamorphic volcanic"
-        )
     return query
 
 
@@ -1055,73 +850,34 @@ def _expand_search_query(query: str) -> str:
 # =============================================================================
 
 
-def _is_domain_relevant(paper: object, query: str) -> bool:
-    """Check if paper is relevant to the query's scientific domain.
+def _is_domain_relevant(paper: Any, query: str) -> bool:
+    """Dynamic topical-consistency gate (field-agnostic since 2026-08-22).
 
-    For geoscience queries, filters out materials-science, CS, and physics
-    papers that share mineral names (e.g., 'garnet') but belong to unrelated
-    fields.  For non-geoscience queries, always returns True.
+    Replaces the former geology-signal tables: a paper is relevant iff it
+    shares enough of THE QUERY'S OWN content vocabulary — at least 20% of
+    the query's content tokens, minimum 2. No discipline word lists
+    participate; the same rule governs every field.
     """
     if not query:
         return True
-    q_lower = query.lower()
-
-    # Only apply domain filtering for geoscience queries
-    if not _GEO_QUERY_SIGNALS.search(q_lower):
+    text = (
+        (getattr(paper, "title", "") or "")
+        + " "
+        + (getattr(paper, "abstract", "") or "")
+    ).lower()
+    q_tokens = sorted(_content_tokens(query))
+    if not q_tokens:
         return True
-
-    # Get paper text
-    title = ""
-    abstract = ""
-    if hasattr(paper, "title"):
-        title = (paper.title or "").lower()
-        abstract = (paper.abstract or "").lower()
-    elif isinstance(paper, dict):
-        title = (paper.get("title") or "").lower()
-        abstract = (paper.get("abstract") or "").lower()
-    text = f"{title} {abstract}"
-
-    # Count geoscience signals FIRST (needed for soft exclusions below)
-    geo_signal_count = len(_GEO_PAPER_SIGNALS.findall(text))
-
-    # Exclude papers with strong non-geoscience signals. BUG FIX 2026-08-15:
-    # ML/DL/NN terms were HARD exclusions — they rejected legitimate
-    # ML-applied-to-geoscience papers ("Machine learning thermobarometry...")
-    # which a modern review must include. ML terms are now SOFT: excluded
-    # only when geoscience evidence is thin (< 2 signals). All other
-    # exclusion terms stay hard.
-    _ML_SOFT = (
-        "machine learning",
-        "deep learning",
-        "neural network",
-        "graph neural",
-        "computer vision",
-        "image segmentation",
-    )
-    for m in _GEO_EXCLUSION.finditer(text):
-        term = m.group(0).lower()
-        if term in _ML_SOFT:
-            if geo_signal_count < 2:
-                return False
-            continue  # ML term + strong geo evidence = methods paper, keep
-        return False  # hard exclusion
-    query_words = set(q_lower.split())
-    ambiguous_overlap = query_words & _AMBIGUOUS_TERMS
-    is_ambiguous = bool(ambiguous_overlap)
-    # Scale threshold by ambiguity: more ambiguous = require more evidence
-    if is_ambiguous:
-        min_signals = 2
-    else:
-        min_signals = 1
-    if geo_signal_count < min_signals:
+    need = max(2, -(-len(q_tokens) * 20 // 100))  # ceil(20%), floor 2
+    hits = sum(1 for tok in q_tokens if tok in text)
+    if hits < need:
+        log.debug(
+            "Domain gate: rejected (%d/%d query-term hits): %.70s",
+            hits,
+            need,
+            text.strip() or "<no title/abstract>",
+        )
         return False
-
-    # Additional check: ontology domain penalty (catches patterns _GEO_EXCLUSION misses)
-    from _ontology import domain_penalty  # internal module
-
-    if domain_penalty(text) == 0.0:
-        return False
-
     return True
 
 
@@ -1159,7 +915,8 @@ def search_multi_source(
         filters = dict(filters)
         filters["original_query"] = original_query
 
-    sources = sources or DEFAULT_SOURCES.split(",")
+    # Sequence (covariant) - pyright infers the split() branch as list[LiteralString].
+    active_sources: Sequence[str] = sources if sources else DEFAULT_SOURCES.split(",")
     out: list[PaperRecord] = []
 
     # Agentic crawl takes 60-180s (browser + AdaptiveCrawler); bump per-source timeout.
@@ -1185,18 +942,16 @@ def search_multi_source(
             oa_filter["type"] = filters["publication_type"]
 
     source_calls: dict[str, Any] = {}
-    if "crossref" in sources:
+    if "crossref" in active_sources:
         source_calls["crossref"] = lambda: crossref_search(
             expanded_query, max_results=max_per_source, filter_dict=cr_filter or None
         )
-    if "openalex" in sources:
+    if "openalex" in active_sources:
         # Two-mode OpenAlex search: semantic (AI relevance) + keyword (filterable).
         # Semantic search uses OpenAlex embeddings for better recall; keyword
         # search supports year/OA/type filters. Run BOTH when filters are set
         # and merge results for maximum coverage + precision.
-        if oa_filter or (
-            filters and (filters.get("year_from") or filters.get("year_to"))
-        ):
+        if oa_filter or (filters and (filters.get("year_from") or filters.get("year_to"))):
             # Filters require keyword search (semantic API ignores filters)
             source_calls["openalex"] = lambda: openalex_search(
                 expanded_query,
@@ -1210,43 +965,28 @@ def search_multi_source(
             )
         else:
             # No filters — semantic search gives better recall
-            source_calls["openalex"] = lambda: openalex_semantic_search(
-                expanded_query, max_results=max_per_source
-            )
-    if "s2" in sources:
-        source_calls["s2"] = lambda: s2_search(
-            expanded_query, max_results=max_per_source
-        )
-    if "eartharxiv" in sources:
+            source_calls["openalex"] = lambda: openalex_semantic_search(expanded_query, max_results=max_per_source)
+    if "s2" in active_sources:
+        source_calls["s2"] = lambda: s2_search(expanded_query, max_results=max_per_source)
+    if "eartharxiv" in active_sources:
         from _sources import eartharxiv_search
 
-        source_calls["eartharxiv"] = lambda: eartharxiv_search(
-            expanded_query, max_results=max_per_source
-        )
-    if "usgs" in sources:
+        source_calls["eartharxiv"] = lambda: eartharxiv_search(expanded_query, max_results=max_per_source)
+    if "usgs" in active_sources:
         from _sources import usgs_search
 
-        source_calls["usgs"] = lambda: usgs_search(
-            expanded_query, max_results=max_per_source
-        )
-    if "arxiv" in sources:
-        source_calls["arxiv"] = lambda: arxiv_search(
-            expanded_query, max_results=max_per_source
-        )
-    if "epmc" in sources:
+        source_calls["usgs"] = lambda: usgs_search(expanded_query, max_results=max_per_source)
+    if "arxiv" in active_sources:
+        source_calls["arxiv"] = lambda: arxiv_search(expanded_query, max_results=max_per_source)
+    if "epmc" in active_sources:
         from _sources import epmc_search
 
-        source_calls["epmc"] = lambda: epmc_search(
-            expanded_query, max_results=max_per_source
-        )
+        source_calls["epmc"] = lambda: epmc_search(expanded_query, max_results=max_per_source)
 
     # Web-search skill integration — SOTA paper discovery via subprocess.
     # Activated by --use-web-search flag or SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH=1.
     # Adds 9 metasearch backends + 4-layer bot-block bypass + per-URL extract cache.
-    if (
-        use_web_search
-        or os.environ.get("SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH", "0") == "1"
-    ):
+    if use_web_search or os.environ.get("SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH", "0") == "1":
         source_calls["web_search"] = lambda: web_search_paper_discovery(
             query, max_results=min(max_per_source, 15), force_refresh=force_refresh
         )
@@ -1258,61 +998,6 @@ def search_multi_source(
         source_calls["web_search_agentic"] = lambda: web_search_agentic_discovery(
             query, max_results=min(max_per_source, 10), force_refresh=force_refresh
         )
-
-    # Geological discovery enhancement — intent-aware source selection.
-    # For geo queries: add journal-targeted search, synonym variants, web-search.
-    # Intent determines which sources are PRIORITIZED (higher max_results).
-    if _GEO_QUERY_SIGNALS.search(query.lower()):
-        # Parse intent for source prioritization
-        intent_topics: list[str] = []
-        try:
-            from _intent import parse_intent
-
-            intent = parse_intent(query)
-            if intent.material:
-                intent_topics.append(intent.material)
-            if intent.method:
-                intent_topics.append(intent.method)
-        except Exception as e:
-            log.warning("Intent parse unavailable — journal boost untargeted: %s", e)
-
-        # 1. Journal-targeted Crossref search — boost from 57 geo journals
-        source_calls["crossref_geo"] = lambda: _crossref_journal_search(
-            query, max_results=max_per_source
-        )
-
-        # 2. Geological synonym variant — separate Crossref call
-        synonym_q = _geo_synonym_variant(query)
-        if synonym_q and synonym_q != expanded_query:
-            source_calls["crossref_synonym"] = lambda: crossref_search(
-                synonym_q, max_results=max_per_source, filter_dict=cr_filter or None
-            )
-
-        # 3. Web-search skill (text mode) — finds papers missed by Crossref/OpenAlex.
-        # Auto-registered when --use-web-search flag or env var set (see top of function).
-
-        # 4. USGS publications — public-domain earth science reports
-        if "usgs" not in source_calls:
-            from _sources import usgs_search
-
-            source_calls["usgs"] = lambda: usgs_search(
-                expanded_query, max_results=min(max_per_source, 10)
-            )
-
-        # Intent-based logging
-        if intent_topics:
-            log.info(
-                "Geo discovery: intent=%s → prioritized sources: crossref_geo, synonym, web_search, usgs",
-                intent_topics,
-            )
-
-        # 4. USGS publications — public-domain earth science reports
-        if "usgs" not in source_calls:
-            from _sources import usgs_search
-
-            source_calls["usgs"] = lambda: usgs_search(
-                expanded_query, max_results=min(max_per_source, 10)
-            )
 
     log.info(
         "Searching %d sources in parallel (timeout=%.0fs each): %s",
@@ -1362,9 +1047,7 @@ def search_multi_source(
 # =============================================================================
 # Cohen 2018 snowballing
 # =============================================================================
-def snowball_backward(
-    seed: list[PaperRecord], max_per_seed: int = 10, depth: int = 1
-) -> list[PaperRecord]:
+def snowball_backward(seed: list[PaperRecord], max_per_seed: int = 10, depth: int = 1) -> list[PaperRecord]:
     """Backward snowballing: fetch papers cited by seeds.
     Uses OpenAlex referenced_works (OpenAlex IDs) + S2 references."""
     out: list[PaperRecord] = []
@@ -1408,9 +1091,7 @@ def snowball_backward(
     return out
 
 
-def snowball_forward(
-    seed: list[PaperRecord], max_per_seed: int = 10, depth: int = 1
-) -> list[PaperRecord]:
+def snowball_forward(seed: list[PaperRecord], max_per_seed: int = 10, depth: int = 1) -> list[PaperRecord]:
     """Forward snowballing: fetch papers that cite seeds.
     Uses OpenAlex cited_by_api_url + S2 forward citations."""
     out: list[PaperRecord] = []
@@ -1420,9 +1101,7 @@ def snowball_forward(
         if p.openalex_id:
             try:
                 log.info("Forward OA cites for %s", p.doi or p.openalex_id)
-                citing.extend(
-                    openalex_get_cited_by(p.openalex_id, max_results=max_per_seed)
-                )
+                citing.extend(openalex_get_cited_by(p.openalex_id, max_results=max_per_seed))
             except Exception as e:
                 log.warning("OA cited_by failed: %s", e)
         # S2 citations REMOVED — causes 429 cascades. OpenAlex cited_by
@@ -1504,9 +1183,7 @@ def auto_expand_query(seed_papers: list[PaperRecord], max_terms: int = 15) -> li
     if not seed_texts:
         return []
     expanded = _expand_query_terms(seed_texts, max_terms=max_terms, min_freq=2)
-    log.info(
-        "Query expansion: %d terms from %d seed papers", len(expanded), len(seed_texts)
-    )
+    log.info("Query expansion: %d terms from %d seed papers", len(expanded), len(seed_texts))
     return expanded
 
 
@@ -1541,9 +1218,7 @@ def snowball_with_saturation(
 
         log.info("Snowball depth %d: %d papers to expand", depth, len(current_batch))
         backward = snowball_backward(current_batch, max_per_seed=max_per_seed, depth=1)
-        forward = snowball_forward(
-            current_batch[:10], max_per_seed=max_per_seed, depth=1
-        )
+        forward = snowball_forward(current_batch[:10], max_per_seed=max_per_seed, depth=1)
         combined = dedup_papers(backward + forward)
 
         # Filter out already-seen
@@ -1615,9 +1290,7 @@ def main() -> int:
         help="verify deps + key imports, then exit 0",
     )  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
     p.add_argument("query", help="search query")
-    p.add_argument(
-        "--max", type=int, default=100, help="max papers in final corpus (default 100)"
-    )
+    p.add_argument("--max", type=int, default=100, help="max papers in final corpus (default 100)")
     p.add_argument(
         "--require-abstract",
         action="store_true",
@@ -1636,9 +1309,7 @@ def main() -> int:
         default=DEFAULT_MAX_PER_SOURCE,
         help="max results per source before dedup (default 15)",
     )
-    p.add_argument(
-        "--sources", default=DEFAULT_SOURCES, help=f"comma-separated: {DEFAULT_SOURCES}"
-    )
+    p.add_argument("--sources", default=DEFAULT_SOURCES, help=f"comma-separated: {DEFAULT_SOURCES}")
     p.add_argument(
         "--semantic",
         action="store_true",
@@ -1711,9 +1382,7 @@ def main() -> int:
         default=Path("research_outputs/corpus.json"),
         help="output corpus.json path",
     )
-    p.add_argument(
-        "--explore", action="store_true", help="landscape mode: shallow scan, no dedup"
-    )
+    p.add_argument("--explore", action="store_true", help="landscape mode: shallow scan, no dedup")
     p.add_argument(
         "--force-refresh",
         action="store_true",
@@ -1735,13 +1404,9 @@ def main() -> int:
         help="also write corpus_summary.md (compact LLM-facing summary)",
     )
     p.add_argument("-v", "--verbose", action="count", default=0)
-    p.add_argument(
-        "--from-year", type=int, default=None, help="earliest publication year"
-    )
+    p.add_argument("--from-year", type=int, default=None, help="earliest publication year")
     p.add_argument("--to-year", type=int, default=None, help="latest publication year")
-    p.add_argument(
-        "--open-access-only", action="store_true", help="only discover OA papers"
-    )
+    p.add_argument("--open-access-only", action="store_true", help="only discover OA papers")
     p.add_argument(
         "--type",
         default="",
@@ -1749,9 +1414,12 @@ def main() -> int:
     )
     args = p.parse_args()
     level = logging.WARNING - 10 * args.verbose
+    # force=True: library imports may install their own root handler,
+    # which silently disabled -v entirely (only WARNING+ escaped).
     logging.basicConfig(
         level=max(level, logging.DEBUG),
         format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
+        force=True,
     )
 
     # PICO Boolean query builder mode
@@ -1786,9 +1454,7 @@ def main() -> int:
 
     results = search_multi_source(
         args.query,
-        max_per_source=int(args.max_per_source * 1.5)
-        if args.require_abstract
-        else args.max_per_source,
+        max_per_source=int(args.max_per_source * 1.5) if args.require_abstract else args.max_per_source,
         sources=sources,
         semantic=args.semantic,
         force_refresh=args.force_refresh,
@@ -1848,12 +1514,24 @@ def main() -> int:
         except Exception as ex:
             log.warning("Auto-supplement via web_search failed: %s", ex)
 
+    # Early abstract filter (R1 reorder 2026-08-21): title-only seeds must
+    # not drive snowballing/expansion — they waste API calls and pull
+    # reference-graph noise. Idempotent; the post-merge filter below still
+    # runs to catch no-abstract snowball/expansion arrivals.
+    if args.require_abstract and final:
+        before = len(final)
+        final = [p for p in final if p.abstract and len(p.abstract.strip()) > 50]
+        log.info(
+            "Early abstract filter: %d → %d (removed %d without abstracts)",
+            before,
+            len(final),
+            before - len(final),
+        )
+
     # Snowball (Cohen 2018)
     if args.snowball and final:
         if args.snowball_saturation:
-            log.info(
-                "=== SATURATION SNOWBALLING (max_depth=%d) ===", args.snowball_depth_max
-            )
+            log.info("=== SATURATION SNOWBALLING (max_depth=%d) ===", args.snowball_depth_max)
             snowballed, depth_log = snowball_with_saturation(
                 final[: args.snowball_max * 2],
                 max_depth=args.snowball_depth_max,
@@ -1895,9 +1573,7 @@ def main() -> int:
     # Query expansion (litsearchr-style)
     if args.expand and final:
         log.info("=== QUERY EXPANSION ===")
-        expanded_terms = auto_expand_query(
-            final[: args.snowball_max * 2], max_terms=args.expand_max_terms
-        )
+        expanded_terms = auto_expand_query(final[: args.snowball_max * 2], max_terms=args.expand_max_terms)
         if expanded_terms:
             log.info("Expanded terms: %s", ", ".join(expanded_terms[:10]))
             # Run a second search with expanded terms
@@ -1912,7 +1588,7 @@ def main() -> int:
             log.info("Expanded search: %d raw results", len(expanded_results))
             final = dedup_papers(final + expanded_results)
 
-    # Filter to papers with abstracts (improves extraction quality)
+    # Post-merge abstract filter (snowball/expansion arrivals)
     if args.require_abstract and final:
         before = len(final)
         final = [p for p in final if p.abstract and len(p.abstract.strip()) > 50]
@@ -1929,7 +1605,7 @@ def main() -> int:
     # caught only by the IDF co-occurrence filter. ML/DL terms are soft
     # exclusions now (see _is_domain_relevant), so ML-applied-to-geo
     # papers survive.
-    if final and not args.explore and _GEO_QUERY_SIGNALS.search(args.query.lower()):
+    if final and not args.explore:
         before_domain = len(final)
         final = [p for p in final if _is_domain_relevant(p, args.query)]
         if len(final) < before_domain:
@@ -1957,16 +1633,16 @@ def main() -> int:
     # Scores on: semantic relevance (30%) + citation influence (25%) +
     #            network centrality (25%) + recency (20%)
     # Then applies diversity filter (max 3/author, max 5/venue) + recency balance
-    if len(final) > args.max:
+    # Ranking runs at EVERY corpus size — the dynamic relevance floor owns
+    # junk exclusion on tiny corpora too (polysemy strays previously rode
+    # in via the citation-sort shortcut).
+    if final:
         from _ranking import rank_papers
 
         log.info("=== RANKING %d papers (top %d) ===", len(final), args.max)
         ranked = rank_papers(args.query, final, max_n=args.max)
         final = [p for p, _, _ in ranked]
-        log.info("Ranked: %d → %d (diversity-filtered)", len(ranked), len(final))
-    elif final:
-        final.sort(key=lambda r: -(r.citation_count or 0))
-        log.info("Small corpus — sorted by citation_count (no ranking needed)")
+        log.info("Ranked: %d papers (relevance floor + diversity)", len(final))
 
     # Save corpus
     total_discovered = len(results)

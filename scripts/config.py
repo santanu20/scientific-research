@@ -16,9 +16,7 @@ class ResearchConfig:
 
     # ── Core (compact UI bar) ────────────────────────────────────────
     query: str = ""
-    sources: list[str] = field(
-        default_factory=lambda: ["crossref", "openalex", "s2", "eartharxiv", "usgs"]
-    )
+    sources: list[str] = field(default_factory=lambda: ["crossref", "openalex", "s2", "eartharxiv", "usgs"])
     max_papers: int = 30
     use_llm: bool = False
     match_local_pdfs: bool = True
@@ -94,6 +92,13 @@ class ResearchConfig:
     """Only discover open access papers."""
     publication_type: str = ""
     """Filter by type: journal-article, book-chapter, conference-paper, etc."""
+    screen: bool = True
+    """PRISMA Phase-2 keyword triage after discovery (non-LLM).
+
+    Include terms are derived dynamically from the query itself (no field
+    vocabulary); papers sharing zero query terms are excluded. A sparse
+    result (<3 survivors) skips screening rather than shrinking the corpus.
+    Set False to disable."""
 
     # ── Time budgets (⚙ Advanced) ──────────────────────────────────
     wall_clock_budget_s: float | None = None

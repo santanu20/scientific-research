@@ -204,24 +204,6 @@ def run_pipeline(
     deduped = dedup_papers(raw_papers)
     n_after_dedup = len(deduped)
 
-    # Intent-aware filter — exclude peripheral concepts using topic template
-    try:
-        from _intent import intent_filter, parse_intent
-
-        intent = parse_intent(config.query)
-        if intent.has_template:
-            before_intent = len(deduped)
-            deduped = intent_filter(deduped, intent)
-            if before_intent != len(deduped):
-                log.info(
-                    "Intent filter: %d -> %d (removed %d peripheral)",
-                    before_intent,
-                    len(deduped),
-                    before_intent - len(deduped),
-                )
-    except Exception as e:
-        log.debug("Intent filter skipped: %s", e)
-
     # Domain relevance filter — remove papers from unrelated fields
     try:
         from discover import _is_domain_relevant
@@ -253,6 +235,59 @@ def run_pipeline(
         deduped = [p for p in deduped if p.is_open_access]
     if config.publication_type:
         deduped = [p for p in deduped if config.publication_type in (p.type or "")]
+
+    # PRISMA Phase-2 triage — non-LLM keyword screen with include terms
+    # derived DYNAMICALLY from the query itself (no field vocabulary).
+    # Zero-query-overlap papers are excluded (citation-noise guard);
+    # a sparse survivor set (<3) skips screening instead of shrinking
+    # the corpus. Exclusions are logged + rendered for the PRISMA trail.
+    if config.screen:
+        try:
+            from discover import _content_tokens
+
+            include_terms = sorted(_content_tokens(config.query))
+            if not include_terms:
+                log.info("Screen skipped: query has no content tokens")
+            else:
+                from screen import (
+                    prisma_phase2_counts,
+                    render_screening_report,
+                    screen_corpus,
+                )
+
+                pre_screen = len(deduped)
+                scored = screen_corpus(
+                    deduped,
+                    include=include_terms,
+                    exclude=[],
+                    query=config.query,
+                )
+                counts = prisma_phase2_counts(scored)
+                kept = [s.paper for s in scored if s.recommendation != "exclude"]
+                log.info(
+                    "Screen: %d -> %d papers (excluded %d zero-overlap, "
+                    "%d borderline kept)",
+                    pre_screen,
+                    len(kept),
+                    counts["n_exclude_recommended"],
+                    counts["n_borderline"],
+                )
+                if len(kept) >= 3:
+                    deduped = kept
+                    try:
+                        (results_dir / "screening_report.md").write_text(
+                            render_screening_report(scored, counts),
+                            encoding="utf-8",
+                        )
+                    except OSError as ex:
+                        log.warning("Screening report write failed: %s", ex)
+                else:
+                    log.warning(
+                        "Screen would shrink corpus to %d (<3) — skipped this run",
+                        len(kept),
+                    )
+        except ImportError as e:
+            log.warning("Screen stage unavailable — continuing unfiltered: %s", e)
 
     # Rank by semantic relevance (TF-IDF cosine) before truncation so
     # the TOP papers are kept when corpus exceeds max_papers.

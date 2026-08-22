@@ -822,6 +822,7 @@ def main() -> int:
                 rw_index=rw_index,
             )
             all_results.append(result)
+            merged.verification_status = "resolved" if result.resolved else "unresolved"
             if result.resolved or args.keep_unresolved:
                 verified_records.append(merged)
         except Exception as e:
@@ -836,6 +837,7 @@ def main() -> int:
                 verification_timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
             )
             all_results.append(failed_result)
+            paper.verification_status = "unresolved"
             if args.keep_unresolved:
                 verified_records.append(paper)
 

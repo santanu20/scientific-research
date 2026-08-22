@@ -75,6 +75,35 @@ if _pyalex_cfg is not None:
         _pyalex_cfg.email = _EMAIL
         _pyalex_cfg.max_retries = 3
 
+# Hard-cap OpenAlex retry stalls: urllib3 honors server Retry-After headers
+# that can demand multi-minute sleeps inside pyalex calls; the future-level
+# per-source timeout abandons those worker threads but cannot stop them, and
+# non-daemon threads block interpreter exit (post-save hangs, 2026-08-22).
+try:
+    import pyalex.api as _pyalex_api
+    from requests.adapters import HTTPAdapter as _HTTPAdapter
+    from urllib3.util.retry import Retry as _Retry
+
+    _orig_openalex_session = _pyalex_api._get_requests_session
+
+    def _capped_get_requests_session():
+        sess = _orig_openalex_session()
+        rx = _Retry(
+            total=2,
+            backoff_factor=0.5,
+            status_forcelist=[429, 500, 502, 503],
+            allowed_methods={"GET"},
+            respect_retry_after_header=False,
+        )
+        sess.mount("https://", _HTTPAdapter(max_retries=rx))
+        return sess
+
+    _pyalex_api._get_requests_session = _capped_get_requests_session
+except Exception as e:  # optional hardening — degrade WITH visibility
+    logging.getLogger("scientific_research.sources").warning(
+        "OpenAlex retry cap not applied: %s", e
+    )
+
 log = logging.getLogger("scientific_research.sources")
 
 # --- Knowledge base directory (permanent, XDG data) ---
@@ -129,6 +158,9 @@ class PaperRecord:
     extraction_method: str = ""
     raw_metadata: dict = field(default_factory=dict)
     fetched_at: str = ""
+    verification_status: str = ""
+    """§5 H20 gate state: "" (unverified input), "resolved", or "unresolved".
+    Unresolved papers are FORBIDDEN to cite — synthesis filters them out."""
 
     @property
     def primary_id(self) -> str:
@@ -1108,10 +1140,52 @@ def _merge_records(a: PaperRecord, b: PaperRecord) -> PaperRecord:
 def _is_supplemental_doi(doi: str) -> bool:
     """Check if DOI is supplemental material (not a real paper).
 
-    Patterns: .s001, .s002, .supp, _si, supplement, supporting
+    Patterns: .s001, .s002, .supp, _si, supplement, supporting, plus
+    GeoScienceWorld supplemental-material prefixes (10.1130/geol.s.…,
+    10.1130/geos.s.…) that shipped "Supplemental Material:" records
+    into corpora as if they were papers.
     """
     d = doi.lower()
-    return bool(re.search(r"\.s\d{3}\b", d) or ".supp" in d or "_si" in d or "supplement" in d or "supporting" in d)
+    return bool(
+        re.search(r"\.s\d{3}\b", d)
+        or ".supp" in d
+        or "_si" in d
+        or "supplement" in d
+        or "supporting" in d
+        or re.search(r"10\.1130/(?:geol|geos)\.s\.", d)
+    )
+
+
+def _is_junk_record(p) -> bool:
+    """Records that are not citable papers: supplemental-material files,
+    filename-stem titles with no authors/year ("dare2014"), journal header
+    pages. Applied as a quality gate before dedup."""
+    doi = (getattr(p, "doi", "") or "").lower()
+    if _is_supplemental_doi(doi):
+        return True
+    title = (getattr(p, "title", "") or "").strip()
+    if not title:
+        return True
+    if title.lower().startswith("supplemental material"):
+        return True
+    authors = getattr(p, "authors", None) or []
+    year = getattr(p, "year", None)
+    # Filename-stem junk ("dare2014") has no DOI, no authors, no year, and a
+    # sub-3-word title. A bare title is fine when ANY identifier exists.
+    if (
+        not doi
+        and not authors
+        and not year
+        and len(re.findall(r"\w+", title)) < 3
+    ):
+        return True
+    if (
+        re.match(r"^(?:vol\.|volume\b|pages?\b|no\.\s*\d)", title.lower())
+        and not authors
+        and not doi
+    ):
+        return True
+    return False
 
 
 def _dedup_block(p: PaperRecord) -> tuple[str, str]:
@@ -1171,17 +1245,56 @@ def dedup_papers(papers: Iterable[PaperRecord], title_threshold: float = 0.85) -
                 return cid
         return None
 
+    exact_title: dict[str, str] = {}
+    prefix_titles: dict[str, str] = {}
+
     def _register(p: PaperRecord, norm: str, cid: str) -> None:
         surname, year = _dedup_block(p)
         if surname and year:
             blocks.setdefault((surname, year), []).append((norm, cid))
         fallback_index.append((norm, year, cid))
+        if norm:
+            ex = re.sub(r"[^a-z0-9]+", "", norm)
+            # Gate on SPECIFICITY: only long multi-word titles may merge
+            # across author blocks — generic short titles stay governed by
+            # the blocked-similarity contract (Berra pins).
+            if len(ex) >= 40 and len(norm.split()) >= 6:
+                exact_title.setdefault(ex, cid)
+                # Prefix window: journals truncate/re-tail reposts
+                # ("...Kharif Crops in Yavatmal District" vs "...in
+                # Western Vidarbha"). First-12-word identity = same work.
+                prefix_key = " ".join(norm.split()[:12])
+                if len(prefix_key) >= 40:
+                    prefix_titles.setdefault(prefix_key, cid)
 
     for p in papers:
-        # Filter supplemental material DOIs
-        if p.doi and _is_supplemental_doi(p.doi):
+        # Quality gate: supplemental DOIs, filename-stem records, header pages
+        if _is_junk_record(p):
             continue
         norm = _normalize_title(p.title)
+        # 0. Exact alphanumeric-title match (cross-journal reposts with
+        #    different DOIs/bylines dodge the blocked-similarity paths).
+        if norm:
+            ex_key = exact_title.get(re.sub(r"[^a-z0-9]+", "", norm))
+            ex_lookup_len = len(re.sub(r"[^a-z0-9]+", "", norm))
+            merged_id = None
+            if (
+                ex_key
+                and ex_key in clusters
+                and ex_lookup_len >= 40
+                and len(norm.split()) >= 6
+            ):
+                merged_id = ex_key
+            else:
+                # Prefix-window repost check (same specificity gate).
+                prefix_key = " ".join(norm.split()[:12])
+                if len(prefix_key) >= 40:
+                    existing_cid = prefix_titles.get(prefix_key)
+                    if existing_cid and existing_cid in clusters:
+                        merged_id = existing_cid
+            if merged_id:
+                clusters[merged_id] = _merge_records(clusters[merged_id], p)
+                continue
         # 1. Blocked title similarity FIRST (catches DOI-less duplicates)
         if norm:
             matched_id = _title_match(p, norm)

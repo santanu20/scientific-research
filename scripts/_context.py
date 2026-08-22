@@ -179,11 +179,19 @@ def build_research_context(query: str, *, use_network: bool = True) -> ResearchC
     # ── Layer 3: entities with aliases + kinds ─────────────────────────
     coord_flat = {t for pair in coord_pairs for t in pair}
     if use_network:
-        from _semantic_context import wiki_aliases
+        # Per-layer fail-open: a missing/broken alias provider must not
+        # abort the whole context (morphology entities still stand).
+        wiki_aliases = None
+        try:
+            from _semantic_context import wiki_aliases as _wiki_aliases
+
+            wiki_aliases = _wiki_aliases
+        except Exception as e:
+            log.debug("wiki alias provider unavailable: %s", e)
 
         for t in terms:
             e = Entity(term=t, is_primary=(t == terms[0] or t in coord_flat))
-            if len(t) >= 4:
+            if wiki_aliases is not None and len(t) >= 4:
                 desc = _entity_description(t)
                 if desc:
                     e.kind = _classify_entity(t, desc)

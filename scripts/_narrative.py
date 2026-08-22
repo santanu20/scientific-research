@@ -3541,6 +3541,71 @@ def _cluster_by_similarity(papers: list[dict], max_batch: int = 3) -> list[list[
     return clusters
 
 
+def _build_entity_comparison(
+    papers: list[dict], query: str
+) -> str:
+    """Per-entity evidence + comparison sections for coordinated queries.
+
+    "X and/vs Y" questions ("Gadchiroli and Gondpipri Dykes") get one
+    evidence block per entity — ONLY when the corpus actually supports
+    each side — plus an overlap paragraph. Fully dynamic: entities come
+    from the query's own coordination structure (_context._COORD_RE).
+    """
+    try:
+        from _context import _COORD_RE
+    except ImportError:
+        return ""
+    q = query.lower()
+    pairs = [(m.group(1), m.group(2)) for m in _COORD_RE.finditer(q)]
+    if not pairs:
+        return ""
+
+    def _text(p: dict) -> str:
+        return (
+            (str(p.get("title") or "") + " " + str(p.get("abstract") or ""))
+            .lower()
+        )
+
+    texts = {id(p): _text(p) for p in papers}
+    parts: list[str] = []
+    emitted = False
+    for a, b in pairs[:2]:
+        side_a = [p for p in papers if a in texts[id(p)]]
+        side_b = [p for p in papers if b in texts[id(p)]]
+        both = [p for p in papers if a in texts[id(p)] and b in texts[id(p)]]
+
+        def _block(entity: str, group: list[dict]) -> str:
+            lines = [f"#### Evidence: {entity} ({len(group)} studies)", ""]
+            for p in group:
+                yr = p.get("year", "")
+                ref = p.get("_ref", "")
+                ttl = _clip(str(p.get("title") or ""), 110)
+                lines.append(f"- [{ref}] ({yr}) {ttl}.")
+            return "\n".join(lines)
+
+        local = []
+        if side_a:
+            local.append(_block(a, side_a))
+        if side_b:
+            local.append(_block(b, side_b))
+        if side_a and side_b:
+            overlap = (
+                f"{len(both)} of {len(side_a) + len(side_b) - len(both)} "
+                "studies address both entities directly."
+            )
+            local.append(
+                f"**Comparison ({a} vs {b}).** {overlap} Quantitative "
+                "cross-entity pooling follows in the quantitative synthesis "
+                "where measurement density permits."
+            )
+        if local:
+            parts.append("\n\n".join(local))
+            emitted = True
+    if not emitted:
+        return ""
+    return "\n\n".join(parts)
+
+
 def build_chronological_narrative(
     papers: list[dict],
     topic: str,
@@ -3641,6 +3706,13 @@ def build_chronological_narrative(
                 p["paper_id"] = p.get("paper_id") or p.get("doi") or f"ref{p['_ref']}"
                 cited.append(p)
 
+        parts.append("")
+
+    # Coordinated-pair comparison (X vs/and Y queries) — dynamic sections
+    # derived from query structure + actual corpus support.
+    comparison = _build_entity_comparison(chronological, topic)
+    if comparison:
+        parts.append(comparison)
         parts.append("")
 
     # Field evolution synthesis — what has the field learned

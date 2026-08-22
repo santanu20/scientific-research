@@ -116,14 +116,22 @@ def _text_matches(text: str, entity: str) -> bool:
     return False
 
 
+def _record_text(p) -> str:
+    """title+abstract lowercased for dicts OR record objects."""
+    if isinstance(p, dict):
+        title = str(p.get("title") or "")
+        abstract = str(p.get("abstract") or "")
+    else:
+        title = str(getattr(p, "title", "") or "")
+        abstract = str(getattr(p, "abstract", "") or "")
+    return f"{title} {abstract}".lower()
+
+
 def corpus_coverage(papers: list, entities: list[str]) -> dict[str, int]:
     """Count papers whose title+abstract mention each entity."""
     if not entities:
         return {}
-    texts = [
-        f"{getattr(p, 'title', '') or ''} {getattr(p, 'abstract', '') or ''}".lower()
-        for p in papers
-    ]
+    texts = [_record_text(p) for p in papers]
     coverage: dict[str, int] = {}
     for ent in entities:
         coverage[ent] = sum(1 for t in texts if t and _text_matches(t, ent))

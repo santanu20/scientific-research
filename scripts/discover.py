@@ -1464,6 +1464,46 @@ def main() -> int:
     )
     log.info("Web: %d raw across sources", len(results))
 
+    # Phase-0 context builder — dynamic query decomposition (W1 wiring).
+    # Extra per-entity/pairwise probes run ONLY when the primary pass came
+    # back thin relative to the ask; original-query-first stays untouched.
+    _ctx = None
+    try:
+        from _context import build_research_context
+
+        _ctx = build_research_context(args.query, use_network=True)
+        # Raw-count heuristic: filtering typically collapses a pool 5-10x,
+        # so a pool under ~4x the ask usually yields a thin final corpus.
+        if (
+            len(_ctx.search_strategies) > 1
+            and len(results) < args.max * 4
+        ):
+            probe_sources = [s for s in sources if s in ("crossref", "openalex")]
+            for strat in _ctx.search_strategies[1:3]:
+                try:
+                    extra = search_multi_source(
+                        strat,
+                        max_per_source=max(5, args.max_per_source // 2),
+                        sources=probe_sources,
+                        force_refresh=args.force_refresh,
+                        filters=cli_filters or None,
+                    )
+                    log.info(
+                        "Strategy probe %r: +%d candidates",
+                        strat[:60],
+                        len(extra),
+                    )
+                    results.extend(extra)
+                except Exception as pe:
+                    log.warning("Strategy probe failed %r: %s", strat[:60], pe)
+            if _ctx.niche:
+                log.info(
+                    "Niche locality-anchored topic — consider --use-web-search "
+                    "for regional-journal coverage"
+                )
+    except Exception as e:
+        log.warning("Context builder unavailable — single-strategy search: %s", e)
+
     # Dedup
     if args.explore:
         log.info("Landscape mode: skipping dedup")

@@ -950,6 +950,30 @@ def synthesize(
 
     full_brief = "\n".join(parts)
 
+    # Grounding audit (honesty layer): entities the brief asserts in prose
+    # but ZERO corpus papers discuss were fabricated from the query string.
+    try:
+        from _context import build_research_context
+        from _honesty import (
+            corpus_coverage,
+            grounding_audit,
+            render_grounding_warning,
+        )
+
+        _ctx = build_research_context(str(query), use_network=False)
+        _entities = [e.term for e in _ctx.entities]
+        if _entities:
+            _coverage = corpus_coverage(cited or papers, _entities)
+            _unsupported = grounding_audit(full_brief, _entities, _coverage)
+            if _unsupported:
+                log.warning(
+                    "Grounding audit: %d entity mention(s) unsupported by corpus",
+                    len(_unsupported),
+                )
+                full_brief += render_grounding_warning(_unsupported, _coverage)
+    except Exception as e:
+        log.debug("Grounding audit skipped: %s", e)
+
     # Deduplicate the scope sentence: the chronological narrative opens
     # with the same "This review synthesizes N studies ..." sentence the
     # executive summary already carries — keep the first occurrence only.

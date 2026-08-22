@@ -246,6 +246,23 @@ def run_pipeline(
             from discover import _content_tokens
 
             include_terms = sorted(_content_tokens(config.query))
+            # Entity-aware triage (Phase-0 context): primary query entities
+            # join the include set so papers matching the SUBJECT pass even
+            # when generic method words dominate their abstracts.
+            try:
+                from _context import build_research_context
+
+                _ctx = build_research_context(config.query, use_network=False)
+                for _t in _ctx.screening_terms:
+                    if len(_t) >= 4 and _t not in include_terms:
+                        include_terms.append(_t)
+                if getattr(_ctx, "niche", False):
+                    log.info(
+                        "Niche locality-anchored topic — web-search "
+                        "supplement recommended"
+                    )
+            except Exception as ce:
+                log.debug("Context screening terms unavailable: %s", ce)
             if not include_terms:
                 log.info("Screen skipped: query has no content tokens")
             else:

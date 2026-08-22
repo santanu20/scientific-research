@@ -43,6 +43,35 @@ RE_P_VALUE = re.compile(r"[pP]\s*[<≤>=]\s*(\d+\.?\d*)")
 # Sample size: "n=100", "N = 50", "(n=30)"
 RE_N_VALUE = re.compile(r"[nN]\s*=\s*(\d+)")
 
+# Filter-statement cues (audit 2026-08-21, synced from geokit fork): sentence
+# fragments like "remove pressures >50 kbar" describe FILTER thresholds, not
+# measured values — extracting them as point measurements poisoned pools.
+_FILTER_CUE = re.compile(
+    r"(?:remove[sd]?\s*>?\s*\d+\s*(?:kbar|gpa|mpa|°c\b|k\b)|"
+    r"exclude[sd]?\s+(?:values?\s+)?(?:above|below|>|<)|"
+    r"filter(?:ed)?\s+(?:out\s+)?(?:values?\s+)?(?:above|below|>|<)|"
+    r"discard(?:ed)?\s+(?:values?\s+)?(?:above|below))",
+    re.IGNORECASE,
+)
+
+# Bound cues (audit 2026-08-21): "up to 2200 MPa", "as high as 1130 °C" are
+# applicability bounds, not measured P-T values.
+_BOUND_CUE = re.compile(
+    r"\b(?:up\s+to|as\s+high\s+as|as\s+much\s+as|as\s+low\s+as|maximum\s+of|"
+    r"at\s+most|no\s+more\s+than|in\s+excess\s+of|exceed\w*)[^.]{0,40}$",
+    re.IGNORECASE,
+)
+
+# Uncertainty statements: "P ±12%", "T ±22 °C", "accurate to ±25 °C",
+# "errors of 3%", "SEE = 1.4 kbar" — model error/precision, not a measured
+# value. Fires only immediately before the number (tight anchor).
+_UNCERTAINTY_CUE = re.compile(
+    r"(?:±\s*|errors?\s+of\s+|uncertainty\s+of\s+|accurate\s+to\s+|"
+    r"precision\s+of\s+|accurac\w+\s+of\s+|"
+    r"\b(?:see|rmse|mae|mape|sd|sigma|1σ)\s*=\s*)[^a-zA-Z]{0,5}$",
+    re.IGNORECASE,
+)
+
 # Percentage: "85%", "85 %"
 RE_PERCENTAGE = re.compile(r"(\d+\.?\d*)\s*%")
 
@@ -820,6 +849,25 @@ def extract_effect_sizes(text: str) -> dict:
             continue
         # R4: interval bounds are not point measurements — never pool
         if getattr(n, "is_interval_bound", False):
+            continue
+        # Error-metric measurement names never pool regardless of position
+        # (their regex captures can carry misaligned positions)
+        if (n.measurement or "").lower() in {
+            "see", "rmse", "mae", "mape", "sd", "sigma", "uncertainty",
+            "error", "n", "sample size", "p-value",
+        }:
+            continue
+        # Context cues BEFORE the number: bound statements ("up to 2200 MPa"),
+        # uncertainty ("T ±22 °C", "SEE = 1.4 kbar"), filter thresholds
+        # ("remove >50 kbar") are not point measurements.
+        if n.position > 0 and text[n.position - 1].isalpha():
+            continue
+        _ctx = text[max(0, n.position - 60) : n.position]
+        if (
+            _FILTER_CUE.search(_ctx)
+            or _BOUND_CUE.search(_ctx)
+            or _UNCERTAINTY_CUE.search(_ctx)
+        ):
             continue
         # Skip if this number is part of a pair (check by value proximity)
         in_pair = any(

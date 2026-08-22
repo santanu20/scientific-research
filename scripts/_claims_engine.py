@@ -128,9 +128,19 @@ def contradiction_report(contradictions: list[Contradiction], max_n: int = 8) ->
     for c in contradictions[:max_n]:
         vals = ", ".join(f"{k[:28]}: {v:g}" for k, v in c.values)
         lines.append(
-            f"- **{c.quantity} ({c.unit})** — {c.ratio}× spread across "
+            f"- **{c.quantity} ({c.unit})** — {c.ratio:.1f}× spread across "
             f"{len(c.values)} reports ({vals})"
         )
+        # Age pools with >10× spread almost always mix DIFFERENT geological
+        # events (youngest detrital grains vs crystallization vs metamorphism)
+        # — flag commensurability instead of implying a calibration dispute.
+        if c.unit in ("Ma", "Ga", "ka") and c.ratio >= 10:
+            lines.append(
+                "  - _Note: age values this divergent often reflect different "
+                "geological meanings (e.g., detrital grain ages vs "
+                "crystallization ages) rather than measurement disagreement — "
+                "verify commensurability before interpreting as controversy._"
+            )
     lines.append(
         "\n_Value-disagreement signals (≥5× same-quantity divergence); "
         "calibration/method disagreement candidates — analyst adjudicates._"

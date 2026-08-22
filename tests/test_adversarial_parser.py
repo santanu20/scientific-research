@@ -70,8 +70,11 @@ class TestAdversarialParser:
         assert isinstance(v, set)
 
     def test_up_to_hedge(self):
+        # 2026-08-21: bound cues ("up to X") are now EXCLUDED from point
+        # pools — the old behavior (captured) shipped applicability bounds
+        # like "valid up to 2200 MPa" as measured P-T values.
         v = vals("temperatures up to 1050 °C recorded")
-        assert (1050.0, "°C") in v  # hedge word does not break extraction
+        assert v == set()  # bound hedge → excluded from point measurements
 
     # ── multi-number sentences ────────────────────────────────────────
     def test_three_numbers_three_units(self):

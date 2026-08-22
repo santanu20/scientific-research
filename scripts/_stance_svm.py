@@ -170,7 +170,9 @@ def _train_model() -> dict | None:
     model = {
         "vectorizer": vectorizer,
         "classifier": clf,
-        "labels": [str(c) for c in (clf.classes_ or [])],
+        # clf.classes_ is a numpy array — `or []` raises the ambiguous
+        # truth-value error that killed the whole correlation phase.
+        "labels": [str(c) for c in (clf.classes_ if clf.classes_ is not None else [])],
         "n_training": len(data),
     }
 

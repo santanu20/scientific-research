@@ -968,6 +968,7 @@ _SURVEY_CUES = re.compile(
 
 _COMPARATIVE_CUES = re.compile(
     r"\b(?:compare\b|comparison\s+(?:of|between)\b|versus\b|\bvs\.?\b|"
+    r"comparative\s+(?:analysis\s+|study\s+|assessment\s+)?(?:of|between|study)\b|"
     r"difference\s+between\b|differences\s+between\b|"
     r"contrast\s+between\b|relative\s+(?:to|advantages?)\b|"
     r"better\s+than\b|pros\s+and\s+cons\b|"

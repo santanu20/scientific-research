@@ -144,8 +144,8 @@ echo "$prompt" | my-agent-llm-call
 ```
 
 The hook fires inside `_llm_extract._call_ollama()` and transparently
-replaces EVERY Ollama call across all 5 LLM-using scripts (`_intent.py`,
-changes needed — pure env-var configuration.
+replaces EVERY Ollama call across all LLM-using scripts — no code changes
+needed, pure env-var configuration.
 
 **Run-scoped rate limits + centralized timeouts** are wired into `_sources.py`
 by default. To tune at runtime, set env vars (`SCIENTIFIC_RESEARCH_TIMEOUT_*`):
@@ -265,8 +265,9 @@ new-paper ratio drops below 15%. **PRISMA diagram** auto-generated as `prisma.pn
 #### Web-search skill integration (`--use-web-search` family)
 
 The scientific-research skill can delegate to the **web-search skill** (separate
-MCP skill at `~/.config/opencode/skills/web-search/`) for SOTA web-wide paper
-discovery. Three modes, all opt-in:
+MCP skill (installed at ~/.omp/agent/skills/web-search/) for SOTA web-wide paper
+discovery. Three modes, all opt-in. Set `WEB_SEARCH_SCRIPT=/path/to/web_search.py`
+to override auto-detection if web-search is installed elsewhere.
 
 | Mode | Flag | Speed | Best for |
 |------|------|-------|----------|
@@ -550,6 +551,12 @@ Thread-safety verified by `tests/test_ratelimits.py` (concurrent failure + pacin
 | `--to-year` | discover.py | Latest publication year |
 | `--open-access-only` | discover.py | Only discover OA papers |
 | `--type` | discover.py | Publication type (journal-article, book-chapter, etc.) |
+| `screen` (ResearchConfig) | pipeline.py | PRISMA Phase-2 keyword triage after discovery; default ON; include terms derived dynamically from the query; `--no-screen`-equivalent = `screen=False` |
+
+### Module reference
+
+| Module | Purpose | Usage |
+|---|---|---|
 | `screen.py` | PRISMA-style paper screening (regex + optional `--embeddings` mode) | `screen.py corpus.json --query "topic"` |
 | `screen_llm.py` | LLM-only paper screening (content-type filter + Ollama judge; permissive fallback) | used by `eval_screening.py` / `explain_screening.py` |
 | `eval_screening.py` | PRISMA precision/recall evaluation against human-labeled corpus | `eval_screening.py corpus.json --query "..." --labels labels.jsonl` |

@@ -1,30 +1,70 @@
-# .audit/findings.md — Sweep 1 (2026-08-16)
+# Findings — Stage 1 (2026-08-21, scope: selection quality + output structure + architecture)
 
-Prompt-version: 3. Stage 1 (report only). HEAD = f981d35. Dirty worktree = geokit-integration prep (6 files, noted S4, untouched).
+Severity order: CRIT > HIGH > MED > LOW. All file:line verified this session.
 
-## Findings (deduped; witnesses per L14)
+| ID | Sev | Scale | Where | Flaw | User symptom |
+|----|-----|-------|-------|------|--------------|
+| F1 | CRIT | MACRO | _ranking.py:675-700 + _ontology.py:408,465 | `rank_papers` multiplies geology-only `domain_score()` into combined score UNCONDITIONALLY (comment admits "boost geo papers, kill non-geo"); no query-domain gate unlike `_is_domain_relevant` (discover.py:1058 self-gates) | Non-earth-science queries: legit papers penalized ("polymer" −0.5, physics terms −0.6..−0.8), geo-flavored strays boosted → garbage selection / corpus distortion |
+| F2 | CRIT | MACRO | _topic_templates.py:32-1605 (31/31 geo templates); _intent.py:1391,1440 | Entire intent layer (landmarks/must_have/exclude/report_sections) registered for earth-science only; zero templates for bio/med/CS/physics/chem/social | Non-geo queries: intent_filter/intent_boost no-op → peripheral papers unfiltered; brief loses concept-based section structure |
+| F3 | HIGH | MESO | _ranking.py:40-48,664-671,128-134,161 | semantic weight 0.30 vs popularity 0.60 (citation+network+venue); sims relative max-normalization flattens semantic spread | Famous off-topic paper outranks on-topic obscure one on niche queries |
+| F4 | HIGH | MESO | discover.py:628-645 (also 464,767) | web_search supplement harvests ANY `10.xxxx/...` substring from snippets/URLs (incl. cited refs of result pages) → citation-noise DOIs resolved into corpus; `mailto="geokit@dev"` hardcoded ×3 bypasses A9 unified `_EMAIL` identity | Web-supplement injects tangential papers; polite-pool regression |
+| F5 | MED | MACRO | pipeline.py (zero `screen` refs) | screen.py/screen_llm.py not wired into default pipeline — no PRISMA triage stage; only coarse filters (abstract>50ch, geo-gated domain, IDF co-occurrence) run before ranking | Off-topic survivors reach extraction/synthesis unvetted |
+| F6 | MED | T3/MESO | synthesize.py:830-985 (_geo_enrich imports), _classifiers.detect_research_type | Brief enrichers (convergence/gaps) live in `_geo_enrich`; research-type detection = English keyword cues with default=subtopic catch-all; fixed section order regardless of topic/corpus shape | Output not dynamic per topic; non-geo briefs get generic/degraded sections |
+| F7 | MED | MICRO | SKILL.md:147-148 | Dangling corrupted sentence: "…across all 5 LLM-using scripts (`_intent.py`, changes needed — pure env-var configuration." | Doc lies/confuses |
+| F8 | LOW | MICRO | SKILL.md:553-559 | Key-flags table malformed: rows switch to 3-cell Module/Purpose/Usage schema under Flag/Script/Purpose header mid-table | Doc rendering broken |
+| F9 | LOW | MICRO | synthesize.py gap/convergence blocks | `except ImportError: pass` silent section drops (H1/H2 smell) | Sections vanish without trace when module missing |
+| F10 | INFO | META | .venv vs _bootstrap._REQ_INSTALLS; git work-tree | pyright missing from venv (pinned gate unrunnable); 2026-08-21 port round uncommitted (M scripts/_artifact.py et al.) | Gate drift; S4 noted, untouched |
 
-| ID | Sev | Scale | file:line | Flaw | User symptom | Repro | Fix sketch | PRE/INTRO |
-|----|-----|-------|-----------|------|--------------|-------|------------|-----------|
-| A1 | CRIT | T1/MICRO | scripts/screen.py:90 (crash path :362) | `_math.log` — `math` never imported; `set_keyword_idf` added 27d1b34 with bug | screen.py 100% dead in default keyword mode; --embeddings without sentence-transformers also crashes (falls back to keyword) | LIVE: `uv run python scripts/screen.py <corpus> --include X` → NameError `_math` (repro'd twice, lib + CLI) | `import math as _math` (or plain math) + regression test on screen_corpus keyword path | PRE (introduced by commit 27d1b34, uncommitted-diff-independent) |
-| A2 | CRIT | T2/MESO | scripts/_search_cache.py:182 (def :180); call sites _sources.py:664/712/1620 | `search_cache_put` missing `filters_hash` param → NameError on every call; suppressed by `except (ImportError, NameError): pass` at _sources.py:667/715/1622 | Knowledge-base search manifest NEVER written; SKILL.md:167-189 "0 API calls next time" promise broken; repeated searches re-hit APIs (rate-limit risk, cost) | LIVE: `search_cache_put('q','openalex',10,['id1'])` → NameError filters_hash (repro'd). verify_cache_put healthy (repro'd OK) | add `filters_hash: str = ""` param; DELETE the NameError from except clauses; add write-path test | PRE |
-| A3 | HIGH | T3/MACRO | _sources.py:667,715,1622; verify.py:357 `(ImportError, Exception)`; broad `except Exception: pass` around INTERNAL modules: _ranking.py:639,657; _intent.py:1221; discover.py:149,1262; synthesize.py:608,1037; report.py:190,197 (silent JSON degrade) | Bug-masking band-aid pattern: catching NameError/broad-Exception around always-importable internal modules; A1+A2 survived because of it; silent degradation without log in report.py paths | next internal wiring bug ships invisibly; PRISMA-S report silently loses corpus context on JSON parse fail | static (except-clause extraction, cited lines) | narrow to ImportError-only for optional deps; log+re-raise or log-and-degrade for internal modules; remove NameError catches entirely after A2 fix | PRE |
-| A4 | HIGH | T4/META | tests/ (suite-wide) | Mutation spot-check: 3/5 valid mutations NOT caught — M1 DL heterogeneity c-constant (_stats.py:191 ×2 skew, 26 tests green), M4 _ref_str renumber (_narrative.py:1217 `refs[0]+1`, green), M5 screen scorer zeroed (screen.py:75, 86 tests green); A1/A2 also uncaught | green suite partially decorative; stats/renumber/screen regressions can ship | mutations applied+verified+reverted (receipts in pass-ledger) | add tests: DL Q/I² golden, screen_corpus keyword-mode e2e, _ref_str format assert, search_cache_put round-trip | PRE |
-| A5 | HIGH | T3/MACRO | orphans (rg-verified name-count=1 across scripts+tests+docs): synthesize.py:114 `smooth_with_llm` (~120 LoC dead dup of smooth_theme_paragraphs path), _artifact.py:127 `save_artifact`, _stats.py:56,81,86,551 (glass_delta, mean_difference, standardized_mean_difference, NNT), _timeouts.py 7 dead props (ollama_extract/synthesis/smoothing, wikipedia, pdf_download, llm_intent, bge_embedding), _sources.py:985,1072,1116 (s2 batch/citations/recommended), _ontology.py:593,598,621, _geodict.py:202,207,212, _nlp.py:60, _intent.py:1247, _llm_extract.py:64,342,723, _stance_svm.py:209, _geo_enrich.py:134, _topic_templates.py:406, _sources.py:1245 export_citation, _timeouts props, synthesize smooth_with_llm | ~31 orphan public defs (~400+ LoC); _timeouts docstring says "never inline magic numbers" while 7 props dead + 20+ inline `timeout=N` sites (verify.py:80,126; _documentstore.py:86,113,171; benchmark.py:53,251; _ranking.py:484; correlate.py:642; _geodict.py:243; discover.py:592,701; extract.py:385,411; _llm_extract.py:177,394,447,480) | dead subsystems drift; next dev edits dead code thinking it's live; timeout tuning env vars silently unused on 7 knobs | rg per-symbol counts (receipts) | delete orphans (7e: remove outright) or wire them; route inline timeouts through TIMEOUTS | PRE |
-| A6 | MED | T3/T4 | assess.py:295,298; verify.py:768,783,859,870; meta_analyze.py:1144,1175,1185; correlate.py:654,657,660; synthesize.py:816,1061; extract.py:913,916; discover.py:1983 | All stage artifacts written via non-atomic `write_text(json.dumps(...))`; atomic `save_artifact` (tmp+rename) exists but orphaned (witness A5) | Ctrl-C / crash mid-write → truncated corpus.json/verified.json → downstream _artifact load fails (fail-loud, but run lost) | static (write-site census) | route all stage writes through save_artifact | PRE |
-| A7 | MED | T4/META | env census vs SKILL.md/README | Undocumented env vars: SCIENTIFIC_RESEARCH_EMAIL, SCIENTIFIC_RESEARCH_CACHE, SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH, SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED (internal), S2_API_KEY/SEMANTIC_SCHOLAR_API_KEY; KB only in README | user cannot discover tuning knobs; hidden-config risk (H4-adjacent) | rg doc-hit counts = 0 (receipts) | document in SKILL.md env table | PRE |
-| A8 | MED | T4/META | README.md:1-60 | README contradicts reality: (1) claims "DerSimonian-Laird" pooling — defaults are REML+HKSJ since 2026-08-14 (MEMORY + meta_analyze.py flags); (2) 3 divergent dep lists (README quickstart vs SKILL.md pre-flight vs _bootstrap._REQ_INSTALLS — README misses httpx/scikit-learn/pypdf/matplotlib); (3) feature table omits AL screening, RW retraction gate, provenance manifest, EPMC, claims engine, document store; (4) "~46K LLM tokens" unverifiable stale metric | new user follows README → wrong mental model of defaults + broken dep install | static diff of the three lists | regenerate README stage table + deps from SKILL.md/bootstrap; drop token claim | PRE |
-| A9 | MED | T2/MESO | _sources.py:548,568,570 vs :65 | Polite-pool identity split: raw-url path hardcodes `scientific-research@geokit.dev`, pyalex/Crossref path uses env `SCIENTIFIC_RESEARCH_EMAIL` default `researcher@example.com`; env override ignored on raw path | two identities to OpenAlex; example.com placeholder is polite-pool abuse per OpenAlex docs | static | single _EMAIL constant everywhere; document env | PRE |
-| A10 | MED | T4/META | repo root (no ruff/pyright config), MEMORY.md:31 | Lint/type gates not reproducible: no ruff config, no pinned tool versions; ambient ruff 0.16.3 → 249 errors (14 files); pyright 125 (worktree HEAD 164 with different version → drift itself is the finding); MEMORY claims "26 remaining" — stale. Last commit "lint: apply 9 ruff fixes" while 249 remain = gate undefined | CI/agent cannot reproduce lint pass; error counts mean nothing across sessions | receipts (ruff/pyright JSON saved) | add ruff.toml with explicit select + baseline; pin pyright/ruff in dev deps; refresh MEMORY numbers | PRE |
-| A11 | MED | T2/MESO | _classifiers.py:450 (returns None vs `-> str`), _geodict.py:184,279 (None vs non-optional on corrupted-but-valid-JSON cache `null`), _sources.py:643 (Optional list), extract.py:704,705 dead accumulators, _stats.py:596 dead slope | contract lies / None-edge crash paths (typing triage of 125 pyright: ~25 potentially-real reviewed, rest noise) | None-crash only on corrupted cache edge; cosmetic otherwise | static + pyright JSON | align annotations or guard Nones; delete dead locals | PRE |
-| A12 | LOW/POLISH | T1 | misc | compound hygiene bucket: F841×16 dead locals (incl. benchmark.py:332 `checks` dead dict — superseded by forced_exts which IS asserted); EXE001×27 shebang-non-exec; BLE001×112 blind-except (majority optional-dep pattern, catalogued); `_cosine` (screen.py:105) returns dot product — correct only because inputs unit-norm (name lies, coupling hidden); `_score_paper_keywords._batch_idf` function-attribute global state; pipeline.py/screen_llm.py --help blank first line; MEMORY.md stale claims (pyright 26 vs 125) | confusing names/dead state; 3am debugging friction | static | fold into fix batches | PRE |
+## Reorder candidate (user item 1)
+R1 | LOW-MED | discover.main(): abstract filter runs AFTER snowball+expansion merge → title-only seeds get snowballed/expansion-searched wastefully. Moving require_abstract before snowball saves calls and reduces reference-graph noise. Behavior-preserving reorder, needs e2e re-run to confirm corpus parity.
 
-## Severity counts
-CRIT 2 / HIGH 3 / MED 6 / LOW 1-compound. Total distinct root findings: 12.
+## Witness passes
+- F1 witnessed by P9 (domain logic), P13 (architecture), D11-SABOTEUR (non-geo query as hostile input).
+- F2 witnessed by P1 (flow trace), D2 (domain model), D12 (SKILL.md claims field-agnostic vs code geo-only).
+- F4 witnessed by P10 (input validation at trust boundary), D11-INCOMPETENT (garbage snippet input).
 
-## Unverifiable / NOT RUN (honesty)
-- P11 hot-path PROFILING not re-measured this run (MEMORY benchmark numbers accepted as historical receipts; benchmark.py harness exists and ran green in prior sessions).
-- P9 domain-math deep re-derivation delegated to golden tests (REML/PM/HKSJ goldens vs R metafor recorded in MEMORY + test_p0_upgrades); mutation M1 shows DL c-constant specifically untested.
-- Live-network paths (crossref/openalex/s2/arxiv/epmc fetch correctness) NOT exercised (offline audit; 9 live tests deselected by design).
-- 558 functions audited via 100% name-census + risk-targeted reading (D9 churn hotspots first), not line-by-line read of all — census-complete, depth-tiered per L13.
-- G3 build: N/A (pure-Python scripts, no build step; .pyc compile via test run = de facto).
+## SKILL.md contradiction (D12)
+SKILL.md line 7 claims "field-agnostic PICO extraction"; selection layer is earth-science-hardcoded (F1/F2). Contradiction = doc vs behavior.
+
+# STAGE 2 FIX LEDGER (2026-08-22 round)
+
+| ID | Status | Proof |
+|---|---|---|
+| F1 | FIXED (dynamic deletion) | rank_papers has no domain multiplier; _disciplines.py deleted; pins test_dynamic_ranking.py ×6 |
+| F2 | FIXED (dynamic gate) | _is_domain_relevant = query-overlap; geo tables removed from discover; workflow_audit rewritten |
+| F3 | FIXED | WEIGHTS sem .40+facet .20; absolute sims; relevance floor — pins green |
+| F4 | FIXED | _clean_harvested_doi + _query_overlap_ok; mailto=_EMAIL ×3; pins test_web_ingest.py |
+| F5 | FIXED | screen stage wired pipeline.py (--screen config, sparse guard <3) |
+| F6 | PARTIAL→CORE DONE | dynamic theme labels + honest gaps (static mechanism deleted); residual: _METHOD_PATTERNS domain names (polish, documented) |
+| F7/F8 | FIXED | SKILL.md sentence + Module-reference table split + screen flag row |
+| F9 | FIXED (scope) | convergence empty-heading suppressed; ImportError-pass sites in gaps path deleted with mechanism |
+| NEW H20 hole | FIXED | verification_status stamp + _extract_papers gate + 2 pins |
+| NEW logging bug | FIXED | basicConfig force=True (-v was dead) |
+| R1 | FIXED | early abstract filter before snowball |
+| B3 context module | DEFERRED (evidence-driven) | selection fixed dynamically; revisit on multi-facet recall evidence |
+
+Fixpoint status: sweep-2 of iteration loop complete (briefs v5→v7 clean of junk labels/gaps/collisions). Suite 294 green. pyright 115/0 baseline.
+
+# SWEEP ROUND (2026-08-22 continued)
+| Item | Status |
+|---|---|
+| 25-topic full-chain validation | DONE — 25/25 briefs, 0 misalignment, junk-grep clean |
+| Polysemy leak (catfish/morphometric) | FIXED — median sem floor + exclusion ≥3 strong |
+| Small-corpus ranking bypass | FIXED — rank always-on |
+| Co-occurrence phantom-mass v2 | FIXED — coverage 45% + ≥2 terms + head-term rule |
+| Basaltic/basalt morphology miss | FIXED |
+| Cross-journal repost dup (Kharif pair) | FIXED — exact+prefix-window merges, specificity-gated |
+| Process-exit hang (OpenAlex Retry-After) | FIXED — pyalex session retry cap |
+| Berra dedup pins (3) | PRESERVED via specificity gate; 296 green |
+
+# DE-HARDODING SWEEP + LIVE QC (2026-08-22 final)
+| Item | Status |
+|---|---|
+| A _SYNONYM_GROUPS removal | FIXED — identity expansion; 296 green |
+| B topic-template layer deletion | FIXED — 2 modules deleted, 3 consumers stripped, zero test pins broken |
+| C geo-gated discovery expansion | FIXED — identity fn; hidden source-injection removed (H4) |
+| D _METHOD_PATTERNS genericization | FIXED — 25→6 study-design entries; content-cluster fallback keeps narrative pin green |
+| E dead static blocks | DELETED — _ontology.py, _geodict.py, geo theme vocab (~150 entries); facies tables restored from HEAD as live deps |
+| Small-pool cooccurrence loophole | FIXED live — df==1 dropped when ≥2 multi-confirmed exist (Kharif regression killed) |
+| Live validation | DONE — 4 topics force-refresh full chain; QC table 25/25 clean |
+| pyright | 100/0 (improved from 115 baseline) |

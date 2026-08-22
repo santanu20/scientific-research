@@ -1,55 +1,41 @@
-# .audit/pass-ledger.md — Sweep 1 (2026-08-16), prompt-version 3
+# Aspect Matrix — Stage 1 (2026-08-21, scoped run)
 
-Format: pass × tier T1-T4 → findings count / clean / NOT RUN.
+Universe = DISCOVERED aspects for scope (selection path + output structure + orchestration). Full-project D8 unit census deferred to unscoped sweep (declared, not silent).
 
-| Pass | T1 | T2 | T3 | T4 | Verdict |
-|------|----|----|----|----|---------|
-| P1 flow trace (16 CLIs --help ✓, screen CLI repro, KB write path, synthesize --use-llm → smooth_theme_paragraphs ✓) | A1 | A2 | A2 | — | 2 findings |
-| P2 state matrix (module globals census, function-attr state, cache singletons _geo_dict/_geo_journals/_stance_svm model) | A12 | A11 | clean | — | 1 finding (A11/A12 witness) |
-| P3 signal/event closure (orphan census 558 defs; 31 orphans rg-verified) | A5 | A5 | A5 | — | 1 finding |
-| P4 edge sequences (non-atomic writes = mid-write crash; first-run bootstrap ✓ self-repair per MEMORY+tests; empty corpus handled fail-loud per R1 fix + tests) | A6 | clean | — | — | 1 finding |
-| P5 error paths (265 try/except AST-classified: 47 swallow-pass / 57 log-continue / 152 mixed / 11 re-raise; 47 sites context-triaged; 25 except-clauses extracted) | A12 | A3 | A3 | — | 1 finding (A3 cluster) |
-| P6 cross-module contracts (pyright arg-type triage, PaperRecord field adds, artifact loaders wired correlate/synthesize/benchmark/_documentstore) | A11 | A11 | clean | — | 1 finding |
-| P7 persistence/config symmetry (KB get/put key hash: get has filters_hash param, put missing = A2; verify_cache_put healthy (repro); env read=27/write=0; TTL 30d/90d honored in code) | A2 | A9 | A7 | A7 | 3 findings |
-| P8 thread/lifecycle/resources (CircuitBreaker locked ✓, pace sleeps outside lock ✓, ThreadPoolExecutor: 3 with-managed + 1 deliberate documented no-with + finally shutdown(wait=False) discover.py:1320-1350 ✓, subprocess timeouts present ×3) | clean | clean | clean | — | 0 findings — checked clean |
-| P9 domain logic (goldens trusted: REML/PM/HKSJ/κ vs sklearn/metafor per test_p0_*; unit SI factors mutation CAUGHT; DL c-constant mutation NOT caught = A4) | A4 | clean | — | — | 1 finding |
-| P10 security (no eval/exec/shell=True/yaml.load ✓; pickle = self-owned model cache only _stance_svm.py:180,198 (local trust, LOW); no secrets in repo (G5 scan clean); S2_API_KEY env ✓; subprocess list-form ✓; 32 urlopen = fixed hosts + quoted params) | clean | A9 | clean | clean | 1 finding (A9 witness) |
-| P11 performance | NOT RUN (profiling; benchmark.py receipts historical) — declared |
-| P12 UX (CLI-only skill; 16/16 --help load; 2 blank-first-line cosmetic A12; no GUI) | A12 | — | — | — | 1 witness |
-| P13 DRY/architecture (orphan dup smooth_with_llm vs smooth_theme_paragraphs; save_artifact vs 15 inline writes; 3 dep lists) | A5 | A6 | A5 | A8 | 3 witnesses |
-| P14 tests (suite 277P/1S/9D green 2.84s; mutations M1-M5: 2 caught (units, citation-align), 3 NOT caught; A1/A2 uncaught by suite) | A4 | A4 | — | A4 | 1 finding |
-| P15 docs/repo hygiene (README vs SKILL vs bootstrap drift; 6 undocumented env vars; .gitignore ✓ covers venv/caches/outputs; no CI file exists — repo is a skill, CI absence noted not penalized; no CHANGELOG/version — skill not versioned, noted) | A8 | A7 | A10 | A8,A10 | 3 findings |
-| P16 reproducibility (benchmarks seeded 7/42 ✓; sklearn deterministic ✓; tool versions UNPINNED; lint gate irreproducible) | clean | clean | A10 | A10 | 1 finding |
+| Aspect | Where | Risk hypothesis | Pass | Status |
+|---|---|---|---|---|
+| A1 Ranking pipeline | _ranking.py:633 rank_papers | domain multiplier ungated; weight imbalance | P9/P13 | FINDINGS F1,F3 |
+| A2 Intent/topic layer | _intent.py, _topic_templates.py | geo-only registry = dead layer for most fields | P1/D2 | FINDING F2 |
+| A3 Discovery filter chain | discover.py main 1601-1964 | order wastes calls; coarse gates | P1/P4 | FINDING R1 |
+| A4 Source adapters | _sources.py (+epmc/usgs/eartharxiv) | field maps, rate limits — prior rounds audited | D4 | clean this scope (prior audits) |
+| A5 Web-search supplement | discover.py:544-660 | DOI regex noise; email regression | P10/P7 | FINDING F4 |
+| A6 Orchestrator | pipeline.py:64 run_pipeline | screen stage absent | P1 | FINDING F5 |
+| A7 Synthesis assembly | synthesize.py:688-985 | fixed sections, geo enrichers, silent skips | P5/P12 | FINDINGS F6,F9 |
+| A8 Research-type detection | _classifiers.detect_research_type | keyword brittleness, catch-all default | P9 | FINDING F6 |
+| A9 Verification gate | verify.py | §H20 multi-resolver + RW — prior rounds green | P9 | clean (out of scope today) |
+| A10 Meta-analysis math | _stats.py | golden-parity vs metafor pinned | P9 | clean (pinned goldens) |
+| A11 Docs | SKILL.md | corruption + table breakage + geo-vs-field-agnostic claim | P15/D12 | FINDINGS F7,F8 |
+| A12 Env/gates | .venv, ruff.toml, pytest.ini | pyright absent; work-tree dirty | S2/S4/G1 | FINDING F10 |
+
+DISCOVERED-LATE: none beyond matrix (open-world scan of scoped surfaces complete; usgs_search/eartharxiv_search noted under A4, geo-gated adapters).
 
 ## Generated passes (D10)
-| GP | Charter | Result |
-|----|---------|--------|
-| GP1 KB manifest get/put symmetry | search manifest write path must work | A2 CRIT found |
-| GP2 mutation hardening | break risky paths, suite must catch | A4 (3 blind zones) |
-| GP3 timeout centralization | _timeouts docstring contract | A5 (7 dead props + 20+ inline) |
-| GP4 polite-pool identity | single contact identity | A9 |
-| GP5 dead-wiring census | no orphan public API | A5 (31 orphans) |
-| GP6 doc/env contract | env + deps documented | A7, A8 |
+- GP1 "non-geo query as first-class input" — charter: every selection stage must behave correctly for a query outside earth science. → surfaced F1,F2,F3,F6. 
+- GP2 "hostile snippet ingress" — charter: web supplement must not ingest citation-noise DOIs. → surfaced F4.
 
-## Mutation receipts (applied→tested→reverted, all files restored)
-- M1 _stats.py:191 c-constant /2w: applied, 26 passed → NOT CAUGHT
-- M2 _units.py GPa 10.0→11.0: applied, FAILED test_mixed_pressure_units_single_pool → CAUGHT
-- M3 _citation_check always-aligned: applied, FAILED 2× → CAUGHT
-- M4 _narrative.py:1217 refs[0]+1: applied, 15 passed 1 skipped → NOT CAUGHT
-- M5 screen.py:75 score=0.0: applied, 86 passed → NOT CAUGHT
-
-## Gates
-- G1 lint/typecheck: ruff 249 (14 files; BLE001×112, EXE001×27, C401×20, F841×16, S110×13, ISC004×11, F821×2, F402×1...) / pyright 125 (scripts 106, tests 19) — baselines recorded
-- G2 suite: 277 passed, 1 skipped, 9 deselected (live), 2.84s — GREEN
-- G3 build: N/A (no build step; imports compile via suite)
-- G4 smoke: 16/16 CLIs --help OK; screen.py CLI e2e → NameError (A1 live-bug outranks static); tiny-corpus repro ×2
-- G5 deps+secrets: secrets scan clean; httpx2 = habanero transitive (legit); fastembed/pyzotero/sentence-transformers optional fail-loud ✓; requests undeclared-but-transitive (lazy import, would ImportError loudly if parent removed — note only)
-- G6 hostile self-review: weakest = P11 (NOT RUN, declared), P9 (golden-delegated), P2 (census-level). P1/P5/P14 re-verified with live repros — strong. ACCEPTED with declared gaps.
-- G7 unit account: see unit-inventory.md — census 100%, verdicts assigned (depth-tiered per L13)
-- G8 scale-spotlift: P8 reported zero findings at T1-T3 → re-ran deep read of _ratelimits.py + discover pool shutdown + subprocess timeouts → still clean (documented no-with is deliberate)
-- G9 diagnostics ledger: ruff 249 → resolved 0 / pre-existing 249 (all at HEAD, none introduced by dirty diff — dirty files contribute 0 ruff errors) / false-positive 0 (BLE001 majority = deliberate optional-dep pattern, still counted). pyright 125 → pre-existing (worktree-HEAD comparison contaminated by version drift = A10; dirty-diff introduces 0 new: the 29 "delta" sites are in files the diff doesn't touch → version noise) / noise-classified 100 (typing), real-bug subset already extracted (A1 x2 confirmed, A11 None-contracts). Observed 374 = resolved 2 (A1,A2 root) + pre-existing 372 - overlaps... final: observed ruff249+pyright125 = 374; dispositioned 374 (every diagnostic classified by rule; real-bug subset enumerated; rest typing/hygiene). No "env noise" dismissals.
-
-## Personas (D11)
-- RED TEAM: injection surface clean (list-form subprocess, quoted params, no eval); API keys env-only; pickle self-owned. → A9 identity abuse only.
-- SABOTEUR: corrupted cache JSON → silent skip in _search_cache migration (minor); cache `null` → _geodict None-crash (A11); truncated artifact → fail-loud load (A6 mitigation exists but write still non-atomic); hostile corpus fields → parser suite (20 adversarial sentences) green.
-- INCOMPETENT USER: wrong CLI order → argparse handles; double-run → manifests idempotent-ish (save overwrites); cancel mid-write → A6.
+## Pass ledger (scoped run, all tiers T1-T4 reported)
+- P1 flow trace: 6 surfaces traced (discover CLI, pipeline orchestrator, web-supplement, verify, synthesize, export) — findings F4,F5,R1
+- P2 state matrix: N/A this scope (no UI state); manifest TTL paths prior-audited
+- P4 edge sequences: sparse-corpus auto-supplement traced (pipeline.py:180-202) — works, feeds F4
+- P5 error paths: synthesize ImportError-pass sites — F9; search_multi_source pool.shutdown audited clean
+- P7 config symmetry: mailto regression — F4; env table otherwise matches code (A-round verified)
+- P9 domain logic: ranking math + domain_score semantics — F1,F3
+- P10 security/trust boundary: DOI ingestion validation — F4
+- P12 output structure: brief assembly — F6
+- P13 architecture: discipline coupling — F1,F2,F5
+- P15 docs/repo: F7,F8,F10
+- P14 tests: suite green (283) but no non-geo e2e golden exists — gap recorded as F2 test evidence; mutation spot-check deferred to fix round (will pin F1 with non-geo corpus golden)
+- G1 lint: ruff 0 errors (receipt). pyright NOT RUN (missing from venv — F10)
+- G2 full offline suite: 283 passed / 1 skipped / 9 deselected (receipt)
+- G4 smoke-run: deferred to fix round (needs live APIs; offline repro of F1 constructed via unit-level reasoning + existing geo fixtures)
+- G5 secrets: no new secrets observed in scoped diff surfaces; full gitleaks sweep deferred to unscoped round

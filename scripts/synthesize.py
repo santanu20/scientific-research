@@ -33,6 +33,7 @@ if __name__ == "__main__":
 
 import json
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -106,6 +107,42 @@ def _detect_best_model() -> str:
     except Exception:
         return "qwen3.5:0.8b"
 
+def _valid_smooth(original: str, output: str) -> bool:
+    """Gate on LLM-smoothed text before it may enter a brief.
+
+    Small local models answer polishing prompts with refusals, apologies,
+    and meta-commentary ("I notice this paragraph contains...", "Please
+    provide the full paragraph") — text that has shipped verbatim into
+    briefs. A smoothed block is accepted ONLY when it is a real polish of
+    the input: no refusal markers, all [N] citations and all numeric tokens
+    preserved, sane length ratio.
+    """
+    if not output or len(output) < 40:
+        return False
+    low = output.lower()
+    refusal_markers = (
+        "i can't", "i cannot", "i'm sorry", "please provide", "please paste",
+        "please share", "i notice", "notes on my edits", "what i'd recommend",
+        "as an ai", "i'll be happy", "before polishing", "cannot responsibly",
+        "cannot polish", "would you like me", "i'd recommend", "my edits",
+        "redacted", "placeholder elements", "here's what i",
+    )
+    if any(m in low for m in refusal_markers):
+        return False
+    # Citations [N] must survive
+    orig_refs = set(re.findall(r"\[\d+(?:,\s*\d+)*\]", original))
+    if any(r not in output for r in orig_refs):
+        return False
+    # Numeric data must survive (token-level; formatting may vary slightly)
+    orig_nums = re.findall(r"\d+\.?\d*", original)
+    out_num_set = set(re.findall(r"\d+\.?\d*", output))
+    missing = [n for n in orig_nums if n not in out_num_set]
+    if missing and len(missing) > max(1, len(orig_nums) // 10):
+        return False
+    ratio = len(output) / max(len(original), 1)
+    return 0.4 <= ratio <= 2.5
+
+
 
 def smooth_theme_paragraphs(
     narrative: str,
@@ -153,7 +190,9 @@ def smooth_theme_paragraphs(
 
                     if cache_file.exists():
                         cached = cache_file.read_text(encoding="utf-8")
-                        if cached and len(cached) > 100:
+                        # Validate cached blocks too — poisoned cache entries
+                        # (refusals cached by pre-gate code) must not replay.
+                        if cached and _valid_smooth(section_text, cached):
                             smoothed_lines.append(cached)
                             current_section = []
                             smoothed_lines.append(line)
@@ -170,7 +209,11 @@ def smooth_theme_paragraphs(
                         "ages, compositions, partition coefficients).\n"
                         "4. Do NOT add new facts, citations, or geological claims.\n"
                         "5. Improve sentence flow and reduce wordiness ONLY.\n"
-                        "6. Do NOT replace technical terms with simpler alternatives.\n\n"
+                        "6. Do NOT replace technical terms with simpler alternatives.\n"
+                        "7. Respond with ONLY the polished paragraph. No preamble, "
+                        "no explanations, no offers to help, no questions.\n"
+                        "8. NEVER refuse or comment on the text. If a part is "
+                        "unclear, polish around it and keep it intact.\n\n"
                         f"{section_text}\n\nPolished:"  # full section (num_ctx sized)
                     )
 
@@ -203,12 +246,17 @@ def smooth_theme_paragraphs(
                             msg = result.get("message", {})
                             smoothed = (msg.get("content") or "").strip()
 
-                        if smoothed and len(smoothed) > 100:
-                            if smoothed.startswith(("/no_think", "No_think")):
-                                smoothed = smoothed.split(nl, 1)[-1].strip()
+                        if smoothed.startswith(("/no_think", "No_think")):
+                            smoothed = smoothed.split(nl, 1)[-1].strip()
+                        if smoothed and _valid_smooth(section_text, smoothed):
                             cache_file.write_text(smoothed, encoding="utf-8")
                             smoothed_lines.append(smoothed)
                         else:
+                            log.info(
+                                "Smoothing rejected (refusal/data-loss gate) "
+                                "for section %.60r — keeping original",
+                                section_text,
+                            )
                             smoothed_lines.append(section_text)
                     except Exception as e:
                         log.debug("Theme smoothing failed: %s", e)
@@ -237,7 +285,6 @@ def _build_structural_gaps(
     papers: list[dict],
     correlation: dict,
     found_themes: list[str] | None = None,
-    template_gaps: list[str] | None = None,
 ) -> list[str]:
     """R5: gap signals from LIVE corpus + correlation structure."""
     gap_points: list[str] = []
@@ -265,7 +312,7 @@ def _build_structural_gaps(
     theme_counts: dict[str, int] = {}
     for p in papers:
         pico = p.get("pico") or {}
-        theme = pico.get("study_type") or pico.get("discipline") or "general"
+        theme = pico.get("study_type") or pico.get("discipline") or "the corpus"
         theme_counts[theme] = theme_counts.get(theme, 0) + 1
     if len(theme_counts) >= 2:
         biggest = max(theme_counts.values())
@@ -281,8 +328,6 @@ def _build_structural_gaps(
             "no bibliographic coupling detected — studies rarely share "
             "reference sets; the field may be fragmented"
         )
-    if template_gaps:
-        gap_points.append("underrepresented approaches: " + ", ".join(template_gaps))
     return gap_points
 
 
@@ -497,6 +542,7 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
         return ""
     try:
         from _narrative import (
+            _clip,
             _extract_limitations,
             _extract_numbers_from_text,
             _group_by_theme,
@@ -527,7 +573,7 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
         for p in papers[:5]:
             f = (p.get("key_finding") or "").strip()
             if f and len(f) > 40:
-                top_finding = f[:300].rstrip() + ("..." if len(f) > 300 else "")
+                top_finding = _clip(f, 300)
                 break
         if not top_finding:
             # No finding — use first 100 chars of title as summary
@@ -698,21 +744,6 @@ def synthesize(
         narrative = smooth_theme_paragraphs(narrative, query)
 
     # Assemble full brief
-    # Concept-based report structure from topic template
-    report_sections: list[str] = []
-    try:
-        from _intent import parse_intent
-
-        intent = parse_intent(query if isinstance(query, str) else "")
-        if intent and intent.template and intent.template.report_sections:
-            report_sections = intent.template.report_sections
-            log.info(
-                "Using concept-hierarchical structure from template: %d sections",
-                len(report_sections),
-            )
-    except Exception as e:
-        log.debug("Report sections extraction skipped: %s", e)
-
     parts: list[str] = []
 
     # Claim-level evidence synthesis
@@ -823,20 +854,24 @@ def synthesize(
 
     # Convergence and controversies — statistical analysis
     try:
-        from _geo_enrich import build_convergence_text, detect_research_gaps
+        from _geo_enrich import build_convergence_text
 
         # Group papers by detected theme for convergence analysis
         theme_groups: dict[str, list[dict]] = {}
         for p in cited or papers:
             pico = p.get("pico") or {}
-            theme = pico.get("study_type") or pico.get("discipline") or "general"
+            theme = pico.get("study_type") or pico.get("discipline") or "the corpus"
             theme_groups.setdefault(theme, []).append(p)
         conv_text = build_convergence_text(theme_groups)
-        parts.append("## Convergence and controversies")
-        parts.append("")
-        if conv_text:
+        if conv_text and conv_text.strip():
+            # Heading only when there is substance — a bare heading reads
+            # as a synthesis failure to the reader.
+            parts.append("## Convergence and controversies")
+            parts.append("")
             parts.append(conv_text)
             parts.append("")
+        else:
+            log.info("Convergence section skipped: no statistical signal")
         # Claim-level value-divergence signals (Phase 3 engine, 2026-08-15):
         # clusters same-quantity numeric claims across papers and reports
         # >=5x spreads — the calibration-disagreement candidates a reviewer
@@ -862,9 +897,6 @@ def synthesize(
             cited or papers,
             correlation or {},
             found_themes=list(theme_groups.keys()),
-            template_gaps=detect_research_gaps(
-                list(theme_groups.keys()), dominant_disc
-            ),
         )
         parts.append("## Research gaps")
         parts.append("")
@@ -917,6 +949,16 @@ def synthesize(
     parts.append(format_citation_list(ref_source))
 
     full_brief = "\n".join(parts)
+
+    # Deduplicate the scope sentence: the chronological narrative opens
+    # with the same "This review synthesizes N studies ..." sentence the
+    # executive summary already carries — keep the first occurrence only.
+    scope_sentences = [
+        ln for ln in full_brief.splitlines()
+        if ln.startswith("This review synthesizes ")
+    ]
+    for s in scope_sentences[1:]:
+        full_brief = full_brief.replace(s + "\n", "", 1).replace(s, "", 1)
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)

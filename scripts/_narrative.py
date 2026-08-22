@@ -20,6 +20,11 @@ from _artifact import (  # noqa: F401
     _parse_authors,
     _sanitize_finding,
 )
+from _effect_parser import (  # shared extraction guards (kept in sync)
+    _BOUND_CUE,
+    _FILTER_CUE,
+    _UNCERTAINTY_CUE,
+)
 
 log = logging.getLogger("scientific_research.narrative")
 
@@ -97,6 +102,107 @@ def _author_short(authors: list[str]) -> str:
 # =============================================================================
 
 
+def assign_global_refs(papers: list[dict]) -> tuple[list[dict], dict]:
+    """Assign ONE global reference number per paper (single source of truth).
+
+    Order: chronological, then title (stable). Every builder reads ``_ref``
+    / ``ref_map`` — no per-theme offsets exist anywhere, so inline markers
+    can never collide with the References list. Idempotent: re-running
+    recomputes the same numbers.
+    """
+    ordered = sorted(
+        papers,
+        key=lambda p: (
+            p.get("year") if isinstance(p.get("year"), int) else 9999,
+            (p.get("title") or "").lower(),
+        ),
+    )
+    ref_map: dict[str, int] = {}
+    for i, p in enumerate(ordered, 1):
+        key = (
+            p.get("paper_id")
+            or p.get("doi")
+            or f"title::{(p.get('title') or '').lower()[:80]}"
+        )
+        ref_map[key] = i
+        p["_ref"] = i
+    return ordered, ref_map
+
+
+def _relabel_themes_dynamic(
+    themes: list[dict[str, object]], all_papers: list[dict]
+) -> list[dict[str, object]]:
+    """Rename theme groups by their most CORPUS-DISTINCTIVE terms.
+
+    Fully dynamic: labels come from TF-IDF over this corpus itself
+    (n-grams that are frequent inside the group, rare outside it). No
+    discipline vocabulary — the same mechanism names themes in any field,
+    replacing the former geology-vocabulary matcher whose labels
+    ("Planetary geology" for a landfill study) misled readers.
+    """
+    if not themes:
+        return themes
+
+    docs = [
+        (
+            (str(p.get("title") or "") + " " + str(p.get("abstract") or "") + " "
+             + str(p.get("key_finding") or ""))
+        ).lower().strip()
+        or "empty document"
+        for p in all_papers
+    ]
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        vec = TfidfVectorizer(
+            stop_words="english", ngram_range=(1, 2), min_df=1, sublinear_tf=True
+        )
+        matrix = vec.fit_transform(docs)
+        feature_names = vec.get_feature_names_out()
+    except (ImportError, ValueError):
+        return themes
+
+    # doc index per paper identity (paper_id → row)
+    id_to_row = {}
+    for i, p in enumerate(all_papers):
+        key = p.get("paper_id") or p.get("doi") or f"title::{(p.get('title') or '').lower()[:80]}"
+        id_to_row[key] = i
+
+    used: set[str] = set()
+    for th in themes:
+        members = th.get("papers") or []
+        rows = [
+            id_to_row[
+                p.get("paper_id") or p.get("doi")
+                or f"title::{(p.get('title') or '').lower()[:80]}"
+            ]
+            for p in members
+        ]
+        label = None
+        if rows:
+            import numpy as _np
+
+            sub = matrix[rows]
+            mean_scores = _np.asarray(sub.mean(axis=0)).ravel()
+            # top distinctive n-grams for THIS group vs corpus
+            order = mean_scores.argsort()[::-1]
+            picks: list[str] = []
+            for idx in order[:12]:
+                term = str(feature_names[idx])
+                if term in used or len(term) < 4:
+                    continue
+                picks.append(term)
+                if len(picks) == 2:
+                    break
+            if picks:
+                label = " / ".join(picks)
+        if not label:
+            label = f"Theme {len(used) + 1}"
+        used.add(label.split(" / ")[0])
+        th["label"] = label
+    return themes
+
+
 def format_citation_list(papers: list[dict]) -> str:
     """Format numbered reference list from papers (in citation order).
 
@@ -104,12 +210,15 @@ def format_citation_list(papers: list[dict]) -> str:
     """
     lines: list[str] = []
     for i, p in enumerate(papers, 1):
+        # Honor global map numbers when present (body markers derive from
+        # the same source — alignment by construction).
+        num = p.get("_ref", i)
         author = _author_short(_parse_authors(p.get("authors", [])))
         year = p.get("year") or "n.d."
         title = p.get("title", "Untitled")
         doi = p.get("doi", "")
         doi_str = f" DOI:[{doi}](https://doi.org/{doi})" if doi else ""
-        lines.append(f"[{i}] {author} ({year}). {title}.{doi_str}")
+        lines.append(f"[{num}] {author} ({year}). {title}.{doi_str}")
     return "\n\n".join(lines)
 
 
@@ -119,261 +228,124 @@ def format_citation_list(papers: list[dict]) -> str:
 
 
 # Domain-agnostic method detection patterns
+# Study-design method patterns — GENERIC taxonomy only (dynamic-context
+# mandate, 2026-08-22): what kind of STUDY produced the paper, never which
+# scientific domain it belongs to. Domain naming lives nowhere.
 _METHOD_PATTERNS = [
-    # Petrology / thermobarometry
     (
-        "Experimental petrology",
+        "Experimental study",
         re.compile(
-            r"\b(?:experiment\w*|synthetic\s+(?:sample|run)|piston\s+cylinder|multi.anvil|diamond\s+anvil|high.pressure\s+experiment|phase\s+equilibrium\s+experiment)\b",
+            r"\b(?:experiment\w*|synthetic\s+(?:sample|run)|high.pressure\s+experiment|"
+            r"laboratory\s+(?:experiment|test)|controlled\s+experiment|bench.scale)\b",
             re.IGNORECASE,
         ),
     ),
-    (
-        "Phase-equilibrium modeling",
-        re.compile(
-            r"\b(?:phase\s+equilibri\w*|pseudosection|THERMOCALC|Perple_X|activity.composition|a.x\s+model|solution\s+model|Gibbs\s+minimi\w*|bulk\s+composition|isopleth|Perplex|Theriak|Domino|BurnMan)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Conventional thermobarometry",
-        re.compile(
-            r"\b(?:Fe.Mg\s+(?:exchange|thermomet|partition)|garnet.biotite|garnet.clinopyroxene|garnet.orthopyroxene|garnet.hornblende|garnet.ilmenite|GASP|GB\s+thermomet|GEOPATH|solvus\s+thermomet|net.transfer|calibrat\w*\s+thermobar|exchange\s+thermomet|avJE?TT|TWQ)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Elastic thermobarometry",
-        re.compile(
-            r"\b(?:elastic\s+thermobar\w*|quartz\s+inclusion\w*|zircon\s+inclusion\w*|Raman\s+(?:spectroscop\w*|band\w*|peak\w*)|entrapment\s+(?:pressure\w*|P\b)|isotropic\s+strain|residual\s+pressure|host.?inclusion\w*|EoS|equation\s+of\s+state|Gruneisen|Gr\u00fcneisen)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Trace element thermometry",
-        re.compile(
-            r"\b(?:trace\s+element\s+thermomet|rare\s+earth|\bREE\b|\bLA.ICP.MS\b|\bSIMS\b|ion\s+microprobe|partition\s+coefficient|\bKd\b|zoning\s+(?:profile|pattern)|Ti.in.(?:zircon|quartz)|Zr.in.rutile|REE.in.garnet)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Diffusion chronometry",
-        re.compile(
-            r"\b(?:diffusion\w*|geospeedomet\w*|cooling\s+rate|Fe.Mg\s+interdiffusion|garnet\s+(?:diffusion|zoning)|diffusivity|Arrhenius)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Geochronology
-    (
-        "Geochronology",
-        re.compile(
-            r"\b(?:geochronolog\w*|\bU.Pb\b|\bAr.Ar\b|\b40Ar.39Ar\b|monazite\s+(?:age|dating)|zircon\s+(?:age|dating)|SHRIMP|ID.TIMS|fission\s+track|cosmogenic|\bRe.Os\b|\bSm.Nd\b|\bLu.Hf\b)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Geochemistry
-    (
-        "Isotope geochemistry",
-        re.compile(
-            r"\b(?:isotop\w*|\bSr.b.d\b|\bNd.b.d\b|\bPb.b.d\b|\bd18O\b|\bd13C\b|\bd34S\b|\bdD\b|\b87Sr\b|\b143Nd\b|stable\s+isotope|radiogen)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Whole-rock geochemistry",
-        re.compile(
-            r"\b(?:whole.rock\s+geochem|bulk\s+(?:rock|geochem)|major\s+element|\bXRF\b|\bICP.MS\b|\bEPMA\b|electron\s+microprobe|harker\s+diagram|spider\s+(?:diagram|plot))\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Structural geology
-    (
-        "Structural analysis",
-        re.compile(
-            r"\b(?:structural\s+(?:analysis|geolog)|stress\s+inversion|paleostress|strain\s+(?:analysis|ellipsoid|rate)|fracture\s+analysis|fold\s+(?:geometry|analysis)|fault\s+(?:geometry|kinematic|slip|displacement)|brittle|ductile\s+shear)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Rock magnetism / Paleomagnetism",
-        re.compile(
-            r"\b(?:paleomagnet\w*|magnetic\s+(?:susceptibility|fabric|anisotropy|mineralogy)|demagnetiz\w*|\bAMS\b|natural\s+remanent|\bNRM\b|\bARM\b|\bIRM\b)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Geophysics
-    (
-        "Seismology",
-        re.compile(
-            r"\b(?:seismic\s+(?:tomograph\w*|reflection|refraction|wave|velocity|attenuation)|receiver\s+function|earthquake\s+(?:location|mechanism|source)|\bVp\b|\bVs\b|\bMw\b|moment\s+magnitude|teleseismic)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Gravity / Magnetic survey",
-        re.compile(
-            r"\b(?:gravity\s+(?:survey|anomal|gradient)|Bouguer|free.air|magnetic\s+(?:anomal|survey)|aeromagnetic|magnetotellur\w*|\bMT\s+survey)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Heat flow / Thermal",
-        re.compile(
-            r"\b(?:heat\s+flow|geothermal\s+gradient|thermal\s+(?:conductivity|diffusivity|model)|surface\s+heat\s+flow)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Sedimentology / Stratigraphy
-    (
-        "Sedimentology",
-        re.compile(
-            r"\b(?:sedimentolog\w*|depositional\s+environment|facies\s+analysis|sequence\s+stratigraph|provenance|diagen\w*|sedimentary\s+structure)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Volcanology
-    (
-        "Volcanology",
-        re.compile(
-            r"\b(?:volcan\w*|eruption\w*|lava\s+flow|volcanic\s+(?:ash|gas|hazard|risk)|magma\s+(?:chamber|evolution|ascent|mixing|emplacement)|pyroclastic)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Remote sensing
-    (
-        "Remote sensing",
-        re.compile(
-            r"\b(?:\bInSAR\b|\bD.InSAR\b|\bLandsat\b|\bASTER\b|\bSentinel\b|\bMODIS\b|satellite\s+(?:imag|data)|airborne\s+(?:survey|magnetic)|hyperspectral|multispectral)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Numerical / analog modeling
     (
         "Numerical modeling",
         re.compile(
-            r"\b(?:numerical\s+model|computer\s+simulation|finite\s+(?:element|difference|volume)|discrete\s+element|computational|thermodynamic\s+model|machine\s+learning|statistical\s+model|geodynamic\s+model)\b",
+            r"\b(?:numerical\s+model\w*|simulation|finite\s+(?:element|difference|volume)|"
+            r"computational\s+model\w*|machine\s+learning\s+model|monte\s+carlo)\b",
             re.IGNORECASE,
         ),
     ),
     (
         "Analog modeling",
         re.compile(
-            r"\b(?:analog\s+(?:model|experiment)|sandbox\s+model|scaled\s+model|physical\s+model)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Field / Review
-    (
-        "Field study",
-        re.compile(
-            r"\b(?:field\s+(?:study|area|evidence|relation|sample)|outcrop|collected\s+from|fieldwork|mapped|mapping|regional\s+geolog)\b",
+            r"\b(?:analog(?:ue)?\s+model\w*|scaled\s+(?:physical\s+)?model\w*)\b",
             re.IGNORECASE,
         ),
     ),
     (
-        "Review / Synthesis",
+        "Remote sensing",
         re.compile(
-            r"\b(?:review\b|meta.analysis|systematic\s+review|overview|state.of.the.art|synthesi[sz]e|summari[sz]e)\b",
+            r"\b(?:remote\s+sensing|satellite\s+imagery|landsat|sentinel|"
+            r"aerial\s+(?:photograph|survey)|LiDAR|UAV|drone\s+(?:survey|imagery))\b",
             re.IGNORECASE,
         ),
     ),
-    # Mineralogy / Crystallography
-    (
-        "Mineralogy",
-        re.compile(
-            r"\b(?:mineral\s+(?:chemistr|composition|assemblage|paragenesis)|crystal\s+(?:structure|chemistry)|X.ray\s+(?:diffraction|fluorescence)|\bXRD\b|Raman\s+spectroscop\w*|\bSEM\b|\bTEM\b|electron\s+backscatter)\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Hydrogeology
-    (
-        "Hydrogeology",
-        re.compile(
-            r"\b(?:groundwater|aquifer|hydrogeolog|hydrolog|permeab|porosity|hydraulic\s+(?:conductivity|head)|water\s+(?:table|chemistry|rock\s+interaction))\b",
-            re.IGNORECASE,
-        ),
-    ),
-    # Ore geology
-    (
-        "Software / Computational thermobarometry",
-        re.compile(
-            r"\b(?:Thermobar(?:\s+software)?|\bTHERMOCALC\b.*software|geothermobarometr.*software|"
-            r"thermobarometr.*package|thermobarometr.*program|thermobarometr.*tool|"
-            r"\bGCDkit\b|\bIgiPet\b|\bPetMod\b|\bRcrust\b|\bPTcalc\b)"
-            r"\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "Ore geology",
-        re.compile(
-            r"\b(?:ore\s+(?:deposit|geolog|mineraliz)|mineraliz\w*|hydrothermal\s+(?:deposit|vein|alteration)|porphyry\s+(?:deposit|copper)|epithermal|orogenic\s+gold|\bVMS\b|\bSEDEX\b)\b",
-            re.IGNORECASE,
-        ),
-    ),
+    ("Field study", re.compile(r"\bfield\s+(?:study|work|campaign|mapping|survey|observation)\b", re.IGNORECASE)),
+    ("Review / Synthesis", re.compile(r"\b(?:systematic\s+)?review\b|\bsynthesis\b|\bmeta.analysis\b", re.IGNORECASE)),
 ]
 
 
 def _detect_method_theme(paper: dict) -> str:
-    """Detect the primary methodological theme of a paper.
+    """Detect the primary METHODOLOGICAL theme (study design, not domain).
 
-    Delegates to _geo_enrich.detect_geo_theme_robust (BGE embedding
-    similarity against geological vocabulary) when available. Falls back
-    to the original keyword-based detection if geo_enrich is unavailable.
+    2026-08-22: the former geology-vocabulary branches ("Planetary
+    geology", "Ore geology", ...) mislabeled non-petrological corpora and
+    violated the dynamic-context mandate — removed. Method labels now
+    come from study-design signals only: generic method patterns, then
+    the paper's own study_type/discipline fields.
     """
-    # Delegate to robust BGE-based geological theme detection
-    try:
-        from _geo_enrich import detect_geo_theme_robust
+    # Generic study-design first — field-agnostic by construction
+    pico = paper.get("pico") or {}
+    study_t = (pico.get("study_type") or "").lower().replace("_", " ").strip()
+    if study_t and study_t not in ("general", "other", ""):
+        return study_t.capitalize()
 
-        result = detect_geo_theme_robust(paper)
-        if result and result != "Other studies":
-            return result
-    except ImportError:
-        pass
-
-    # Fallback: original keyword-based detection
     title = (paper.get("title") or "").lower()
     finding = (paper.get("key_finding") or "").lower()
     abstract = (paper.get("abstract") or "").lower()
     text = f"{title} {finding} {abstract}"
 
-    # Pre-check: Thermobar software must be caught before Conventional pattern
-    if "thermobar" in title and any(w in text for w in ["software", "package", "program", "tool", "python"]):
-        return "Software / Computational thermobarometry"
-
     for theme_name, pattern in _METHOD_PATTERNS:
         if pattern.search(text):
             return theme_name
 
-    # Fallback: use keywords from title for a more descriptive label
-    title = (paper.get("title") or "").lower()
-    if "atmospher" in title or "exoplanet" in title or "planet" in title:
-        return "Planetary geology"
-    if "magma ocean" in title or "magma" in title:
-        return "Igneous petrology"
-    if "volcanic" in title or "eruption" in title or "outgassing" in title:
-        return "Volcanology"
-    if "ore" in title or "deposit" in title or "mineraliz" in title:
-        return "Ore geology"
-    if "mantle" in title or "peridot" in title:
-        return "Mantle petrology"
-    if "metamorph" in title or "schist" in title or "gneiss" in title:
-        return "Metamorphic petrology"
-    if "sediment" in title or "basin" in title:
-        return "Sedimentology"
-    if "fluid" in title or "hydrothermal" in title:
-        return "Fluid geochemistry"
-
-    # Last fallback: discipline-based grouping from pico or top-level
-    pico = paper.get("pico") or {}
-    disc = (paper.get("discipline") or pico.get("discipline") or "").lower().replace("_", " ")
-    if disc and disc not in ("general", "other", ""):
-        return disc.capitalize()
-    study_t = (pico.get("study_type") or "").lower().replace("_", " ")
-    if study_t and study_t not in ("general", "other", ""):
-        return study_t.capitalize()
-
+    # Discipline names ("ore geology") describe DOMAIN, not methodology —
+    # they leaked into method-trend sentences and misled readers. Honest
+    # neutral label when no study-design signal exists.
     return "Other studies"
+
+
+def _similarity_clusters(
+    papers: list[dict], threshold: float = 0.25
+) -> list[list[dict]]:
+    """Greedy TF-IDF leader clustering of paper texts (fully content-driven).
+
+    Used as the fallback theme-splitter when study-design labels cannot
+    differentiate a corpus. Deterministic: papers processed in input order.
+    """
+    docs = [
+        (
+            str(p.get("title") or "")
+            + " "
+            + str(p.get("abstract") or "")
+            + " "
+            + str(p.get("key_finding") or "")
+        ).lower().strip()
+        or "empty document"
+        for p in papers
+    ]
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        matrix = TfidfVectorizer(
+            stop_words="english", sublinear_tf=True
+        ).fit_transform(docs)
+        sims = cosine_similarity(matrix)
+    except (ImportError, ValueError):
+        return [list(papers)]
+
+    n = len(papers)
+    assigned = [-1] * n
+    leaders: list[int] = []
+    for i in range(n):
+        placed = False
+        for li in leaders:
+            if sims[i, li] >= threshold:
+                assigned[i] = assigned[li]
+                placed = True
+                break
+        if not placed:
+            assigned[i] = len(leaders)
+            leaders.append(i)
+
+    out: list[list[dict]] = []
+    for cid in sorted(set(assigned)):
+        out.append([papers[i] for i in range(n) if assigned[i] == cid])
+    return out
 
 
 def _group_by_theme(papers: list[dict]) -> list[dict[str, object]]:
@@ -397,11 +369,21 @@ def _group_by_theme(papers: list[dict]) -> list[dict[str, object]]:
         theme = _detect_method_theme(p)
         groups[theme].append(p)
 
+    # Single mega-group fallback: study-design labels cannot differentiate
+    # corpora where every paper shares one design. Split by CONTENT
+    # similarity instead so the methodological landscape stays meaningful.
+    if len(groups) == 1 and len(deduped) >= 4:
+        clusters = _similarity_clusters(deduped)
+        if len(clusters) >= 2:
+            groups = {
+                f"content_cluster_{i}": c for i, c in enumerate(clusters)
+            }
+
     result = []
     for label, group_papers in sorted(groups.items(), key=lambda x: -len(x[1])):
         result.append({"label": label, "papers": _sort_chronological(group_papers)})
 
-    return result
+    return _relabel_themes_dynamic(result, deduped)
 
 
 # Physical ranges for validation — filter impossible values across ALL geology
@@ -717,7 +699,23 @@ def _extract_numbers_from_text(text: str) -> list:
     """
     if not text:
         return []
-    results = []
+
+    def _cue_blocked(pos: int) -> bool:
+        """True when the 60 chars BEFORE pos mark a bound/uncertainty/filter
+        statement ("up to 2200 MPa", "T ±22 °C", "remove >50 kbar"). The
+        effect parser gates on these cues; this extractor lacked them, so
+        bounds and error bars leaked into pooled P-T ranges."""
+        ctx = text[max(0, pos - 60) : pos]
+        # Error metrics ("SEE = 1.4 kbar") are model errors, not P-T values
+        if re.search(r"\b(?:see|rmse|mae|mape|sd|sigma|1σ)\s*=\s*$", ctx, re.IGNORECASE):
+            return True
+        return bool(
+            _BOUND_CUE.search(ctx)
+            or _UNCERTAINTY_CUE.search(ctx)
+            or _FILTER_CUE.search(ctx)
+        )
+
+    results: list = []
 
     # Temperature — REQUIRE degree symbol
     for m in re.finditer(
@@ -726,6 +724,8 @@ def _extract_numbers_from_text(text: str) -> list:
         text,
         re.IGNORECASE,
     ):
+        if _cue_blocked(m.start()):
+            continue
         # Check for delta context — skip if this is a difference, not absolute T
         after_match = text[m.end() : m.end() + 30]
         before_match = text[max(0, m.start() - 30) : m.start()]
@@ -758,6 +758,8 @@ def _extract_numbers_from_text(text: str) -> list:
         text,
         re.IGNORECASE,
     ):
+        if _cue_blocked(m.start()):
+            continue
         # Check for delta context
         after_match_p = text[m.end() : m.end() + 30]
         before_match_p = text[max(0, m.start() - 30) : m.start()]
@@ -1114,7 +1116,7 @@ import statistics as _stats
 _THEME_OPENERS = [
     "The {theme} literature ({n} {study}) reports {meas_summary}.",
     "Within {theme} ({n} {study}), studies report {meas_summary}.",
-    "{n} {study} employing {theme} methods find {meas_summary}.",
+    "{n} {study} employing {theme} methods report {meas_summary}.",
     "Studies using {theme} approaches ({n} {study}) converge on {meas_summary}.",
     "The {theme} approach ({n} {study}) yields {meas_summary}.",
     "Research employing {theme} ({n} {study}) documents {meas_summary}.",
@@ -1123,7 +1125,7 @@ _THEME_OPENERS = [
     # geological-depth variants (added 2026-07-12)
     "Applying {theme} ({n} {study}), researchers document {meas_summary}.",
     "The {theme} record ({n} {study}) constrains {meas_summary}.",
-    "{n} {study} using {theme} characterize {meas_summary}.",
+    "{n} {study} using {theme} report {meas_summary}.",
 ]
 
 _CONSENSUS_TEMPLATES = [
@@ -1183,9 +1185,34 @@ def _ref_str(refs: list[int]) -> str:
         return ", ".join(str(r) for r in refs)
     return f"{refs[0]}-{refs[-1]}"
 
+def _clip(text: str, limit: int) -> str:
+    """Truncate at a word/sentence boundary with an ellipsis marker.
+
+    Hard slicing (``text[:N]``) cuts mid-word and has shipped fragments like
+    "at the Ariz." / "clinopyroxen." into briefs. This never mangles a word:
+    prefer the last sentence end under the limit, else the last word break.
+    """
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    # Prefer ending at a sentence boundary inside the window
+    sent_end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    if sent_end > int(limit * 0.5):
+        return cut[: sent_end + 1]
+    word_end = cut.rfind(" ")
+    if word_end > int(limit * 0.5):
+        return cut[:word_end].rstrip(" ,;:-") + "…"
+    return cut.rstrip(" ,;:-") + "…"
+
 
 def _meas_summary_str(theme_papers: list[dict]) -> str:
-    """One-line measurement summary for use in opener sentences."""
+    """One-line measurement summary for use in opener sentences.
+
+    Units are always stated (a bare "temperatures of 2-50" is not a
+    scientific statement) and identical min==max collapses to a single
+    value instead of the nonsensical "1-1" range.
+    """
     by_type: dict[str, list[float]] = defaultdict(list)
     for p in theme_papers:
         for m in p.get("measurements", []):
@@ -1204,16 +1231,22 @@ def _meas_summary_str(theme_papers: list[dict]) -> str:
             by_type[label].append(val)
 
     if not by_type:
-        return "key findings"
+        return "no pooled numeric estimates"
 
+    unit_for = {"temperatures": "°C", "pressures": " kbar"}
     parts = []
     for mtype, vals in sorted(by_type.items(), key=lambda x: -len(x[1])):
+        u = unit_for.get(mtype, "")
         if len(vals) >= 2:
-            parts.append(f"{mtype} of {min(vals):.0f}-{max(vals):.0f}")
+            lo, hi = min(vals), max(vals)
+            if lo == hi:
+                parts.append(f"{mtype} of {lo:g}{u}")
+            else:
+                parts.append(f"{mtype} of {lo:g}–{hi:g}{u}")
         elif len(vals) == 1:
-            parts.append(f"{mtype} of {vals[0]:.0f}")
+            parts.append(f"{mtype} of {vals[0]:g}{u}")
     if not parts:
-        return "key findings"
+        return "no pooled numeric estimates"
     return "; ".join(parts[:3])
 
 
@@ -1315,21 +1348,29 @@ def _build_consensus_sentence(group: dict, verb_offset: int) -> str:
     refs = [it["ref"] for it in items]
     ref_s = _ref_str(refs)
 
-    # Try to extract common content
-    # Find shared significant words across all items
-    shared_words = {it["finding"].split() for it in items}
-    if len(shared_words) > 1:
-        common = set.intersection(
-            *[{t.strip(".,;:!?\"'()[]{}").lower() for t in it["finding"].split() if len(t) > 5} for it in items]
-        )
-    else:
-        common = set()
+    # Shared significant words across all items, kept in order of appearance
+    # in the first finding (alphabetical sorting produced word-salad;
+    # .lower() destroyed Mg-rich/P-T casing).
+    word_sets = [
+        {t.strip(".,;:!?\"'()[]{}").lower() for t in it["finding"].split() if len(t) > 5}
+        for it in items
+    ]
+    common = set.intersection(*word_sets) if word_sets else set()
 
     if common:
-        # Synthesize common content
-        content = " ".join(sorted(common)[:8])
+        words = [
+            w
+            for w in items[0]["finding"].split()
+            if w.strip(".,;:!?\"'()[]{}").lower() in common
+        ]
+        while words and words[-1].strip(".,;:!?\"'()[]{}").lower() in {
+            "across", "and", "the", "of", "with", "in", "for", "to", "from",
+            "at", "by", "over", "between",
+        }:
+            words.pop()
+        content = " ".join(words)[:200] if words else _clip(items[0]["finding"], 160)
     else:
-        content = items[0]["finding"][:100].lower()
+        content = _clip(items[0]["finding"], 160)
 
     # Pick template by rotation
     template = _CONSENSUS_TEMPLATES[verb_offset % len(_CONSENSUS_TEMPLATES)]
@@ -1341,15 +1382,14 @@ def _build_contrast_sentence(group: dict, verb_offset: int) -> str:
     side1, side2 = group["sides"]
     refs1 = _ref_str([it["ref"] for it in side1])
     refs2 = _ref_str([it["ref"] for it in side2])
-
     # Extract representative values from each side
     val1_parts = []
     for it in side1[:2]:
-        finding = it["finding"][:60].rstrip(".")
+        finding = _clip(it["finding"], 90)
         val1_parts.append(finding)
     val2_parts = []
     for it in side2[:2]:
-        finding = it["finding"][:60].rstrip(".")
+        finding = _clip(it["finding"], 90)
         val2_parts.append(finding)
 
     val1 = "; ".join(val1_parts) if val1_parts else "different results"
@@ -1397,6 +1437,19 @@ def _build_pair_sentence(items: list[dict], verb_idx: int) -> str:
     )
 
 
+
+def _decap_first(s: str) -> str:
+    """Lowercase ONLY the first character when the first word is not an
+    acronym/proper noun — blanket .lower() has mangled labels like
+    "Monazite CHIME dating" into "monazite chime dating" in briefs."""
+    s = (s or "").strip()
+    if not s:
+        return s
+    first_word = s.split(" ", 1)[0]
+    if first_word.isupper() or any(c.isupper() for c in first_word[1:]):
+        return s  # acronym or CamelCase — leave untouched
+    return s[0].lower() + s[1:]
+
 def _build_integrative_synthesis(
     theme_papers: list[dict],
     topic: str,
@@ -1423,8 +1476,9 @@ def _build_integrative_synthesis(
     if years:
         year_str = f"{min(years)}-{max(years)}" if min(years) != max(years) else str(min(years))
 
-    for i, p in enumerate(theme_papers):
-        p["_ref"] = ref_offset + 1 + i
+    # _ref values are assigned GLOBALLY (assign_global_refs) before
+    # thematic assembly — local offsets here caused body/reference
+    # collisions (fixed 2026-08-22).
 
     parts = []
 
@@ -1435,8 +1489,8 @@ def _build_integrative_synthesis(
     opener = _THEME_OPENERS[opener_idx].format(
         n=n,
         study=study_word,
-        theme=theme_label.lower(),
-        topic=topic.lower(),
+        theme=_decap_first(theme_label),
+        topic=_decap_first(topic),
         meas_summary=meas_summary,
     )
     if year_str:
@@ -1453,7 +1507,7 @@ def _build_integrative_synthesis(
                     "ref": p["_ref"],
                     "author": _author_short(_parse_authors(p.get("authors", []))),
                     "year": p.get("year") or "n.d.",
-                    "finding": finding[:250],
+                    "finding": _clip(finding, 250),
                     "measurements": _extract_numbers_from_text(finding),
                     "paper_id": p.get("paper_id", ""),
                     "tokens": {t.strip(".,;:!?\"'()[]{}").lower() for t in finding.split() if len(t) > 4},
@@ -1478,10 +1532,7 @@ def _build_integrative_synthesis(
         lim_text = lims[0][:150].rstrip(".")
         parts.append(_LIMITATION_TEMPLATES[lim_idx].format(lim=lim_text) + ".")
 
-    # Cleanup
-    for p in theme_papers:
-        p.pop("_ref", None)
-
+    # _ref stays on the paper — References formatting derives from it.
     return " ".join(parts), cited
 
 
@@ -1696,7 +1747,9 @@ def _build_claim_sentence(cluster: dict, idx: int) -> str:
     best_finding = best_item.get("finding", "")
     if best_finding:
         _, content = _rephrase_finding(best_finding)
-        claim = content[:120].lower().rstrip(".") if content else "key findings"
+        # Word-boundary clip, original casing (blanket .lower() shipped
+        # "mg-rich", "see = 1.4 kbar"; [:120] shipped "under the con.")
+        claim = _clip(content, 160) if content else "key findings"
     else:
         claim = "key findings"
 
@@ -1721,18 +1774,49 @@ def _build_claim_sentence(cluster: dict, idx: int) -> str:
 
     # Select template and verb by rotation
     template = _CLAIM_TEMPLATES[idx % len(_CLAIM_TEMPLATES)]
-    verb = _COLLECTIVE_VERBS[idx % len(_COLLECTIVE_VERBS)]
-
-    # Format sentence
+    base_verb = _COLLECTIVE_VERBS[idx % len(_COLLECTIVE_VERBS)]
+    # Agreement follows the TEMPLATE SUBJECT, not the cluster size:
+    # "Collective evidence ..." is singular; every other frame has a
+    # plural subject regardless of how many papers back the claim.
+    singular_subject = template.startswith("Collective evidence")
+    if singular_subject:
+        singular = {
+            "demonstrate": "demonstrates", "report": "reports",
+            "document": "documents", "establish": "establishes",
+            "show": "shows", "indicate": "indicates",
+            "confirm": "confirms", "suggest": "suggests",
+            "support": "supports",
+            "provide evidence for": "provides evidence for",
+        }
+        verb = singular.get(base_verb, base_verb)
+    else:
+        verb = base_verb
+    # Format sentence — an empty ref list must not produce "Multiple studies
+    #  demonstrate" with a dangling double space.
     study_word = "study" if n == 1 else "studies"
-    sentence = template.format(
-        refs=ref_str,
-        n=n,
-        study_word=study_word,
-        verb=verb,
-        claim=claim,
-        meas_clause=meas_clause,
-    )
+    # A claim that opens with a function word must read as a continuation
+    # of the frame sentence ("demonstrates There is" → "demonstrates there
+    # is"). Only closed-class words are touched — proper nouns, symbols
+    # and acronyms keep their case.
+    cont_claim = claim
+    first = re.match(r"[A-Za-z]+", claim)
+    if first and first.group() in {
+        "There", "This", "These", "Those", "It", "Its", "The", "A", "An",
+        "In", "On", "At", "For", "With", "As", "By", "Of", "Their",
+    }:
+        cont_claim = first.group().lower() + claim[len(first.group()):]
+
+    if ref_str:
+        sentence = template.format(
+            refs=ref_str,
+            n=n,
+            study_word=study_word,
+            verb=verb,
+            claim=cont_claim,
+            meas_clause=meas_clause,
+        )
+    else:
+        sentence = f"{n} {study_word} {verb} {claim}{meas_clause}"
 
     if not sentence.endswith("."):
         sentence += "."
@@ -2812,7 +2896,7 @@ _VERB_MAP = [
     ),
     (
         re.compile(
-            r"^(?:our|these|the)\s+results\s+(?:show|showed|demonstrate|indicate|suggest|reveal)\b",
+            r"^(?:our|these|the)\s+results\s+(?:show\w*|demonstrat\w+|indicat\w+|suggest\w+|reveal\w+)\b",
             re.IGNORECASE,
         ),
         "showed that",
@@ -2986,17 +3070,49 @@ def _rephrase_finding(finding: str) -> tuple[str, str]:
     # Strip leading discourse markers and sentence connectors
     cleaned = re.sub(
         r"^(?:Thus|Therefore|However|Nevertheless|Nonetheless|Moreover|Furthermore|"
+        r"Additionally|In\s+addition|Also|Besides|"
         r"Consequently|Accordingly|Hence|Overall|Indeed|Specifically|"
-        r"These\s+results?|This\s+(?:study|work|indicates|suggests|necessitates|implies)|"
-        r"Our\s+(?:results?|findings?|data|analys[ei]s)\s+(?:show|indicat|demonstrat|reveal|suggest)?|"
+        r"(?:These|The|Our)?\s?Results?\s+"
+        r"(?:show\w*|indicat\w*|demonstrat\w*|reveal\w*|suggest\w*)\s*(?:that\s*)?|"
+        r"This\s+(?:study|work|indicates|suggests|necessitates|implies)|"
+        r"Our\s+(?:results?|findings?|data|analys[ei]s)\s+(?:show|indicat\w*|demonstrat\w*|reveal\w*|suggest\w*)?|"
         r"Our\s+(?:results?|findings?|data|analys[ei]s))\s*[,\.]?\s*",
         "",
         cleaned,
         flags=re.IGNORECASE,
     )
 
-    # Strip leftover "that" at start (from partial stripping like "indicates that")
-    cleaned = re.sub(r"^that\s+", "", cleaned, flags=re.IGNORECASE)
+    # Chained connectors ("Additionally, the results suggested that ...")
+    # need repeated passes — strip until stable.
+    for _ in range(3):
+        stripped = re.sub(
+            r"^(?:Thus|Therefore|However|Nevertheless|Nonetheless|Moreover|Furthermore|"
+            r"Additionally|In\s+addition|Also|Besides|"
+            r"(?:These|The|Our)?\s?Results?\s+"
+            r"(?:show\w*|indicat\w*|demonstrat\w*|reveal\w*|suggest\w*)\s*(?:that\s*)?)"
+            r"\s*[,\.]?\s*",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(r"^that\s+", "", stripped, flags=re.IGNORECASE)
+        if stripped == cleaned:
+            break
+        cleaned = stripped
+
+    # Sentence-initial reporting verbs: a finding that OPENS with a bare
+    # third-person verb ("Provides the first quantitative assessment ...")
+    # cannot follow a frame verb — strip it and let the frame carry the
+    # reporting ("Multiple studies [n] reported that the first ...").
+    cleaned = re.sub(
+        r"^(?:Provides|Presents|Reports|Describes|Documents|Demonstrates|"
+        r"Highlights|Offers|Reveals|Shows|Indicates|Suggests|Confirms|"
+        r"Establishes|Introduces|Investigates|Examines|Assesses|Evaluates|"
+        r"Analyses|Analyzes)\s+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
 
     # Strip leftover "show that" / "demonstrate that" / "how to" at start
     cleaned = re.sub(
@@ -3023,8 +3139,11 @@ def _rephrase_finding(finding: str) -> tuple[str, str]:
                 if content:
                     return verb, content
 
-    # No known opening pattern — use "reported that" with lowercase start
-    return "reported that", cleaned[:1].lower() + cleaned[1:] if cleaned else ""
+    # No known opening pattern — use "reported that". Original casing is
+    # PRESERVED: auto-lowercasing corrupted element symbols ("fe, Cu"),
+    # place names ("india") and acronyms; a stray capital reads better
+    # than a corrupted proper noun.
+    return "reported that", cleaned
 
 
 def _is_quality_finding(finding: str) -> bool:
@@ -3464,14 +3583,21 @@ def build_chronological_narrative(
         else:
             year_range = f"({min(years)})"
 
+    # ONE global reference map for the whole narrative (fixes the
+    # per-theme offset drift that let inline [n] collide with the
+    # References list). Themes group the SAME stamped dicts.
+    chronological, ref_map = assign_global_refs(chronological)
+
     # Group papers by theme.
     # For small corpora (≤12), HDBSCAN puts everything in one cluster —
-    # use _group_by_theme() (discipline-based) instead so the narrative
-    # sections match the method comparison table's theme grouping.
+    # use _group_by_theme() instead so the narrative sections match the
+    # method comparison table's theme grouping.
     if len(chronological) <= 12:
         themes = _group_by_theme(chronological)
     else:
-        themes = _cluster_papers_hdbscan(chronological)
+        themes = _relabel_themes_dynamic(
+            _cluster_papers_hdbscan(chronological), chronological
+        )
     theme_labels = [t["label"] for t in themes[:6]]
 
     parts: list[str] = []
@@ -3485,7 +3611,6 @@ def build_chronological_narrative(
     parts.append("")
 
     # Per-theme V2 synthesis
-    ref_offset = 0
     for theme in themes:
         theme_papers = theme["papers"]
         theme_label = theme["label"]
@@ -3494,7 +3619,7 @@ def build_chronological_narrative(
         parts.append(f"### {theme_label} ({n_theme} {'study' if n_theme == 1 else 'studies'})")
         parts.append("")
 
-        synthesis, theme_cited = _build_integrative_synthesis(theme_papers, topic, theme_label, ref_offset, correlation)
+        synthesis, theme_cited = _build_integrative_synthesis(theme_papers, topic, theme_label, 0, correlation)
         parts.append(synthesis)
 
         # Add theme_cited to cited list FIRST (preserves reference order)
@@ -3509,18 +3634,14 @@ def build_chronological_narrative(
             if pid not in cited_ids:
                 uncited.append(p)
         if uncited:
-            ref_num = ref_offset + len(theme_cited) + 1
             for p in uncited:
-                title = (p.get("title") or "")[:80]
+                title = _clip(p.get("title") or "", 100)
                 yr = p.get("year", "")
-                parts.append(f"[{ref_num}] ({yr}) investigates {title}.")
-                p["paper_id"] = p.get("paper_id") or p.get("doi") or str(ref_num)
-                p["_ref"] = ref_num  # keep body marker ↔ reference entry aligned
+                parts.append(f"[{p['_ref']}] ({yr}) investigates {title}.")
+                p["paper_id"] = p.get("paper_id") or p.get("doi") or f"ref{p['_ref']}"
                 cited.append(p)
-                ref_num += 1
 
         parts.append("")
-        ref_offset += n_theme
 
     # Field evolution synthesis — what has the field learned
     evolution = _build_field_evolution(themes, chronological, topic)
@@ -3600,6 +3721,8 @@ def build_chronological_narrative(
             return f"[{new}]"
 
         body_text = _re.sub(r"\[(\d+)\](?!\d)", _rewrite_citation, body_text)
+        # Dropped stale citations leave "studies  demonstrate" double spaces
+        body_text = _re.sub(r"[ \t]{2,}", " ", body_text)
         parts = body_text.split("\n")
 
     # Cleanup _ref keys (no longer needed after renumbering)

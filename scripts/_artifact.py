@@ -170,9 +170,14 @@ def _extract_papers(
                 ext_lookup[item["doi"]] = item
 
     papers: list[dict] = []
+    n_unresolved = 0
 
     if verified:
         for p in verified.get("papers", []):
+            # §5 H20 gate: unresolved records are forbidden to cite.
+            if p.get("verification_status") == "unresolved":
+                n_unresolved += 1
+                continue
             pid = p.get("primary_id") or p.get("paper_id") or ""
             doi = p.get("doi") or ""
             ext = ext_lookup.get(pid) or ext_lookup.get(doi) or {}
@@ -254,6 +259,11 @@ def _extract_papers(
                 }
             )
 
+    if n_unresolved:
+        logging.getLogger("scientific_research.synthesize").warning(
+            "H20 gate: %d unresolved paper(s) excluded from synthesis",
+            n_unresolved,
+        )
     return papers
 
 
@@ -315,15 +325,23 @@ def _sanitize_finding(text: str) -> str:
 
 
 def _parse_authors(authors_field: Any) -> list[str]:
-    """Parse authors field — handles list of strings or list of dicts."""
+    """Parse authors field — handles list of strings or list of dicts.
+
+    Drops pseudo-author entries ("et al.", "and others") that OpenAlex
+    occasionally emits — they rendered as "Li & al." in references.
+    """
+    import re as _re
+
     if not authors_field:
         return []
+    _pseudo = _re.compile(r"^(?:et\s+al\.?|and\s+others|…|\.\.\.)$", _re.IGNORECASE)
     result: list[str] = []
     for a in authors_field:
         if isinstance(a, str):
-            result.append(a)
+            if not _pseudo.match(a.strip()):
+                result.append(a)
         elif isinstance(a, dict):
             name = a.get("name") or a.get("display_name") or ""
-            if name:
+            if name and not _pseudo.match(name.strip()):
                 result.append(name)
     return result

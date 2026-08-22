@@ -39,26 +39,6 @@ DISCIPLINE_PT_RANGES: dict[str, dict[str, tuple[float, float]]] = {
 _DEFAULT_RANGE = {"T": (-273, 10000), "P": (-1, 10000)}
 
 
-def _match_discipline(disc: str) -> str:
-    d = (disc or "").lower().strip()
-    for key in DISCIPLINE_PT_RANGES:
-        if key in d or d in key:
-            return key
-    if "metamorph" in d:
-        return "metamorphic petrology"
-    if "igneous" in d or "volcanic" in d or "magma" in d:
-        return "igneous petrology"
-    if "economic" in d or "ore" in d or "porphyry" in d or "mineral" in d:
-        return "economic geology"
-    if "mantle" in d or "peridot" in d:
-        return "mantle petrology"
-    if "sediment" in d:
-        return "sedimentology"
-    if "struct" in d or "fault" in d or "tecton" in d:
-        return "structural geology"
-    if "geochem" in d:
-        return "geochemistry"
-    return "geology"
 
 
 _TEMP_PATTERN = re.compile(
@@ -131,630 +111,18 @@ def _parse_quant_data(extr: dict) -> None:
             pass
 
 
-# =============================================================================
-# 2. Geological theme vocabulary — comprehensive across ALL geology
-# Each entry: (theme_label, semantic_description_for_embedding)
-# The description gives BGE enough context to match papers using different
-# terminology for the same geological concept.
-# =============================================================================
-GEO_THEME_VOCABULARY: list[tuple[str, str]] = [
-    # ── Metamorphic petrology ──
-    (
-        "Garnet-biotite exchange thermometry",
-        ("Fe-Mg partitioning between garnet and biotite minerals to estimate metamorphic "
-        "temperature KD distribution coefficient pelitic schist metamorphic grade Barrovian"),
-    ),
-    (
-        "Garnet-clinopyroxene thermobarometry",
-        ("Fe-Mg exchange between garnet and clinopyroxene eclogite granulite temperature "
-        "pressure estimation"),
-    ),
-    (
-        "Phase-equilibrium modeling",
-        ("pseudosection phase diagram garnet biotite staurolite chlorite mineral assemblage "
-        "P-T calculation thermocalc domino perple_x"),
-    ),
-    (
-        "U-Pb zircon geochronology",
-        "uranium lead zircon dating metamorphic crystallization age TIMS LA-ICP-MS SIMS",
-    ),
-    (
-        "Ar-Ar mica geochronology",
-        "argon argon dating muscovite biotite amphibole cooling age metamorphic exhumation",
-    ),
-    (
-        "Monazite CHIME dating",
-        "monazite electron microprobe dating Th-U-Pb chemical age metamorphic",
-    ),
-    (
-        "Titanium-in-quartz thermometry",
-        "TitaniQ titanium concentration quartz temperature thermobarometry",
-    ),
-    (
-        "Zircon saturation thermometry",
-        "zircon saturation temperature magma crystallization melt Zr content",
-    ),
-    (
-        "Apatite fission-track thermochronology",
-        "apatite fission track cooling low temperature thermochronology exhumation",
-    ),
-    (
-        "Carpholite-chloritoid HP-LT metamorphism",
-        "high pressure low temperature metamorphism carpholite chloritoid blueschist eclogite",
-    ),
-    # ── Igneous petrology ──
-    (
-        "Experimental petrology",
-        ("experimental melting crystallization phase relations magma high pressure piston "
-        "cylinder apparatus synthetic rock composition"),
-    ),
-    (
-        "Melt inclusion analysis",
-        "melt inclusion trapped magma crystal olivine plagioclase volatile content pre-eruptive",
-    ),
-    (
-        "Magma differentiation",
-        ("fractional crystallization magma evolution crystal settling cumulate layering "
-        "differentiation trend"),
-    ),
-    (
-        "Assimilation-fractional crystallization",
-        "AFC crustal contamination magma mixing assimilation wall rock interaction",
-    ),
-    (
-        "Phase relations and liquidus studies",
-        "liquidus solidus phase diagram basalt andesite rhyolite experimental petrology",
-    ),
-    (
-        "Slab dehydration and fluid flux",
-        "subduction slab dehydration water release fluid flux melting mantle wedge",
-    ),
-    (
-        "Arc magma petrogenesis",
-        "volcanic arc magma generation subduction LILE HFSE Nb Ta anomaly slab component",
-    ),
-    # ── Volcanology ──
-    (
-        "Volcanic eruption dynamics",
-        "eruption mechanism pyroclastic deposit ignimbrite plinian vulcanian strombolian lava flow",
-    ),
-    (
-        "Volcanic stratigraphy",
-        "volcanic sequence tephra stratigraphy tephrachronology volcanic facies architecture",
-    ),
-    # ── Economic geology ──
-    (
-        "Hydrothermal alteration zonation",
-        "potassic propylitic phyllic argillic alteration porphyry copper mineralization vein",
-    ),
-    (
-        "Fluid inclusion microthermometry",
-        "fluid inclusion homogenization temperature salinity ice melting hydrothermal ore fluid",
-    ),
-    (
-        "Stable isotope alteration tracking",
-        "oxygen hydrogen sulfur isotope alteration mineralization fluid source magmatic meteoric",
-    ),
-    (
-        "Re-Os molybdenite geochronology",
-        "rhenium osmium molybdenite dating porphyry mineralization age sulfide",
-    ),
-    (
-        "Supergene enrichment",
-        "supergene oxidation chalcocite enrichment blanket copper leaching groundwater",
-    ),
-    (
-        "Skarn mineralization",
-        "skarn contact metamorphism garnet wollastonite calc-silicate ore deposit carbonate",
-    ),
-    (
-        "Epithermal mineralization",
-        "epithermal gold silver vein low sulfidation high sulfidation boiling adularia",
-    ),
-    (
-        "Volcanogenic massive sulfide deposits",
-        "VMS VHMS massive sulfide volcanogenic sea floor hydrothermal exhalative",
-    ),
-    # ── Geochemistry ──
-    (
-        "REE fractionation patterns",
-        "rare earth element REE fractionation LREE HREE chondrite normalization spider diagram",
-    ),
-    (
-        "Trace element partitioning",
-        "partition coefficient KD mineral melt trace element distribution incompatible compatible",
-    ),
-    (
-        "Radiogenic isotope geochemistry",
-        "Sr Nd Pb Hf isotope ratio mantle crust source provenance radiogenic",
-    ),
-    (
-        "Stable isotope geochemistry",
-        "delta 18O 13C 34S deuterium isotope fractionation temperature fluid source",
-    ),
-    (
-        "Mineral-melt trace element partitioning",
-        "D mineral melt partition coefficient clinopyroxene garnet trace element experimental",
-    ),
-    # ── Mantle petrology ──
-    (
-        "Mantle xenolith petrology",
-        "mantle xenolith peridotite lherzolite harzburgite spinel garnet xenolith mantle sample",
-    ),
-    (
-        "Mantle melting and melt generation",
-        "partial melting peridotite mantle decompression melting batch fractional pooled melt",
-    ),
-    (
-        "Mantle metasomatism",
-        "mantle metasomatism fluid melt interaction amphibole phlogopite LILE enrichment vein",
-    ),
-    (
-        "Mantle potential temperature",
-        "mantle potential temperatureTp plume adiabat olivine-liquid Fe-Mg forsterite saturation",
-    ),
-    # ── Structural geology ──
-    (
-        "Fault slip stress inversion",
-        "fault slip data stress tensor inversion paleostress rake striation multiple inverse",
-    ),
-    (
-        "Finite strain analysis",
-        "strain ellipsoid Flinn Ramsay finite strain shape fabric intensity ratio",
-    ),
-    (
-        "Crystallographic preferred orientation",
-        "CPO LPO crystallographic preferred orientation quartz calcite olivine EBSD fabric",
-    ),
-    (
-        "Fold and thrust belt analysis",
-        "fold thrust belt balanced cross section restoration shortening detachment ramp flat",
-    ),
-    # ── Sedimentology ──
-    (
-        "Depositional environment analysis",
-        "depositional environment facies analysis fluvial deltaic turbidite carbonate clastic",
-    ),
-    (
-        "Sequence stratigraphy",
-        "sequence stratigraphy systems tract transgressive regressive unconformity sea level",
-    ),
-    (
-        "Diagenesis and burial history",
-        "diagenesis compaction cementation burial history thermal maturity vitrinite reflectance",
-    ),
-    # ── Geophysics ──
-    (
-        "Seismic imaging and tomography",
-        "seismic reflection refraction tomography velocity structure mantle crust mantle wedge",
-    ),
-    (
-        "Gravity and magnetic anomaly interpretation",
-        "gravity magnetic anomaly bouguer isostatic crustal thickness density contrast",
-    ),
-    (
-        "Electrical conductivity of Earth materials",
-        "electrical conductivity magnetotelluric impedance mantle mineral water content",
-    ),
-    (
-        "Heat flow and geothermal modeling",
-        "heat flow geothermal gradient thermal conductivity radiogenic heat production",
-    ),
-    # ── Analytical techniques ──
-    (
-        "Electron microprobe mineral chemistry",
-        "EPMA electron microprobe wavelength dispersive X-ray mineral composition WDS",
-    ),
-    (
-        "LA-ICP-MS trace element analysis",
-        "laser ablation ICP mass spectrometry trace element spot analysis mineral",
-    ),
-    (
-        "SIMS secondary ion mass spectrometry",
-        "SIMS secondary ion sputtering isotope trace element in-situ spot analysis",
-    ),
-    (
-        "X-ray diffraction mineralogy",
-        "XRD powder diffraction crystal structure mineral identification Rietveld refinement",
-    ),
-    (
-        "SEM-EDS mineral characterization",
-        "scanning electron microscopy energy dispersive spectroscopy backscatter imaging mineral",
-    ),
-    # ── Marine / Planetary / Environmental ──
-    (
-        "Marine geology and ocean floor mapping",
-        "ocean floor spreading ridge seamount abyssal plain marine geology ophiolite",
-    ),
-    (
-        "Ophiolite and oceanic lithosphere",
-        "ophiolite sequence pillow lava sheeted dike gabbro peridotite oceanic crust",
-    ),
-    (
-        "Meteorite and impact crater analysis",
-        "meteorite chondrite achondrite impact crater shock metamorphism shatter cone",
-    ),
-    (
-        "Environmental contamination and remediation",
-        "contaminant transport groundwater arsenic lead soil pollution remediation",
-    ),
-]
 
 # Pre-computed embeddings cache
 _theme_embeddings: list | None = None
 _theme_labels: list[str] | None = None
 
 
-def detect_geo_theme_robust(paper: dict) -> str:
-    """Detect geological theme using BGE embedding similarity.
+# Geological theme vocabulary + BGE matcher removed — zero callers after the
+# dynamic-context relabeling (2026-08-22).
 
-    Generalizes to ANY geological subdiscipline because BGE captures
-    semantic relationships (synonyms, related terms, paraphrasing).
-    Falls back to hierarchical keyword taxonomy if embeddings unavailable.
-    """
-    text = " ".join(
-        filter(
-            None,
-            [
-                paper.get("title", ""),
-                paper.get("abstract", ""),
-                paper.get("key_finding", ""),
-                str(paper.get("geological_concepts", "")),
-            ],
-        )
-    )
-    if not text.strip():
-        return "Other studies"
+# Restored from git history — live dependencies of interpret_pt_data
+# (collateral of the 2026-08-22 dead-theme-vocabulary removal).
 
-    # Try BGE embedding similarity first
-    best = _match_by_embedding(text)
-    if best:
-        return best
-
-    # Fallback: keyword taxonomy
-    return _match_by_taxonomy(text)
-
-
-def _match_by_embedding(text: str) -> str | None:
-    """Match paper text against geological theme vocabulary using BGE cosine."""
-    global _theme_embeddings, _theme_labels
-    from _embeddings import is_available as _embeddings_available
-
-    if not _embeddings_available():
-        return None  # fastembed not installed — caller falls back to taxonomy
-
-    import numpy as np
-    from _embeddings import embed_texts
-
-    try:
-        # Lazy-init: embed the vocabulary once, cache
-        if _theme_embeddings is None:
-            _theme_labels = [label for label, _ in GEO_THEME_VOCABULARY]
-            desc_texts = [desc for _, desc in GEO_THEME_VOCABULARY]
-            _theme_embeddings = embed_texts(desc_texts)
-            if _theme_embeddings is None:
-                return None
-            log.info(
-                "Geological theme vocabulary embedded: %d themes", len(_theme_labels)
-            )
-
-        # Embed the paper text
-        from _embeddings import embed_text_full
-
-        _pooled = embed_text_full(text)  # chunk+mean-pool: full text, no cut
-        paper_emb = None if _pooled is None else [_pooled]
-        if paper_emb is None:
-            return None
-
-        # Cosine similarity
-        paper_norm = paper_emb[0] / (np.linalg.norm(paper_emb[0]) + 1e-8)
-        theme_norms = _theme_embeddings / (
-            np.linalg.norm(_theme_embeddings, axis=1, keepdims=True) + 1e-8
-        )
-        similarities = theme_norms @ paper_norm
-        best_idx = int(np.argmax(similarities))
-        best_sim = similarities[best_idx]
-
-        if best_sim > 0.3:  # threshold for a meaningful match
-            return _theme_labels[best_idx]
-        return None
-    except Exception as e:
-        log.warning(
-            "BGE theme matching failed at runtime, falling back to taxonomy: %s", e
-        )
-        return None
-
-
-# Hierarchical taxonomy fallback — covers ALL geology by division → method
-_TAXONOMY_DIVISIONS: list[tuple[str, list[str], str]] = [
-    (
-        "metamorphic",
-        [
-            "metamorph",
-            "schist",
-            "gneiss",
-            "amphibolite",
-            "eclogite",
-            "granulite",
-            "facies",
-            "pseudosection",
-            "prograde",
-            "retrograde",
-        ],
-        "Metamorphic petrology",
-    ),
-    (
-        "igneous",
-        [
-            "igneous",
-            "magma",
-            "basalt",
-            "granite",
-            "andesite",
-            "rhyolite",
-            "intrusion",
-            "pluton",
-            "volcanic",
-            "lava",
-            "pumice",
-            "tuff",
-        ],
-        "Igneous and volcanic petrology",
-    ),
-    (
-        "economic",
-        [
-            "ore",
-            "deposit",
-            "mineralization",
-            "porphyry",
-            "epithermal",
-            "vein",
-            "gold",
-            "copper",
-            "zinc",
-            "lead",
-            "skarn",
-            "hydrothermal",
-        ],
-        "Economic geology",
-    ),
-    (
-        "geochemistry",
-        [
-            "isotope",
-            "trace element",
-            "REE",
-            "rare earth",
-            "delta",
-            "partition",
-            "geochem",
-            "chondrite",
-            "incompatible",
-            "LILE",
-            "HFSE",
-        ],
-        "Geochemistry",
-    ),
-    (
-        "mantle",
-        [
-            "mantle",
-            "peridotite",
-            "lherzolite",
-            "xenolith",
-            "asthenosphere",
-            "lithosphere",
-            "plume",
-        ],
-        "Mantle petrology",
-    ),
-    (
-        "structural",
-        [
-            "fault",
-            "fold",
-            "thrust",
-            "shear",
-            "strain",
-            "stress",
-            "cleavage",
-            "foliation",
-            "lineation",
-            "deformation",
-            "brittle",
-            "ductile",
-        ],
-        "Structural geology",
-    ),
-    (
-        "sedimentology",
-        [
-            "sediment",
-            "sandstone",
-            "shale",
-            "limestone",
-            "turbidite",
-            "fluvial",
-            "deltaic",
-            "carbonate",
-            "diagenesis",
-            "stratigraph",
-        ],
-        "Sedimentology and stratigraphy",
-    ),
-    (
-        "geophysics",
-        [
-            "seismic",
-            "gravity",
-            "magnetic",
-            "electrical",
-            "conductivity",
-            "tomography",
-            "magnetotelluric",
-            "geothermal",
-            "heat flow",
-        ],
-        "Geophysics",
-    ),
-    (
-        "analytical",
-        [
-            "microprobe",
-            "EPMA",
-            "LA-ICP-MS",
-            "SIMS",
-            "XRD",
-            "SEM",
-            "cathodoluminescence",
-            "Raman",
-        ],
-        "Analytical and instrumental methods",
-    ),
-    (
-        "marine",
-        ["ocean", "marine", "seafloor", "abyssal", "ridge", "seamount"],
-        "Marine geology",
-    ),
-    (
-        "planetary",
-        ["meteorite", "impact", "crater", "lunar", "martian", "asteroid"],
-        "Planetary geology",
-    ),
-    (
-        "environmental",
-        ["contaminat", "groundwater", "pollution", "remediation", "arsenic", "soil"],
-        "Environmental geology",
-    ),
-]
-
-_TAXONOMY_METHODS: list[tuple[str, list[str], str]] = [
-    (
-        "thermobarometry",
-        [
-            "thermometry",
-            "barometry",
-            "thermobarometry",
-            "geotherm",
-            "geobarometer",
-            "KD",
-            "exchange",
-            "calibration",
-        ],
-        "Thermobarometry",
-    ),
-    (
-        "phase-equilibrium",
-        [
-            "pseudosection",
-            "phase equilibria",
-            "thermocalc",
-            "domino",
-            "perple",
-            "gibbs method",
-        ],
-        "Phase-equilibrium modeling",
-    ),
-    (
-        "geochronology",
-        [
-            "geochron",
-            "U-Pb",
-            "Ar-Ar",
-            "Re-Os",
-            "fission track",
-            "cosmogenic",
-            "dating",
-            "age determination",
-        ],
-        "Geochronology",
-    ),
-    (
-        "experimental",
-        [
-            "experimental",
-            "piston cylinder",
-            "multi-anvil",
-            "diamond anvil",
-            "synthetic",
-            "capsule",
-            "run product",
-        ],
-        "Experimental petrology",
-    ),
-    (
-        "fluid-inclusion",
-        [
-            "fluid inclusion",
-            "homogenization",
-            "microthermometry",
-            "melting ice",
-            "heating stage",
-        ],
-        "Fluid inclusion studies",
-    ),
-    (
-        "isotope",
-        ["isotope", "delta", "Sr-Nd", "Pb", "Hf", "Os", "radiogenic"],
-        "Isotope geochemistry",
-    ),
-    (
-        "modeling",
-        ["model", "simulation", "numerical", "finite element", "thermodynamic"],
-        "Numerical modeling",
-    ),
-    (
-        "field-study",
-        ["field", "outcrop", "mapping", "regional", "transect"],
-        "Field-based study",
-    ),
-    (
-        "review",
-        ["review", "synthesis", "overview", "compilation", "meta-analysis"],
-        "Review / synthesis",
-    ),
-]
-
-
-def _match_by_taxonomy(text: str) -> str:
-    """Generalizable fallback: match by hierarchical geological taxonomy.
-
-    Checks division first (metamorphic/igneous/economic/etc.), then method
-    (thermobarometry/geochronology/experimental/etc.), and combines them
-    into a label like 'Thermobarometry (metamorphic petrology)'.
-    """
-    text_lower = text.lower()
-
-    # Find division
-    division_label = None
-    for _, keywords, label in _TAXONOMY_DIVISIONS:
-        if any(kw in text_lower for kw in keywords):
-            division_label = label
-            break
-
-    # Find method
-    method_label = None
-    for _, keywords, label in _TAXONOMY_METHODS:
-        if any(kw in text_lower for kw in keywords):
-            method_label = label
-            break
-
-    # Combine
-    if method_label and division_label:
-        return f"{method_label} ({division_label})"
-    if division_label:
-        return division_label
-    if method_label:
-        return method_label
-
-    # Use discipline from pico
-    return "Other studies"
-
-
-# =============================================================================
-# 3. Metamorphic facies + tectonic interpretation (textbook logic, non-LLM)
-# =============================================================================
 _FACIES_FROM_TEMP: list[tuple[float, float, str]] = [
     (0, 150, "diagenetic/burial conditions"),
     (150, 250, "prehnite-pumpellyite facies (sub-greenschist)"),
@@ -769,6 +137,7 @@ _FACIES_FROM_TEMP: list[tuple[float, float, str]] = [
     (1300, 1800, "mantle melting conditions"),
 ]
 
+
 _FACIES_FROM_PRESSURE: list[tuple[float, float, str]] = [
     (0, 2, "very low pressure (contact/volcanic)"),
     (2, 5, "low pressure (Buchan / andalusite)"),
@@ -779,6 +148,7 @@ _FACIES_FROM_PRESSURE: list[tuple[float, float, str]] = [
     (40, 60, "deep subduction / mantle"),
 ]
 
+
 _GEOTHERM: list[tuple[float, float, str]] = [
     (0, 5, "cold subduction zone"),
     (5, 15, "subduction / accretionary wedge"),
@@ -788,6 +158,12 @@ _GEOTHERM: list[tuple[float, float, str]] = [
     (60, 150, "contact aureole / rift"),
     (150, 99999, "volcanic / geothermal field"),
 ]
+
+
+def _lookup(val: float, table: list[tuple[float, float, str]]) -> str:
+    for low, high, name in table:
+        if low <= val < high:
+            return name
 
 
 def interpret_pt_data(
@@ -835,11 +211,6 @@ def interpret_pt_data(
     return "".join(parts)
 
 
-def _lookup(val: float, table: list[tuple[float, float, str]]) -> str:
-    for low, high, name in table:
-        if low <= val < high:
-            return name
-    return "extreme conditions"
 
 
 # =============================================================================
@@ -862,94 +233,8 @@ _METHOD_CATEGORIES: list[str] = [
 ]
 
 
-def detect_research_gaps(
-    found_themes: list[str],
-    discipline: str = "",
-) -> list[str]:
-    """Detect missing methodological approaches by comparing found themes
-    against expected methods for the discipline.
-
-    Generalizable: extracts method categories from found theme labels
-    and compares against the discipline's expected categories.
-    """
-    found_text = " ".join(found_themes).lower()
-
-    # Determine which method categories are present
-    found_categories: set[str] = set()
-    for cat in _METHOD_CATEGORIES:
-        if cat in found_text:
-            found_categories.add(cat)
-
-    # Determine expected categories from the discipline
-    disc_key = _match_discipline(discipline)
-    expected = _EXPECTED_CATEGORIES.get(disc_key, set())
-    if not expected:
-        expected = {"thermobarometry", "geochemistry", "field study", "modeling"}
-
-    gaps = expected - found_categories
-    return sorted(gaps)
 
 
-_EXPECTED_CATEGORIES: dict[str, set[str]] = {
-    "metamorphic petrology": {
-        "thermobarometry",
-        "geochronology",
-        "modeling",
-        "isotope",
-        "field study",
-        "analytical",
-    },
-    "igneous petrology": {
-        "experimental",
-        "geochemistry",
-        "geochronology",
-        "modeling",
-        "analytical",
-        "field study",
-    },
-    "economic geology": {
-        "fluid inclusion",
-        "isotope",
-        "geochronology",
-        "geochemistry",
-        "field study",
-        "structural",
-    },
-    "geochemistry": {
-        "isotope",
-        "analytical",
-        "experimental",
-        "modeling",
-        "geochemistry",
-        "field study",
-    },
-    "mantle petrology": {
-        "experimental",
-        "geochemistry",
-        "isotope",
-        "thermobarometry",
-        "analytical",
-        "modeling",
-    },
-    "structural geology": {
-        "field study",
-        "modeling",
-        "geochronology",
-        "analytical",
-    },
-    "sedimentology": {
-        "field study",
-        "geochemistry",
-        "modeling",
-        "geochronology",
-    },
-    "geology": {
-        "field study",
-        "geochemistry",
-        "geochronology",
-        "modeling",
-    },
-}
 
 
 # =============================================================================
@@ -1007,12 +292,27 @@ def build_convergence_text(
 
             if len(inliers) >= 2:
                 inlier_vals = [v for _, v in inliers]
-                parts.append(
-                    f"Within **{theme}**, {len(inliers)}/{len(vals)} studies "
-                    f"report {label} values clustering around "
-                    f"{min(inlier_vals):.0f}–{max(inlier_vals):.0f} "
-                    f"(median {median:.0f}), indicating robust reproducibility. "
-                )
+                lo, hi = min(inlier_vals), max(inlier_vals)
+                unit = "°C" if label == "temperature" else " kbar"
+                rel_spread = (hi - lo) / median if median else 0.0
+                if rel_spread <= 0.5:
+                    parts.append(
+                        f"Within **{theme}**, {len(inliers)}/{len(vals)} studies "
+                        f"report {label} values clustering around "
+                        f"{lo:.0f}–{hi:.0f}{unit} (median {median:.0f}{unit}), "
+                        f"indicating consistency across studies. "
+                    )
+                else:
+                    # A 250-1600 span is NOT "robust reproducibility" — wide
+                    # inlier ranges reflect genuinely heterogeneous conditions.
+                    parts.append(
+                        f"Within **{theme}**, {label} values span "
+                        f"{lo:.0f}–{hi:.0f}{unit} (median {median:.0f}{unit}) "
+                        f"across {len(inliers)}/{len(vals)} studies — a "
+                        f"heterogeneous range reflecting differing rock types, "
+                        f"calibrations, or geological processes, not a single "
+                        f"reproducible value. "
+                    )
             if outliers:
                 parts.append(
                     f"{len(outliers)} stud{'y' if len(outliers) == 1 else 'ies'} "

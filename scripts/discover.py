@@ -40,8 +40,9 @@ import os
 import re
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 # Make _sources importable when run as a script
 sys.path.insert(0, str(Path(__file__).parent))
@@ -69,28 +70,13 @@ from _sources import (
 
 log = logging.getLogger("scientific_research.discover")
 
-_WEB_SEARCH_CANDIDATES = (
-    "~/.omp/agent/skills/web-search/web_search.py",
-    "~/.config/opencode/skills/web-search/web_search.py",  # legacy twin path
-)
-
-
-def _locate_web_search_script() -> str:
-    """Resolve the web-search skill script; env override wins, legacy path kept as fallback."""
-    override = os.environ.get("WEB_SEARCH_SCRIPT")
-    candidates = ([override] if override else []) + list(_WEB_SEARCH_CANDIDATES)
-    for cand in candidates:
-        path = os.path.expanduser(cand)
-        if os.path.exists(path):
-            return path
-    return os.path.expanduser(_WEB_SEARCH_CANDIDATES[0])
 
 
 # S2 search + references are tightly rate-limited (separate bucket from
 # paper/batch lookup). Drop S2 as a discovery source — use Crossref for
 # search. S2 is still used for batch DOI enrichment (Phase 1.5) and
 # forward citations (Phase 4) which have a generous separate rate limit.
-DEFAULT_SOURCES = "openalex,crossref"
+DEFAULT_SOURCES = "web_search,openalex,crossref"
 DEFAULT_MAX_PER_SOURCE = 50  # per source; total ~100-150 after dedup
 
 # =============================================================================
@@ -521,10 +507,28 @@ def _crossref_item_to_record(item: dict, source: str = "crossref"):
 
         year = None
         for date_key in ("published-print", "published-online", "issued"):
-            date_parts = item.get(date_key, {}).get("date-parts", [[]])
-            if date_parts and date_parts[0] and date_parts[0][0]:
-                year = date_parts[0][0]
-                break
+            parts = item.get(date_key, {}).get("date-parts", [[]])[0] or []
+            if not parts or not parts[0]:
+                continue
+            # JOL platforms (NepJOL etc.) deposit digitized back-issues
+            # with exact (Y, 1, 1) online/issued placeholders — live case
+            # 10.3126/bdg.v11i0.1544: issued 1970-01-01 while created is
+            # 2008-12-05 and the abstract ends "Vol. 11, 2008" (2026-09-02).
+            # Skip placeholders; fall back to `created` when nothing real
+            # remains.
+            if date_key != "published-print" and parts == [parts[0], 1, 1]:
+                continue
+            year = parts[0]
+            break
+        if year is None:
+            _created = (item.get("created", {}).get("date-parts", [[]]) or [[]])[0]
+            if _created and _created[0]:
+                log.info(
+                    "Crossref placeholder publication date on %s — using created year %s",
+                    doi or (title[:60] if title else "unknown record"),
+                    _created[0],
+                )
+                year = _created[0]
 
         # sources_seen: this paper was discovered via `source` AND enriched via Crossref.
         seen = [source, "crossref"] if source != "crossref" else ["crossref"]
@@ -569,75 +573,130 @@ def _query_overlap_ok(record: object, query_tokens: set[str]) -> bool:
 
     With <=3 query tokens (very narrow questions), require zero-tolerance
     is too strict — any single overlap still passes. No field lists used.
+    Fuzzy tier (2026-09-03): a query token typo'd by one edit must still
+    count — web search FINDS papers for typo'd queries via fuzzy results,
+    then this gate hard-dropped them because substring overlap cannot see
+    a 1-edit mismatch ('godawari' vs a 'godavari basin' title). Mirrors
+    the screening matcher (fold + Damerau-Levenshtein<=1).
     """
     if not query_tokens:
         return True
     text = ((getattr(record, "title", "") or "") + " " + (getattr(record, "abstract", "") or "")).lower()
-    return any(tok in text for tok in query_tokens)
+    if any(tok in text for tok in query_tokens):
+        return True
+    from _honesty import _dl_within1, fold_text
+
+    text_toks = set(re.findall(r"[a-z0-9]+", fold_text(text)))
+    for tok in query_tokens:
+        ft = fold_text(tok)
+        if any(
+            abs(len(t2) - len(ft)) <= 1 and _dl_within1(ft, t2) for t2 in text_toks
+        ):
+            return True
+    return False
 
 
-def web_search_paper_discovery(query: str, max_results: int = 15, force_refresh: bool = False) -> list:
-    """SOTA paper discovery via web-search skill subprocess.
 
-    Uses the web-search skill's full infrastructure: 9 metasearch backends
-    (DDG/Google/Brave/Yandex/Yahoo/Mojeek/Wikipedia/Startpage/Grokipedia),
-    4-layer bot-block bypass (cookie/primp/curl_cffi/Playwright stealth),
-    9-layer rate-limit defense, per-URL extract cache, domain tiering.
+def _locate_web_search_script() -> str:
+    """Locate the OMP web-search skill CLI (standalone-skill fallback)."""
+    candidates = (
+        "~/.omp/agent/skills/web-search/web_search.py",
+        "~/.config/opencode/skills/web-search/web_search.py",
+    )
+    for c in candidates:
+        p = Path(os.path.expanduser(c))
+        if p.exists():
+            return str(p)
+    return ""
 
-    Returns PaperRecords (resolved through Crossref for metadata).
-    Requires the web-search skill venv (auto-bootstraps on first call).
 
-    Activation: --use-web-search flag (registration gated in search_multi_source).
-    Pass force_refresh=True to bypass web-search's per-URL extract cache.
+def _web_text_engine(
+    query: str, *, max_results: int = 15, call_budget: int = 90, no_cache: bool = False
+) -> tuple[int, dict]:
+    """Dual-mode web text search (2026-09-03 sync port).
+
+    Runs the OMP web-search skill CLI (optional sibling; degrades to
+    an error return when absent).
+    Returns (rc, {"results": [...]}) shaped like the native engine.
     """
-
     import subprocess as _sp
 
-    SCRIPT = _locate_web_search_script()
-    if not os.path.exists(SCRIPT):
-        log.warning("web-search skill not found at %s — skipping", SCRIPT)
-        return []
-
-    # Propagate force_refresh → web-search subprocess (bypasses per-URL extract cache)
-    sub_env = dict(os.environ)
-    if force_refresh:
-        sub_env["WEB_SEARCH_NO_CACHE"] = "1"
-
-    search_query = f"{query} doi abstract"
+    script = _locate_web_search_script()
+    if not script or not os.path.exists(script):
+        return 1, {"error": "web-search skill not found"}
+    env = dict(os.environ)
+    if no_cache:
+        env["WEB_SEARCH_NO_CACHE"] = "1"
     try:
         proc = _sp.run(
-            [
-                "python3",
-                SCRIPT,
-                "text",
-                search_query,
-                "--max-results",
-                str(max_results * 3),
-                "--sort",
-                "authority",
-                "--extract",
-                "0",
-                "--call-budget",
-                "90",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-            env=sub_env,
+            ["python3", script, "text", query, "--max-results", str(max_results),
+             "--sort", "relevance", "--extract", "0", "--call-budget", str(call_budget)],
+            capture_output=True, text=True, timeout=120, check=False, env=env,
         )
     except _sp.TimeoutExpired:
-        log.warning("web-search subprocess timed out for: %s", query[:60])
-        return []
-
+        return 1, {"error": "web-search subprocess timed out"}
     if proc.returncode != 0:
-        log.warning("web-search failed (exit %d): %s", proc.returncode, proc.stderr[:200])
-        return []
-
+        return proc.returncode, {"error": proc.stderr[:200]}
     try:
-        data = json.loads(proc.stdout)
+        return 0, json.loads(proc.stdout)
     except json.JSONDecodeError as ex:
-        log.warning("web-search returned non-JSON: %s", str(ex)[:100])
+        return 1, {"error": f"non-JSON: {ex}"}
+
+
+def web_search_paper_discovery(
+    query: str,
+    max_results: int = 15,
+    force_refresh: bool = False,
+    domain_hint: str = "",
+) -> list:
+    """Paper discovery via web search (web-search skill CLI bridge).
+
+    In-process port of the web-search engine (2026-09-01): 8+ metasearch
+    backends with rotation, 4-layer bot-block bypass (cookie/primp/
+    curl_cffi/Playwright stealth — browser tier engages automatically),
+    adaptive rate limiting, circuit breakers, TTL disk cache.
+
+    Returns PaperRecords (resolved through Crossref for metadata).
+    Always registered as a default source (DEFAULT_SOURCES); the
+    --use-web-search flag force-adds it when `sources` was narrowed.
+    Pass force_refresh=True to bypass the engine's disk cache.
+    """
+    try:
+        # SCHOLARLY-ANCHORED query (2026-09-03, live: raw place-name
+        # queries pulled Chandrapur-district spider/herbicide papers into
+        # a geology candidate pool — the engine reranks WEB pages, not
+        # papers, so place collisions ride through DOI harvesting). The
+        # anchor is DYNAMIC: the detected research domain plus a scholarly
+        # scope token, never a hardcoded vocabulary.
+        _anchor = " ".join(
+            t
+            for t in (domain_hint.strip(), "research paper")
+            if t and t.lower() not in query.lower()
+        )
+        web_query = f"{query} {_anchor}".strip() if _anchor else query
+        if _anchor:
+            log.info("web_search query anchored: %r", web_query[:90])
+        rc, data = _web_text_engine(
+            web_query,
+            max_results=max_results * 3,
+            call_budget=90,
+            no_cache=force_refresh,
+        )
+    except _EngineError as e:
+        # Source-level degrade: one blocked/failed source must not kill the
+        # multi-source search (per-source isolation contract).
+        log.warning("web_search source degraded (%s): %s", type(e).__name__, str(e)[:150])
+        return []
+    if rc == 3:
+        # Engine "genuine empty": content floor dropped everything usable.
+        log.info("web_search: 0 usable results for %s (content floor)", query[:60])
+        return []
+    if rc != 0:
+        log.warning(
+            "web-search engine failed (rc=%d): %s",
+            rc,
+            str(data.get("error") or data.get("note") or "unknown")[:200],
+        )
         return []
 
     results = data.get("results", [])
@@ -696,72 +755,45 @@ def web_search_paper_discovery(query: str, max_results: int = 15, force_refresh:
 
 
 def web_search_agentic_discovery(query: str, max_results: int = 15, force_refresh: bool = False) -> list:
-    """Deep site-specific paper discovery via web-search agentic --adaptive mode.
+    """Deep site-specific paper discovery via native engine agentic mode.
 
-    Uses Crawl4AI's AdaptiveCrawler to semantically crawl the top search hit
-    (typically a major repository: arxiv.org, biorxiv.org, publisher site)
-    with the user's query as relevance filter. Returns ONLY pages that
-    answer the query — high precision, lower recall than text mode.
+    Adaptive crawl discovery (unavailable standalone — see body). Uses, when present,
+    semantically crawl the top search hit (typically a major repository:
+    arxiv.org, biorxiv.org, publisher site) with the user's query as
+    relevance filter. Returns ONLY pages that answer the query — high
+    precision, lower recall than text mode.
 
-    Slower than web_search_paper_discovery (browser + adaptive crawl, 30-120s)
-    but finds papers in JS-rendered sites, conference proceedings, niche
-    journals, and behind search forms that text mode misses.
+    Slower than web_search_paper_discovery (browser + adaptive crawl,
+    30-120s) but finds papers in JS-rendered sites, conference proceedings,
+    niche journals, and behind search forms that text mode misses.
 
-    Output includes `confidence` score (0-1) — semantic relevance of crawled
-    content to the query.
+    Output includes `confidence` score (0-1) — semantic relevance of
+    crawled content to the query.
 
     Activation: --use-web-search-agentic flag.
     """
-    import subprocess as _sp
+    # Standalone skill: the adaptive-crawl tier is not part of this
+    # implementation — text-mode discovery covers recall here.
+    log.warning("web_search_agentic: crawl tier unavailable in standalone skill")
+    return []
 
-    SCRIPT = _locate_web_search_script()
-    if not os.path.exists(SCRIPT):
-        log.warning("web-search skill not found at %s — skipping agentic", SCRIPT)
-        return []
-
-    # Propagate force_refresh → web-search subprocess
-    sub_env = dict(os.environ)
-    if force_refresh:
-        sub_env["WEB_SEARCH_NO_CACHE"] = "1"
-
-    agentic_query = f"{query} paper doi abstract"
     try:
-        proc = _sp.run(
-            [
-                "python3",
-                SCRIPT,
-                "agentic",
-                agentic_query,
-                "--adaptive",
-                "--max-iter",
-                "2",
-                "--top-n-extract",
-                "3",
-                "--call-budget",
-                "120",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=180,
-            check=False,
-            env=sub_env,
+        rc, data = _engine_agentic(
+            query,
+            adaptive=True,
+            max_iter=2,
+            top_n_extract=3,
+            call_budget=120,
+            no_cache=force_refresh,
+            quiet=True,
         )
-    except _sp.TimeoutExpired:
-        log.warning("web-search agentic timed out for: %s", query[:60])
+    except _EngineError as e:
+        log.warning("web_search_agentic source degraded (%s): %s", type(e).__name__, str(e)[:150])
         return []
-
-    if proc.returncode != 0:
+    if rc != 0:
         log.warning(
-            "web-search agentic failed (exit %d): %s",
-            proc.returncode,
-            proc.stderr[:200],
+            "web-search agentic failed (rc=%d): %s", rc, str(data.get("error"))[:200]
         )
-        return []
-
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError as ex:
-        log.warning("web-search agentic returned non-JSON: %s", str(ex)[:100])
         return []
 
     # Collect text from ALL result tiers: search hits, extracted pages, adaptive crawl
@@ -769,13 +801,13 @@ def web_search_agentic_discovery(query: str, max_results: int = 15, force_refres
     for r in data.get("results", []):
         text_sources.append(f"{r.get('href', '')} {r.get('body', '')} {r.get('title', '')}")
     for e in data.get("extracted", []):
-        text_sources.append((e.get("content") or "")[:5000])
+        text_sources.append(e.get("content") or "")
     ap = data.get("adaptive", {})
     confidence = None
     if isinstance(ap, dict):
         confidence = ap.get("confidence")
         for p in ap.get("pages", []):
-            text_sources.append((p.get("content") or "")[:5000])
+            text_sources.append(p.get("content") or "")
 
     # Extract DOIs from all collected text
     doi_pattern = re.compile(r"10\.\d{4,9}/[^\s\"<>]+", re.IGNORECASE)
@@ -886,6 +918,19 @@ def _is_domain_relevant(paper: Any, query: str) -> bool:
 # =============================================================================
 
 
+def reset_ddgs_circuit() -> None:
+    """Reset the DDGS circuit breaker (tests, forks).
+
+    Thin delegate to the rate-limit registry's ddgs breaker — kept HERE
+    (not in _websearch) because the smoke harness and sibling tests import
+    it from ``discover`` alongside the source resets (audit fix 2026-08-23:
+    the symbol was expected but never defined anywhere).
+    """
+    from _ratelimits import get_registry
+
+    get_registry().ddgs.reset()
+
+
 def search_multi_source(
     query: str,
     max_per_source: int = 15,
@@ -897,6 +942,7 @@ def search_multi_source(
     use_web_search: bool = False,
     use_web_search_agentic: bool = False,
     original_query: str | None = None,
+    domain_hint: str = "",
 ) -> list[PaperRecord]:
     """Search across multiple sources IN PARALLEL, return merged list.
 
@@ -983,12 +1029,19 @@ def search_multi_source(
 
         source_calls["epmc"] = lambda: epmc_search(expanded_query, max_results=max_per_source)
 
-    # Web-search skill integration — SOTA paper discovery via subprocess.
-    # Activated by --use-web-search flag or SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH=1.
-    # Adds 9 metasearch backends + 4-layer bot-block bypass + per-URL extract cache.
-    if use_web_search or os.environ.get("SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH", "0") == "1":
+    # Web-search discovery — PRIMARY source (2026-09-01: websearch engine
+    # engine, in-process port). Registered via DEFAULT_SOURCES ("websearch");
+    # the flag / env var force-add it when the caller narrowed `sources`.
+    if (
+        "web_search" in active_sources
+        or use_web_search
+        or os.environ.get("SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH", "0") == "1"
+    ):
         source_calls["web_search"] = lambda: web_search_paper_discovery(
-            query, max_results=min(max_per_source, 15), force_refresh=force_refresh
+            query,
+            max_results=min(max_per_source, 15),
+            force_refresh=force_refresh,
+            domain_hint=domain_hint,
         )
 
     # Web-search AGENTIC integration — Crawl4AI AdaptiveCrawler on top hit.
@@ -1318,10 +1371,10 @@ def main() -> int:
     p.add_argument(
         "--use-web-search",
         action="store_true",
-        help="add web-search skill as a discovery source (9 metasearch backends + "
-        "4-layer bot-block bypass + per-URL extract cache). Finds papers "
-        "Crossref/OpenAlex/S2 miss: conference papers, niche journals, preprints. "
-        "Also activates via SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH=1 env var.",
+        help="force-add websearch source when --sources narrowed it out "
+        "(websearch is a DEFAULT source since 2026-09-01: native engine, "
+        "8+ metasearch backends + bot-block bypass). Also activates via "
+        "SCIENTIFIC_RESEARCH_ENABLE_WEB_SEARCH=1 env var.",
     )
     p.add_argument(
         "--use-web-search-agentic",

@@ -16,7 +16,9 @@ class ResearchConfig:
 
     # ── Core (compact UI bar) ────────────────────────────────────────
     query: str = ""
-    sources: list[str] = field(default_factory=lambda: ["crossref", "openalex", "s2", "eartharxiv", "usgs"])
+    sources: list[str] = field(
+        default_factory=lambda: ["web_search", "crossref", "openalex", "s2", "eartharxiv", "usgs"]
+    )
     max_papers: int = 30
     use_llm: bool = False
     match_local_pdfs: bool = True
@@ -58,18 +60,6 @@ class ResearchConfig:
     Prevents rate-limit 429s by spacing requests. 1.0s = safe for all APIs.
     Set to 0 for no delay (parallel mode — will trigger rate limits).
     """
-    use_web_search: bool = False
-    """Add web-search skill as a discovery source (9 metasearch backends +
-    4-layer bot-block bypass + per-URL extract cache). Finds papers
-    Crossref/OpenAlex/S2 miss: conference papers, niche journals, preprints."""
-    use_web_search_agentic: bool = False
-    """Deep-research mode: web-search agentic --adaptive crawls top hit with
-    Crawl4AI semantic filter (confidence-scored). Slower (30-120s) but finds
-    papers in JS-rendered sites and behind search forms."""
-    auto_web_search_threshold: int = 5
-    """Auto-enable web_search supplement when discovery yields fewer than this
-    many papers. Catches sparse topics where Crossref/OpenAlex/S2 miss the
-    field. Set to 0 to disable auto-supplement. Default 5."""
     ollama_delay_s: float = 0.5
     """Delay between sequential Ollama LLM calls.
 
@@ -78,10 +68,37 @@ class ResearchConfig:
     """
     search_timeout: int = 30
     """Per-source timeout for web search (seconds)."""
-    abstract_cap: int | None = None  # None = no cap (zero-truncation policy 2026-08-15)
-    """Max chars of abstract to process for extraction."""
-    fulltext_cap: int | None = None  # None = no cap (lossless; downstream chunks)
-    """Max chars of full-text to process for extraction."""
+    use_web_search: bool = True
+    """Web search (web-search skill CLI: 8+ metasearch backends,
+    bot-block bypass, rate-limit defense) as a PRIMARY discovery source
+    alongside scholarly APIs. Finds papers Crossref/OpenAlex/S2 miss:
+    conference papers, niche journals, preprints on repository pages."""
+    use_web_search_agentic: bool = False
+    """Deep discovery: additionally extract top result pages (trafilatura)
+    and mine DOIs from page content. Slower but higher precision."""
+    auto_web_search_threshold: int = 5
+    """Auto-enable web_search supplement when discovery yields fewer than this
+    many papers. Catches sparse topics where Crossref/OpenAlex/S2 miss the
+    field. Set to 0 to disable auto-supplement. Default 5."""
+    use_web_pro: bool = True
+    reflect_iterations: int = 1
+    """Agentic reflect loop (2026-09-01): after synthesis, an LLM critic
+    judges coverage; "insufficient" triggers one bounded re-discovery +
+    re-synthesis round per iteration (follow-up queries from the critique).
+    0 disables. Skipped loudly when Ollama is unreachable."""
+    adaptive_questions: bool = True
+    ocr_model: str = "chandra-ocr-2"
+    """Vision model for the pdf-ocr engine (full-text library parsing).
+    Must match an `ollama list` name. When unavailable, the run warns
+    with a pull suggestion and falls back to the first available
+    vision-capable model."""
+    """Generate PaperQA2 questions adaptively from the corpus (LLM) instead
+    of the fixed methods/quantitative/disagreements lenses. Template lenses
+    remain the explicit fallback (emitted when generation fails)."""
+    """Append a Perplexity-style web synthesis (decompose → search →
+    coverage → cited markdown, native ddgs+trafilatura) to the brief as a
+    clearly-labeled supplementary section. URLs, not DOIs — advisory
+    supplement around the verified corpus core."""
     verify_workers: int = 8
     """Thread pool size for parallel paper verification."""
     year_from: int | None = None
@@ -90,15 +107,20 @@ class ResearchConfig:
     """Latest publication year (None = no limit)."""
     open_access_only: bool = False
     """Only discover open access papers."""
+    max_pdf_downloads: int = 10
+    """Max OA PDFs to download + extract per pipeline run.
+
+    Controls full-text enrichment depth. Each download takes up to 15s
+    (timeout), with 0.5s pacing between downloads. KB-cached papers
+    skip download entirely (0s). Higher = better extraction but slower.
+    """
     publication_type: str = ""
     """Filter by type: journal-article, book-chapter, conference-paper, etc."""
-    screen: bool = True
-    """PRISMA Phase-2 keyword triage after discovery (non-LLM).
 
-    Include terms are derived dynamically from the query itself (no field
-    vocabulary); papers sharing zero query terms are excluded. A sparse
-    result (<3 survivors) skips screening rather than shrinking the corpus.
-    Set False to disable."""
+    abstract_cap: int = 50000
+    """Max chars of abstract to process for extraction."""
+    fulltext_cap: int = 200000
+    """Max chars of full-text to process for extraction."""
 
     # ── Time budgets (⚙ Advanced) ──────────────────────────────────
     wall_clock_budget_s: float | None = None
@@ -116,6 +138,52 @@ class ResearchConfig:
     extracted via the fast non-LLM path (regex/lexicon) so synthesis is
     never blocked on LLM availability. None = unbounded.
     """
+    paperqa_timeout_s: int = 600
+    """Per-call LLM timeout for PaperQA2 synthesis (seconds).
+
+    Each LiteLLM/Ollama call during evidence gathering + answer generation
+    gets this many seconds before timing out. Increase for slow models
+    (9B+), decrease for fast models (3B). Default 600s = 10min.
+    """
+
+    synthesis_tier: str = "auto"
+    """Which synthesis engine to use for the research brief.
+
+    Options:
+        "auto"     — Try Ollama direct → PaperQA2 → template (default, best quality)
+        "ollama"   — Ollama direct synthesis only (fastest, ~60s, structured data)
+        "paperqa"  — PaperQA2 RAG only (~600s, evidence-grounded, needs full-text)
+        "template" — Template synthesis only (instant, no LLM, lowest quality)
+
+    Use "ollama" for speed, "paperqa" for interactive Q&A, "auto" for best results.
+    """
+
+    synthesis_quality: str = "thorough"
+    """Depth of Ollama synthesis passes.
+
+    Options:
+        "fast"     — Single pass (60s, basic synthesis)
+        "thorough" — 3-pass: themes + sections + self-review (140s, research-grade)
+        "maximum"  — 4-pass: adds numerical value verification (160s, publication-grade)
+    """
+
+    # ── Timeouts (⚙ Advanced) ─────────────────────────────────────────
+    doi_lookup_timeout: int = 15
+    """Per-request timeout for DOI resolution (Crossref, Unpaywall)."""
+    semantic_search_timeout: int = 10
+    """Per-request timeout for Semantic Scholar / OpenAlex search."""
+    wikidata_timeout: int = 30
+    """Per-request timeout for Wikidata SPARQL queries."""
+    wikipedia_timeout: int = 5
+    """Per-request timeout for Wikipedia REST API."""
+    ollama_health_timeout: int = 3
+    """Timeout for Ollama /api/tags health check."""
+    ollama_extract_timeout: int = 60
+    """Per-call timeout for Ollama LLM extraction."""
+    ollama_synthesis_timeout: int = 180
+    """Per-call timeout for Ollama LLM synthesis (longer, multi-pass)."""
+    pdf_download_timeout: int = 30
+    """Per-file timeout for PDF download."""
 
     # ── Internal (not user-facing) ───────────────────────────────────
     def __post_init__(self) -> None:

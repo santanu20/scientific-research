@@ -72,7 +72,8 @@ def _score_paper_keywords(
     matched_inc = [k for k in include if k.lower() in text]
     matched_exc = [k for k in exclude if k.lower() in text]
     idf = getattr(_score_paper_keywords, "_batch_idf", {}) or {}
-    w = lambda k: idf.get(k.lower(), 1.0)
+    def w(k):
+        return idf.get(k.lower(), 1.0)
     score = sum(w(k) for k in matched_inc) - 2.0 * sum(w(k) for k in matched_exc)
     return (float(score), matched_inc, matched_exc)
 

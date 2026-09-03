@@ -43,14 +43,18 @@ RE_P_VALUE = re.compile(r"[pP]\s*[<≤>=]\s*(\d+\.?\d*)")
 # Sample size: "n=100", "N = 50", "(n=30)"
 RE_N_VALUE = re.compile(r"[nN]\s*=\s*(\d+)")
 
-# Filter-statement cues (audit 2026-08-21, synced from geokit fork): sentence
+# Filter-statement cues (audit 2026-08-21): sentence
 # fragments like "remove pressures >50 kbar" describe FILTER thresholds, not
 # measured values — extracting them as point measurements poisoned pools.
 _FILTER_CUE = re.compile(
     r"(?:remove[sd]?\s*>?\s*\d+\s*(?:kbar|gpa|mpa|°c\b|k\b)|"
     r"exclude[sd]?\s+(?:values?\s+)?(?:above|below|>|<)|"
     r"filter(?:ed)?\s+(?:out\s+)?(?:values?\s+)?(?:above|below|>|<)|"
-    r"discard(?:ed)?\s+(?:values?\s+)?(?:above|below))",
+    r"discard(?:ed)?\s+(?:values?\s+)?(?:above|below)|"
+    # 2026-09-01: "filtered to remove high-pressure experiments (>50 kbar)"
+    # — a filter verb anywhere in the ~45 chars before the number, with no
+    # sentence boundary between, marks a threshold not a measurement.
+    r"(?:remov\w+|filter\w*|exclud\w*|discard\w*|eliminat\w*|restrict\w*|limit\w*)\b[^.]{0,45}$)",
     re.IGNORECASE,
 )
 
@@ -69,6 +73,17 @@ _UNCERTAINTY_CUE = re.compile(
     r"(?:±\s*|errors?\s+of\s+|uncertainty\s+of\s+|accurate\s+to\s+|"
     r"precision\s+of\s+|accurac\w+\s+of\s+|"
     r"\b(?:see|rmse|mae|mape|sd|sigma|1σ)\s*=\s*)[^a-zA-Z]{0,5}$",
+    re.IGNORECASE,
+)
+
+# Standard-state / ambient reference conditions (2026-09-03): thermodynamics
+# papers state 25 °C / 298 K / 1 bar constants; pooling them with study
+# measurements fabricated a 78x cross-paper "temperature contradiction"
+# (live geologist audit). Cues checked in a window AROUND the number —
+# unlike the cues above, "standard state" often FOLLOWS the value.
+_STANDARD_STATE_CUE = re.compile(
+    r"standard[- ]state|298(?:\.\d+)?\s*K\b|at\s+25\s*°?\s*C\b|"
+    r"room\s+temperature|1\s+atm\b|ambient\s+temperature",
     re.IGNORECASE,
 )
 
@@ -867,6 +882,12 @@ def extract_effect_sizes(text: str) -> dict:
             _FILTER_CUE.search(_ctx)
             or _BOUND_CUE.search(_ctx)
             or _UNCERTAINTY_CUE.search(_ctx)
+        ):
+            continue
+        # Standard-state / ambient constants are not study measurements
+        # (see _STANDARD_STATE_CUE note) — window AROUND the number.
+        if n.unit in ("°C", "K") and _STANDARD_STATE_CUE.search(
+            text[max(0, n.position - 30) : n.position + 30]
         ):
             continue
         # Skip if this number is part of a pair (check by value proximity)

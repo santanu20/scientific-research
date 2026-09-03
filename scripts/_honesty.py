@@ -15,7 +15,10 @@ Gates:
 
 from __future__ import annotations
 
+import logging
 import re
+
+log = logging.getLogger("scientific_research.honesty")
 
 # Generic research/geology vocabulary — never treated as a distinctive entity.
 # A query "dykes age exposed in gadchiroli" must yield ["gadchiroli"], not
@@ -83,10 +86,11 @@ _GENERIC_TERMS = frozenset(
 )
 
 _TOKEN_RE = re.compile(r"[a-z][a-z\-]{3,}")
-# Minimum prefix length for fuzzy locality matching (handles spelling
-# variants like gondpipiri/gondpipri). ponytail: prefix match, real
-# gazetteer if false positives ever appear.
-_FUZZY_PREFIX_LEN = 6
+# Distinctive-entity length: tokens this long are locality/topic-class
+# terms. The sufficiency veto requires corpus support for every one of
+# them (2026-09-02) — short/generic terms matching anything must never
+# alone certify a corpus as sufficient.
+_DISTINCTIVE_MIN_LEN = 8
 
 
 def extract_query_entities(query: str) -> list[str]:
@@ -107,13 +111,17 @@ def extract_query_entities(query: str) -> list[str]:
 
 
 def _text_matches(text: str, entity: str) -> bool:
-    """Entity present in text: exact substring, or stable-prefix for long
-    locality names (spelling variants)."""
-    if entity in text:
-        return True
-    if len(entity) >= 8:
-        return entity[:_FUZZY_PREFIX_LEN] in text
-    return False
+    """Entity present in text — SAME matcher as screening (fold + DL<=1).
+
+    2026-09-02: the coverage/grounding gates previously used exact
+    substring + a 6-char prefix rule while screening used fold_text +
+    Damerau-Levenshtein <=1 — the same query term was "matched" at intake
+    and "0 supporting papers" at audit (live case: prahnita/godawari vs
+    Pranhita-Godavari titles). One matcher, one truth: this delegates to
+    _term_matches, whose folded-substring short-circuit handles short
+    entities verbatim and whose fuzzy tiers handle typos/transliterations.
+    """
+    return _term_matches(entity, text)
 
 
 def _record_text(p) -> str:
@@ -145,17 +153,42 @@ def sufficiency_verdict(
     n_excluded: int,
     n_final: int | None = None,
 ) -> tuple[bool, str]:
-    """True (insufficient) when the screened corpus cannot address the query.
+    """True (insufficient) when the screened corpus cannot answer the query.
 
-    Fires ONLY when ALL hold — broad surveys without distinctive entities
-    always pass:
-      - query yielded at least one entity
-      - ZERO final-corpus papers mention ANY entity
-      - screening rejected the overwhelming majority (>80%) of what was
-        discovered, i.e. discovery itself returned mostly off-topic material
+    Fires when EITHER holds:
+      - DISTINCTIVE-ENTITY RATIO VETO (2026-09-02, r2): fewer than HALF of
+        the >=_DISTINCTIVE_MIN_LEN entities have corpus support — the
+        corpus does not address the query's distinctive vocabulary.
+        r1 vetoed on ANY single uncovered term and wrongly refused an
+        on-topic porphyry corpus (7/8 terms covered, 'zonation' absent)
+        in the live geologist audit. A single gap is the grounding
+        WARNING's job (post-synthesis), not a refusal.
+      - Legacy zero-coverage path: query yielded entities, ZERO corpus
+        papers mention ANY entity, and screening rejected the overwhelming
+        majority (>80%) of discoveries (or emptied the corpus).
+
+    Broad surveys without distinctive entities always pass.
     """
     if not entities or n_discovered <= 0:
         return False, ""
+    distinctive = [e for e in entities if len(e) >= _DISTINCTIVE_MIN_LEN]
+    if distinctive:
+        covered = sum(1 for e in distinctive if coverage.get(e, 0) > 0)
+        if covered * 2 < len(distinctive):
+            n_fin = n_final if n_final is not None else 0
+            unsupported = [
+                e for e in distinctive if coverage.get(e, 0) == 0
+            ]
+            return (
+                True,
+                f"corpus supports only {covered}/{len(distinctive)} "
+                f"distinctive query term(s) — unsupported: "
+                f"{', '.join(unsupported)} ({n_fin} papers after screening, "
+                f"{n_discovered} discovered)",
+            )
+        return False, ""
+    # Legacy all-zero path (only reachable when no distinctive entities
+    # exist — the ratio branch above already returned for the other case).
     if any(coverage.get(e, 0) > 0 for e in entities):
         return False, ""
     # Zero final corpus while candidates existed: nothing supports the
@@ -209,6 +242,46 @@ def render_grounding_warning(unsupported: list[str], coverage: dict[str, int]) -
     )
 
 
+_GROUNDING_MARKER = "## Corpus Coverage Warning"
+
+
+def _strip_grounding_warning(brief_text: str) -> str:
+    """Remove an existing grounding-warning block (separator included).
+
+    The block spans from the '---' separator preceding the marker to the
+    next heading/rule after it (or EOF when the warning ends the brief).
+    """
+    marker_idx = brief_text.find(_GROUNDING_MARKER)
+    if marker_idx == -1:
+        return brief_text
+    sep_idx = brief_text.rfind("\n---\n", 0, marker_idx)
+    start = sep_idx if sep_idx != -1 else marker_idx
+    tail = brief_text[marker_idx:]
+    end_m = re.search(r"\n(?:---\n|## )", tail)
+    end = marker_idx + end_m.start() if end_m else len(brief_text)
+    return brief_text[:start] + brief_text[end:]
+
+
+def append_grounding_warning(
+    brief_text: str,
+    unsupported: list[str],
+    coverage: dict[str, int],
+) -> str:
+    """Idempotent grounding-warning append (strip-and-replace).
+
+    Synthesis audits run at multiple sites (synthesize() itself, the
+    pipeline post-audit, reflect re-synthesis) — plain appends printed the
+    same warning twice in live briefs. Replacing the block also refreshes
+    stale warnings after reflect rounds improve coverage.
+    """
+    stripped = _strip_grounding_warning(brief_text)
+    if not unsupported:
+        return stripped
+    # rstrip: the strip boundary can leave trailing newlines that would
+    # accumulate one per append round — breaks byte-idempotence otherwise.
+    return stripped.rstrip() + render_grounding_warning(unsupported, coverage)
+
+
 def render_insufficient_brief(
     query: str,
     entities: list[str],
@@ -252,10 +325,6 @@ def render_insufficient_brief(
             reason = (entry.get("reason") or "")[:80]
             lines.append(f"| {title} | {reason} |")
         lines.append("")
-
-    lines.append("## Suggested next steps")
-    lines.append("")
-    lines.append("- Enable web-search sources for niche/regional topics")
     lines.append(
         "- Broaden the query (e.g. use the geological province name, "
         "not only district/locality names)"
@@ -323,6 +392,81 @@ def _alpha_roots(word: str, min_len: int = 5) -> set[str]:
     return {w} if len(w) >= min_len else set()
 
 
+import unicodedata
+
+
+def _punct_unify_table() -> dict[int, str]:
+    """DYNAMIC punctuation unifier — built from Unicode categories, not a
+    hardcoded char list: all dashes -> '-', all quotes -> ', all spaces
+    (incl. NBSP) -> ' ', remaining non-ASCII symbol/punct dropped."""
+    table: dict[int, str] = {}
+    for cp in range(0x110000):
+        cat = unicodedata.category(chr(cp))
+        if cat == "Pd":
+            table[cp] = "-"
+        elif cat in ("Pi", "Pf", "Ps", "Pe"):
+            table[cp] = "'"
+        elif cat == "Zs":
+            table[cp] = " "
+        elif cat.startswith(("P", "S")) and cp > 127:
+            table[cp] = " "
+    return table
+
+
+_PUNCT_MAP = _punct_unify_table()
+
+
+def fold_text(s: str) -> str:
+    """Canonical fold for term matching (2026-09-01): NFKC + casefold +
+    combining-mark strip + punctuation unification. Makes matching robust
+    to homoglyphs, Unicode dashes/quotes, and transliteration diacritics
+    that real bibliographic metadata is full of (live case: 'Pranhita\u2010
+    Godavari' titles failing ASCII 'prahnita' matching invisibly)."""
+    s = unicodedata.normalize("NFKC", s).casefold()
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return s.translate(_PUNCT_MAP)
+
+
+def _dl_within1(a: str, b: str) -> bool:
+    """Damerau-Levenshtein distance <= 1 (transposition-aware), bounded.
+
+    Covers the live failure class (2026-09-01): user-typo'd query terms —
+    transpositions ('prahnita' vs 'Pranhita'), letter substitutions
+    ('godawari' vs 'Godavari' v/w transliteration), insertions/deletions
+    ('geologyl' vs 'geology'). Dynamic: pure distance, no vocabularies.
+    """
+    if a == b:
+        return True
+    la, lb = len(a), len(b)
+    if abs(la - lb) > 1:
+        return False
+    if la == lb:
+        diff = [i for i in range(la) if a[i] != b[i]]
+        if len(diff) == 1:
+            return True
+        return (
+            len(diff) == 2
+            and diff[1] == diff[0] + 1
+            and a[diff[0]] == b[diff[1]]
+            and a[diff[1]] == b[diff[0]]
+        )
+    if la > lb:
+        a, b, la, lb = b, a, lb, la
+    i = j = 0
+    skipped = False
+    while i < la and j < lb:
+        if a[i] == b[j]:
+            i += 1
+            j += 1
+        elif skipped:
+            return False
+        else:
+            skipped = True
+            j += 1
+    return True
+
+
 def _term_matches(term: str, hay: str, aliases: list[str] | None = None) -> bool:
     """General morphological match of one query term in paper text.
 
@@ -332,10 +476,12 @@ def _term_matches(term: str, hay: str, aliases: list[str] | None = None) -> bool
     """
     if not term or not hay:
         return False
+    term = fold_text(term)
+    hay = fold_text(hay)
     if term in hay:
         return True
     for alias in aliases or []:
-        if alias and alias in hay:
+        if alias and fold_text(alias) in hay:
             return True
     tl = re.sub(r"[^a-z]", "", term.lower())
     if len(tl) < 5:
@@ -376,6 +522,21 @@ def _term_matches(term: str, hay: str, aliases: list[str] | None = None) -> bool
                 n += 1
             if n >= 5:
                 return True
+    # 4. Typo tolerance (2026-09-01): Damerau-Levenshtein <=1 against hay
+    # words for terms >=7 chars — user queries carry transpositions
+    # ('prahnita'/'Pranhita'), transliteration substitutions
+    # ('godawari'/'Godavari'), and slips ('geologyl'/'geology').
+    if len(tl) >= 7:
+        # Tokenize to PURE-alpha subwords: hyphenated compounds
+        # ('pranhita-godavari') must decompose or the ±1-length fuzzy
+        # window never sees the individual term (live bug 2026-09-01).
+        for w in re.split(r"[^a-z]+", hay):
+            if (
+                len(w) >= 6
+                and abs(len(w) - len(tl)) <= 1
+                and _dl_within1(tl, w)
+            ):
+                return True
     return False
 
 
@@ -387,7 +548,7 @@ def query_content_terms(query: str) -> list[str]:
     yields ['gadchiroli', 'dyke'] (entity + content word), so a paper must
     substantively match the SUBJECT, not merely mention a place.
     """
-    tokens = re.findall(r"[a-z][a-z\-]{2,}", query.lower())
+    tokens = re.findall(r"[a-z][a-z\-]{2,}", fold_text(query))
     seen: list[str] = []
     for tok in tokens:
         stem = _stem(tok)
@@ -435,6 +596,28 @@ def filter_by_term_coverage(
             stem = _stem(w.lower())
             if stem in terms:
                 primary_set.add(stem)
+    # ZERO-MATCH PRIMARY DEMOTION (2026-09-03, live case: 'prahnita godawari
+    # sedimentary chandrapur' — typo'd terms[0] matched NO candidate even
+    # fuzzily and vetoed all 20 discovered papers, producing an empty
+    # corpus). A primary that no candidate matches discriminates nothing —
+    # demote it (the min_terms threshold still applies) and say so loudly.
+    if primary_set and papers:
+        _hays = [
+            f"{getattr(p, 'title', '') or ''} {getattr(p, 'abstract', '') or ''}".lower()
+            for p in papers
+        ]
+        _demoted = sorted(
+            t_
+            for t_ in primary_set
+            if not any(_term_matches(t_, h) for h in _hays)
+        )
+        if _demoted:
+            primary_set -= set(_demoted)
+            log.warning(
+                "Primary term(s) %s matched no discovered paper (typo or "
+                "out-of-corpus term?) — demoted from mandatory primary",
+                _demoted,
+            )
 
     kept: list = []
     excluded: list[dict] = []
@@ -442,8 +625,14 @@ def filter_by_term_coverage(
         hay = f"{getattr(p, 'title', '') or ''} {getattr(p, 'abstract', '') or ''}".lower()
         matched = [t for t in terms if _term_matches(t, hay, alias_map.get(t))]
         hits = len(matched)
-        primary_hit = bool(primary_set & set(matched))
-        if hits >= threshold and (len(terms) < 2 or primary_hit):
+        # empty primary set (zero-match demotion) = NO primary requirement
+        primary_hit = bool(not primary_set or (primary_set & set(matched)))
+        # Strong-evidence pass (2026-09-01): matching ALL-but-one content
+        # terms beats primary-term rigidity — a typo'd or transliterated
+        # primary must not veto an otherwise on-topic corpus (live case:
+        # 3/4 terms matched, screening still rejected everything).
+        strong_evidence = hits >= max(threshold + 1, len(terms) - 1)
+        if hits >= threshold and (len(terms) < 2 or primary_hit or strong_evidence):
             kept.append(p)
         else:
             excluded.append(

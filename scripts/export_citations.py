@@ -73,19 +73,22 @@ def export_bibtex(papers: list[PaperRecord]) -> str:
             or "Anonymous"
         )
         venue = (p.venue or "").replace("{", "").replace("}", "")
-        # Build entry from fields directly
-        lines = [f"@article{{{key},"]
+        # Preprints (no venue / arXiv-sourced) export as @misc per BibTeX
+        # convention; journal articles keep @article. The second journal
+        # append (duplicate field, invalid BibTeX) removed 2026-09-01.
+        is_preprint = not venue or (getattr(p, "arxiv_id", None) and p.source == "arxiv")
+        entry_type = "misc" if is_preprint else "article"
+        lines = [f"@{entry_type}{{{key},"]
         lines.append(f"  title = {{{title}}},")
         lines.append(f"  author = {{{author}}},")
         lines.append(f"  year = {{{year}}},")
-        if venue:
+        if venue and not is_preprint:
             lines.append(f"  journal = {{{venue}}},")
         if p.doi:
             lines.append(f"  doi = {{{p.doi}}},")
         if p.arxiv_id:
             lines.append(f"  eprint = {{{p.arxiv_id}}},")
-        if p.venue:
-            lines.append(f"  journal = {{{venue}}},")
+            lines.append("  archivePrefix = {arXiv},")
         # Close entry
         lines[-1] = lines[-1].rstrip(",")
         lines.append("}")

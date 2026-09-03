@@ -52,4 +52,23 @@ class _Timeouts:
         """Wikipedia REST summary API (entity kinds/aliases, _context.py)."""
         return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_WIKIPEDIA", "10"))
 
+    @property
+    def ollama_extract(self) -> int:
+        """Per-paper Ollama extraction calls (_ollama_extract).
+
+        Restored 2026-09-01 — missing since the 2026-08-16 sync; every
+        synthesis run hit AttributeError and fell back to PaperQA2.
+        """
+        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_EXTRACT", "120"))
+
+    @property
+    def ollama_synthesis(self) -> int:
+        """Ollama LLM synthesis calls (_ollama_extract / _paperqa).
+
+        Long-form generation (num_predict ~3000) — audit fix 2026-08-23:
+        6+ call sites read this attribute; it was never defined, so any
+        LLM-synthesis path crashed on first timeout lookup.
+        """
+        return int(os.environ.get("SCIENTIFIC_RESEARCH_TIMEOUT_OLLAMA_SYNTHESIS", "600"))
+
 TIMEOUTS = _Timeouts()

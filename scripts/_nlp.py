@@ -54,6 +54,13 @@ def _get_tfidf():
     return _tfidf
 
 
+def tfidf_matrix(documents: list[str]) -> np.ndarray:
+    """Dense TF-IDF matrix (n_docs × vocab) via the shared vectorizer."""
+    if not documents:
+        return np.zeros((0, 0))
+    return _get_tfidf().fit_transform(documents).toarray()
+
+
 # =============================================================================
 # TF-IDF similarity (matrix cell filler backbone)
 # =============================================================================

@@ -148,19 +148,23 @@ def smooth_theme_paragraphs(
     narrative: str,
     topic: str,
     model: str | None = None,
-) -> str:
+) -> tuple[str, int]:
     """Smooth each theme paragraph individually via LLM.
 
     Preserves markdown headers (### Theme), only smooths prose paragraphs.
-    Returns smoothed narrative or original on failure.
+    Returns (narrative, n_sections_smoothed) — the count lets the brief's
+    Method line report the OUTCOME, not the intent: flag-based labels
+    claimed "LLM-smoothed" even when every section was rejected by
+    _valid_smooth or Ollama was down (2026-09-02).
     """
+    n_smoothed = 0
     try:
         from _llm_extract import is_available
     except ImportError:
-        return narrative
+        return narrative, 0
 
     if not is_available():
-        return narrative
+        return narrative, 0
 
     import hashlib
     import json as _json
@@ -194,6 +198,7 @@ def smooth_theme_paragraphs(
                         # (refusals cached by pre-gate code) must not replay.
                         if cached and _valid_smooth(section_text, cached):
                             smoothed_lines.append(cached)
+                            n_smoothed += 1
                             current_section = []
                             smoothed_lines.append(line)
                             continue
@@ -251,6 +256,7 @@ def smooth_theme_paragraphs(
                         if smoothed and _valid_smooth(section_text, smoothed):
                             cache_file.write_text(smoothed, encoding="utf-8")
                             smoothed_lines.append(smoothed)
+                            n_smoothed += 1
                         else:
                             log.info(
                                 "Smoothing rejected (refusal/data-loss gate) "
@@ -272,8 +278,8 @@ def smooth_theme_paragraphs(
         smoothed_lines.append(nl.join(current_section))
 
     result = nl.join(smoothed_lines)
-    log.info("Theme-paragraph smoothing complete")
-    return result
+    log.info("Theme-paragraph smoothing complete (%d section(s) smoothed)", n_smoothed)
+    return result, n_smoothed
 
 
 # =============================================================================
@@ -580,7 +586,7 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
             for p in papers[:3]:
                 t = (p.get("title") or "").strip()
                 if t:
-                    top_finding = t[:200] + ("..." if len(t) > 200 else "")
+                    top_finding = t
                     break
 
         # Extract VALIDATED P-T ranges
@@ -636,7 +642,7 @@ def _build_method_comparison_table(cited: list[dict]) -> str:
 
         # Extract limitations
         lims = _extract_limitations(papers[:8])
-        lim_str = "; ".join(lim[:120] for lim in lims[:4]) if lims else "-"
+        lim_str = "; ".join(lims[:4]) if lims else "-"
 
         lines.append(f"| {label} | {n} | {top_finding} | {range_str} | {lim_str} |")
 
@@ -690,6 +696,7 @@ def synthesize(
     meta_path: Path | None = None,
     output_path: Path | None = None,
     use_llm: bool = False,
+    query_corrections: list[str] | None = None,
 ) -> str:
     """Main synthesis orchestrator.
 
@@ -740,8 +747,9 @@ def synthesize(
         )
 
     # LLM smoothing — per-theme paragraphs (preserves structure)
+    n_smoothed = 0
     if use_llm and cited:
-        narrative = smooth_theme_paragraphs(narrative, query)
+        narrative, n_smoothed = smooth_theme_paragraphs(narrative, query)
 
     # Assemble full brief
     parts: list[str] = []
@@ -784,9 +792,15 @@ def synthesize(
         if years:
             parts.append(f"**Date range**: {min(years)}–{max(years)}")
     parts.append(f"**Generated**: {time.strftime('%Y-%m-%d %H:%M')}")
-    parts.append(
-        f"**Method**: {'LLM-smoothed' if use_llm else 'template-based (non-LLM)'}"
-    )
+    if query_corrections:
+        parts.append(f"**Query spell-corrected**: {'; '.join(query_corrections)}")
+    if use_llm and n_smoothed > 0:
+        _method = "LLM-smoothed"
+    elif use_llm:
+        _method = "template-based (LLM smoothing unavailable/rejected)"
+    else:
+        _method = "template-based (non-LLM)"
+    parts.append(f"**Method**: {_method}")
     parts.append("")
     parts.append("---")
     parts.append("")
@@ -939,15 +953,22 @@ def synthesize(
     except Exception as e:
         log.warning("Citation-network section skipped: %s", e)
 
-    # References — must cover EVERY [n] used in the body. The narrative
-    # builder numbers citations across ALL papers; `cited` may be a subset,
-    # which previously left [6][7][8] dangling with only 5 entries listed
-    # (caught by characterization test 2026-08-15).
     ref_source = cited if len(cited) >= len(papers) else papers
+
+    # Corpus provenance (deterministic, 2026-09-03): HOW each paper was
+    # found — route, not API — making discovery variance auditable.
+    try:
+        from _narrative import render_corpus_provenance
+
+        prov_md = render_corpus_provenance(ref_source)
+        if prov_md.strip():
+            parts.append(prov_md)
+    except Exception as e:
+        log.debug("provenance appendix skipped: %s", e)
+
     parts.append("## References")
     parts.append("")
     parts.append(format_citation_list(ref_source))
-
     full_brief = "\n".join(parts)
 
     # Grounding audit (honesty layer): entities the brief asserts in prose
@@ -955,9 +976,9 @@ def synthesize(
     try:
         from _context import build_research_context
         from _honesty import (
+            append_grounding_warning,
             corpus_coverage,
             grounding_audit,
-            render_grounding_warning,
         )
 
         _ctx = build_research_context(str(query), use_network=False)
@@ -970,7 +991,10 @@ def synthesize(
                     "Grounding audit: %d entity mention(s) unsupported by corpus",
                     len(_unsupported),
                 )
-                full_brief += render_grounding_warning(_unsupported, _coverage)
+            # Idempotent strip-and-replace (2026-09-02): plain appends
+            # printed the warning twice once the pipeline's post-audit
+            # added its own copy.
+            full_brief = append_grounding_warning(full_brief, _unsupported, _coverage)
     except Exception as e:
         log.debug("Grounding audit skipped: %s", e)
 

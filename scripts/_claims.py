@@ -83,7 +83,7 @@ def extract_claims(items: list[dict]) -> list[Claim]:
 
         # Build claim statement from best finding
         best = max(cluster, key=lambda x: len(x.get("finding", "")))
-        statement = best.get("finding", "")[:200]
+        statement = best.get("finding", "")
         if not statement:
             continue
 
@@ -425,7 +425,7 @@ def render_claim_summary(claims: list[Claim]) -> str:
             refs_str += f" ... +{len(claim.refs) - 8}"
 
         lines.append(
-            f"### Claim {i}: {claim.statement[:120]}{'...' if len(claim.statement) > 120 else ''}"
+            f"### Claim {i}: {claim.statement}"
         )
         lines.append(f"- **References**: {refs_str}")
         lines.append(f"- **Grade**: {render_evidence_grade(claim)}")

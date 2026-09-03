@@ -31,10 +31,13 @@ import json
 import logging
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+from _timeouts import TIMEOUTS  # noqa: E402
 
 log = logging.getLogger("scientific_research.llm_extract")
 
@@ -105,11 +108,15 @@ _MIN_PARAMS = {
 _NUM_CTX = {
     "simple": 2048,
     "moderate": 4096,  # extraction prompt (~1K tokens) + JSON output (~500 tokens)
+    "synthesis": 16384,  # brief-assembly prompt + full section output
 }
 
 _NUM_PREDICT = {
     "simple": 256,
     "moderate": 1024,  # JSON extraction output
+    "synthesis": 6144,  # whole-brief sections (2026-09-02: web synthesis
+    # truncated mid-sentence at the 2048 unknown-task default, then again
+    # at 4096 — cited multi-page answers run long; marker catches the rest)
 }
 
 
@@ -325,6 +332,73 @@ def set_llm_params(num_ctx: int | None = None, num_predict: int | None = None) -
     _ctx_override = num_ctx
     _predict_override = num_predict
 
+_LLM_JOURNAL_PATH: Path | None = None
+
+
+def set_llm_journal(path: str | Path | None) -> None:
+    """Point the per-run LLM call journal at `path` (None disables).
+
+    Retention directive 2026-09-03 (mirrors chat tool-call data handling):
+    every Ollama call is appended FULL - prompt + response, never
+    truncated - with model/task/token-budget/done_reason/latency metadata,
+    so any brief can be replayed and audited later."""
+    global _LLM_JOURNAL_PATH
+    _LLM_JOURNAL_PATH = Path(path) if path else None
+
+
+def journal_llm_call(
+    *,
+    model: str,
+    task: str,
+    num_predict: int,
+    num_ctx: int,
+    prompt: str,
+    response: str,
+    done_reason: str = "",
+    latency_s: float = 0.0,
+    error: str | None = None,
+) -> None:
+    """Append one full LLM call record to the journal (best-effort)."""
+    if _LLM_JOURNAL_PATH is None:
+        return
+    rec = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "model": model,
+        "task": task,
+        "num_predict": num_predict,
+        "num_ctx": num_ctx,
+        "done_reason": done_reason,
+        "latency_s": round(latency_s, 2),
+        "error": error,
+        "prompt_chars": len(prompt or ""),
+        "response_chars": len(response or ""),
+        "prompt": prompt or "",
+        "response": response or "",
+    }
+    try:
+        _LLM_JOURNAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with _LLM_JOURNAL_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        log.debug("LLM journal write failed", exc_info=True)
+
+
+_TRUNCATION_MARKER = (
+    "\n\n*[LLM output truncated at the {n}-token limit — section incomplete; "
+    "raise num_predict for this task]*"
+)
+
+
+def mark_truncated(text: str, num_predict: int) -> str:
+    """Append a VISIBLE marker when Ollama stops at the token cap.
+
+    done_reason='length' previously ended sections mid-sentence with no
+    signal — silent truncation reads as complete prose in published briefs
+    (live geologist audit 2026-09-02). Shared by _call_ollama and
+    _ollama_extract._ollama_chat."""
+    log.warning("Ollama output hit num_predict=%d limit — marked truncated", num_predict)
+    return (text or "").rstrip() + _TRUNCATION_MARKER.format(n=num_predict)
+
 
 def get_model(task: str = "moderate") -> str | None:
     """Get the selected model name for a given task (cached per task)."""
@@ -333,10 +407,16 @@ def get_model(task: str = "moderate") -> str | None:
     return _model_cache[task]
 
 
+
+def get_available_models() -> list:
+    """Names of Ollama models currently usable for extraction."""
+    return [m.get("name") for m in _detect_models() if m.get("name")]
+
 def _call_ollama(
     model: str,
     prompt: str,
     task: str = "moderate",
+    timeout: int | None = None,
 ) -> str:
     """Call Ollama /api/chat with proper config.
 
@@ -388,7 +468,19 @@ def _call_ollama(
     estimated_tokens = len(prompt) // 4 + 500  # rough char→token estimate
     if estimated_tokens > num_ctx:
         num_ctx = min(estimated_tokens + 1024, 32768)  # cap at 32K for safety
-    num_predict = _predict_override or _NUM_PREDICT.get(task, 2048)
+    if task == "synthesis":
+        # The extraction knob (config.llm_num_predict, default 1024) must
+        # never clamp whole-brief synthesis — set_llm_params promotes it to
+        # a global override and Pass-3 reviews truncated mid-sentence at it
+        # (live geologist audit 2026-09-02).
+        num_predict = _NUM_PREDICT["synthesis"]
+    else:
+        num_predict = _predict_override or _NUM_PREDICT.get(task, 2048)
+    # Context must cover prompt AND the full generation budget: Ollama
+    # silently shrinks num_predict to fit num_ctx, which starved web
+    # synthesis to ~1K tokens (3423-char 'length' truncation, 2026-09-03).
+    num_ctx = max(num_ctx, estimated_tokens + num_predict + 512)
+    num_ctx = min(num_ctx, 32768)  # GPU memory ceiling on this class of card
 
     # Use format:json for SHORT prompts only.
     # Qwen3.5 returns EMPTY responses with format:json on long prompts (>2K chars).
@@ -422,10 +514,19 @@ def _call_ollama(
         method="POST",
     )
 
+    _t_call = time.time()
+    _timeout = timeout or (
+        TIMEOUTS.ollama_synthesis if task == "synthesis" else 120
+    )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=_timeout) as resp:
             data = json.loads(resp.read().decode())
-    except (urllib.error.URLError, ConnectionError, OSError):
+    except (urllib.error.URLError, ConnectionError, OSError) as _e:
+        journal_llm_call(
+            model=model, task=task, num_predict=num_predict, num_ctx=num_ctx,
+            prompt=prompt, response="", done_reason="",
+            latency_s=time.time() - _t_call, error=str(_e),
+        )
         _ollama_consecutive_failures += 1
         if (
             _ollama_consecutive_failures >= _OLLAMA_CIRCUIT_THRESHOLD
@@ -464,7 +565,16 @@ def _call_ollama(
     raw = re.sub(r"<think>.*?</think>\s*", "", raw, flags=re.DOTALL)
     raw = re.sub(r"<think>.*$", "", raw, flags=re.DOTALL)
     raw = re.sub(r"^.*</think>\s*", "", raw, flags=re.DOTALL)
-    return raw.strip()
+    out = raw.strip()
+    _dr = str(data.get("done_reason", ""))
+    if _dr == "length":
+        out = mark_truncated(out, num_predict)
+    journal_llm_call(
+        model=model, task=task, num_predict=num_predict, num_ctx=num_ctx,
+        prompt=prompt, response=out, done_reason=_dr,
+        latency_s=time.time() - _t_call,
+    )
+    return out
 
 
 def _cache_key(abstract: str, model: str, task: str) -> Path:
@@ -546,7 +656,9 @@ def extract_paper(
 
     model = get_model("moderate")
     if not model:
-        log.debug("No LLM model — using fallback")
+        if _strict_mode:
+            raise LLMExtractionError("no LLM model available")
+        log.warning("extract_paper: no LLM model — using fallback")
         return fallback or _empty_result()
 
     # Check cache
@@ -638,10 +750,22 @@ def extract_paper(
                         continue
                     if not sub:
                         continue
-                    es = sub.get("effect_sizes") or {}
+                    # Type-guard (2026-09-01): models sometimes return
+                    # effect_sizes as a LIST; .setdefault on a list raised
+                    # AttributeError and silently degraded EVERY paper in the
+                    # run to regex extraction (live audit: 7 papers lost).
+                    es = sub.get("effect_sizes")
+                    es = es if isinstance(es, dict) else {}
+                    r_es = result.get("effect_sizes")
+                    if not isinstance(r_es, dict):
+                        r_es = {}
+                        result["effect_sizes"] = r_es
                     for key in ("single_measurements", "mean_sd_groups", "event_counts"):
-                        merged_list = result.setdefault("effect_sizes", {}).setdefault(key, [])
-                        merged_list.extend(es.get(key) or [])
+                        bucket = r_es.get(key)
+                        if not isinstance(bucket, list):
+                            bucket = []
+                            r_es[key] = bucket
+                        bucket.extend(es.get(key) or [])
                     if not result.get("key_finding") and sub.get("key_finding"):
                         result["key_finding"] = sub["key_finding"]
                     p = sub.get("pico") or {}
@@ -955,8 +1079,12 @@ def classify_stance(
 
     model = get_model("simple")
     if not model or _ollama_circuit_open:
+        if _strict_mode:
+            raise LLMExtractionError("no LLM available for stance classification")
         if fallback:
+            log.warning("classify_stance: no LLM — regex fallback")
             return (fallback[0], fallback[1], "regex fallback (no LLM)")
+        log.warning("classify_stance: no LLM and no fallback — mentioning default")
         return ("mentioning", 0.0, "no LLM available")
 
     # Check cache
@@ -1096,7 +1224,7 @@ def llm_screen_paper(
     if not isinstance(parsed, dict) or "relevant" not in parsed:
         return None
     relevant = bool(parsed["relevant"])
-    reason = str(parsed.get("reason", ""))[:120]
+    reason = str(parsed.get("reason", ""))
     return relevant, reason
 
 
@@ -1166,3 +1294,109 @@ if __name__ == "__main__":
             topic="intermittent fasting weight loss",
         )
         print(json.dumps(result, indent=2))
+
+
+def extract_papers_batch(
+    papers: list[dict],
+    topic: str = "",
+    batch_size: int = 0,
+) -> list[dict]:
+    """Batch extraction pre-population (pipeline Phase 3b).
+
+    extract_paper() persists results by SHA(abstract+model+prompt) —
+    pushing the corpus through here in bounded-parallel batches warms
+    that cache so the later per-paper loop is instant on hits.
+    Returns per-paper results in input order.
+    """
+    import concurrent.futures
+
+    workers = max(1, min(batch_size or 3, 4))  # Ollama queues beyond ~4
+
+    def _one(p: dict) -> dict:
+        try:
+            return extract_paper(
+                p.get("abstract", ""),
+                title=p.get("title", ""),
+                topic=topic,
+            )
+        except Exception as exc:  # per-paper failure never kills the batch
+            log.warning("batch extract failed for %r: %s", str(p.get("title"))[:40], exc)
+            return {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(_one, papers))
+
+
+class LLMExtractionError(Exception):
+    """LLM extraction failed in strict mode (no silent fallback allowed)."""
+
+
+# Strict-mode global (§5 H2): SCIENTIFIC_RESEARCH_STRICT_LLM=1 makes every
+# LLM failure raise instead of degrading. Restored 2026-09-01 — the strict
+# test contract referenced these since v2 but the fork never carried them.
+_strict_mode = os.environ.get("SCIENTIFIC_RESEARCH_STRICT_LLM", "0") == "1"
+
+
+def set_strict_mode(enabled: bool | None) -> bool:
+    """Toggle strict LLM mode at runtime; None re-reads the env var.
+
+    Returns the new effective value."""
+    global _strict_mode
+    if enabled is None:
+        _strict_mode = os.environ.get("SCIENTIFIC_RESEARCH_STRICT_LLM", "0") == "1"
+    else:
+        _strict_mode = bool(enabled)
+    return _strict_mode
+
+
+def is_strict_mode() -> bool:
+    return _strict_mode
+
+
+def _handle_llm_failure(
+    error: str,
+    fallback: dict | None = None,
+    empty: dict | None = None,
+    context: str = "",
+) -> dict:
+    """Uniform LLM-failure policy: strict raises; default returns the best
+    available degrade (fallback > empty dict) with a VISIBLE warning —
+    never a silent debug-level swallow."""
+    if _strict_mode:
+        raise LLMExtractionError(f"{error}" + (f" [{context}]" if context else ""))
+    degrade = fallback if fallback is not None else (empty if empty is not None else {})
+    log.warning("LLM failure%s: %s — degrading", f" [{context}]" if context else "", error)
+    return degrade
+
+
+_LLM_NORMALIZE_SYSTEM = """You are a research query normalizer for scholarly
+search. Fix ONLY spelling slips, letter transpositions, transliteration
+variants, and encoding artifacts — NEVER change intent, add terms, or drop
+terms. Respond with ONE JSON object, no prose:
+{"query": "<corrected query>", "corrections": [{"from": "<word>", "to": "<word>"}]}
+If already correct, return it unchanged with empty corrections."""
+
+
+def llm_normalize_query(query: str, model: str | None = None) -> str:
+    """LLM spell-correction of a research query (pipeline stage-2 front door).
+
+    Restored 2026-09-01 — the pipeline has called this name since v2 but the
+    fork never carried the implementation (silent ImportError skip, same
+    drift family as _intent/_timeouts.ollama_extract). Word count is
+    preserved: a 'correction' that adds/drops words is rejected (intent
+    preservation by construction).
+    """
+    picked = model or _pick_model("moderate") or ""
+    if not picked:
+        return query
+    try:
+        raw = _call_ollama(picked, f"{_LLM_NORMALIZE_SYSTEM}\n\nQUERY:\n{query}\n\nJSON:", task="moderate")
+    except Exception:
+        return query
+    obj = _extract_json_from_text(raw or "")
+    if not isinstance(obj, dict) or not obj.get("query"):
+        return query
+    corrected = str(obj["query"]).strip()
+    if corrected and len(corrected.split()) == len(query.split()):
+        return corrected
+    return query

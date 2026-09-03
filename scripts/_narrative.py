@@ -145,8 +145,8 @@ def _relabel_themes_dynamic(
 
     docs = [
         (
-            (str(p.get("title") or "") + " " + str(p.get("abstract") or "") + " "
-             + str(p.get("key_finding") or ""))
+            str(p.get("title") or "") + " " + str(p.get("abstract") or "") + " "
+             + str(p.get("key_finding") or "")
         ).lower().strip()
         or "empty document"
         for p in all_papers
@@ -220,6 +220,32 @@ def format_citation_list(papers: list[dict]) -> str:
         doi_str = f" DOI:[{doi}](https://doi.org/{doi})" if doi else ""
         lines.append(f"[{num}] {author} ({year}). {title}.{doi_str}")
     return "\n\n".join(lines)
+
+def render_corpus_provenance(papers: list[dict]) -> str:
+    """Deterministic corpus-provenance appendix (2026-09-03).
+
+    HOW each corpus paper entered the pipeline — the route it took
+    (primary discovery, typo-repair rediscovery, web rescue, local KB),
+    distinct from which API served it. Discovery is nondeterministic
+    (web backends rotate; the same query yields different corpora) —
+    surfacing the route makes that variance auditable instead of
+    silent. Falls back to the serving source when no route was set.
+    """
+    lines = [
+        "## Corpus provenance",
+        "",
+        "| Paper | Found via |",
+        "|---|---|",
+    ]
+    for p in papers:
+        author = _author_short(_parse_authors(p.get("authors", [])))
+        year = p.get("year") or "n.d."
+        title = (p.get("title") or "Untitled")[:60]
+        route = p.get("discovery_provenance") or f"source:{p.get('source') or '?'}"
+        label = f"{author} ({year}) {title}"
+        lines.append(f"| {label} | `{route}` |")
+    lines.append("")
+    return "\n".join(lines)
 
 
 # =============================================================================
@@ -1368,7 +1394,7 @@ def _build_consensus_sentence(group: dict, verb_offset: int) -> str:
             "at", "by", "over", "between",
         }:
             words.pop()
-        content = " ".join(words)[:200] if words else _clip(items[0]["finding"], 160)
+        content = " ".join(words) if words else (items[0]["finding"] or "")
     else:
         content = _clip(items[0]["finding"], 160)
 
@@ -2581,7 +2607,7 @@ def _extract_advantages(theme_papers: list) -> list:
         for sentence in finding.split("."):
             sentence = sentence.strip()
             if _ADVANTAGE_CUES.search(sentence) and len(sentence) > 25:
-                advantages.append(sentence[:200])
+                advantages.append(sentence)
                 break
     return advantages[:3]
 
@@ -2763,7 +2789,7 @@ def _keyword_relevance(paper: dict, topic: str) -> float:
 def _semantic_topical_scores(papers: list, topic: str) -> list:
     """TF-IDF cosine similarity between topic and each paper.
 
-    Uses sklearn TfidfVectorizer (already a geokit dependency).
+    Uses sklearn TfidfVectorizer.
     Catches papers sharing concepts but not exact keywords.
     Falls back to keyword scores if sklearn unavailable.
     """
@@ -3905,7 +3931,7 @@ def build_verification_narrative(
                         ref = len(cited)
                         author = _author_short(_parse_authors(paper.get("authors", [])))
                         year = paper.get("year") or "n.d."
-                        finding = (cell.get("finding") or "")[:200]
+                        finding = cell.get("finding") or ""
                         if finding and not finding.endswith((".", "!", "?")):
                             finding += "."
                         parts.append(f"- {author} ({year}) [{ref}]: {finding}")
@@ -3921,7 +3947,7 @@ def build_verification_narrative(
                         ref = len(cited)
                         author = _author_short(_parse_authors(paper.get("authors", [])))
                         year = paper.get("year") or "n.d."
-                        finding = (cell.get("finding") or "")[:200]
+                        finding = cell.get("finding") or ""
                         if finding and not finding.endswith((".", "!", "?")):
                             finding += "."
                         parts.append(f"- {author} ({year}) [{ref}]: {finding}")

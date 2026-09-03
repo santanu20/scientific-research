@@ -10,7 +10,7 @@ Storage layout (portable, provenance-friendly):
   <root>/store/<sha16>.txt      extracted plain text (+ .meta.json sidecar)
   <root>/index.json             {paper_key: {sha, source, n_chars, fetched}}
 
-Text extraction: pdf-ocr skill CLI when present (local OCR, no egress);
+Text extraction: pypdf (no external OCR engine in the standalone skill);
 otherwise pypdf if installed; otherwise the PDF is skipped loudly.
 
 Public API:
@@ -26,8 +26,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
-import subprocess  # pyright: ignore[reportAttributeAccessIssue]
 import sys
 import time
 import urllib.request
@@ -75,21 +75,24 @@ class DocumentStore:
     # ── PDF → text ────────────────────────────────────────────────────
     @staticmethod
     def _pdf_to_text(pdf_path: Path) -> str:
-        # Route 1: pdf-ocr skill (local vision OCR — scanned PDFs, no egress)
-        ocr = Path.home() / ".config/opencode/skills/pdf-ocr_Original_Monolith/scripts"
-        if (ocr / "pdf_ocr.py").exists():
-            try:
-                r = subprocess.run(
-                    [sys.executable, str(ocr / "pdf_ocr.py"), str(pdf_path)],
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
-                    check=False,
-                )
-                if r.returncode == 0 and len(r.stdout.strip()) > 200:
-                    return r.stdout
-            except (subprocess.TimeoutExpired, OSError) as e:
-                log.debug("pdf-ocr failed for %s: %s", pdf_path, e)
+        # Route 1: vision OCR engine — not available in the standalone skill.
+        # GEOKIT_OCR_MODELS overrides the engine's default vision model
+        # (e.g. "chandra-ocr-2") — same convention as ALPHAMELTS_LIB.
+        # Deliberate degrade path: any OCR failure falls through to pypdf,
+        # logged at WARNING so degradation is never silent.
+        try:
+            raise ImportError("standalone skill: no vision OCR engine")
+
+            doc = _ocr_parse(
+                pdf_path,
+                timeout_s=300,
+                models=os.environ.get("GEOKIT_OCR_MODELS") or None,
+            )
+            text = doc.full_text
+            if len(text.strip()) > 200:
+                return text
+        except Exception as e:
+            log.warning("text extraction failed for %s: %s", pdf_path, e)
         # Route 2: pypdf (born-digital)
         try:
             from pypdf import PdfReader  # pyright: ignore[reportMissingImports]
@@ -139,7 +142,8 @@ class DocumentStore:
         raw Jaccard (0.43) under-scored it by union-inflating stopword 'of'.
         """
         inc = self.root / "incoming"
-        toks = lambda s: {t for t in re.sub(r"[^a-z0-9 ]", "", (s or "").lower()).split() if t not in self._STOP} - {"20", "201", "202", "203"}
+        def toks(s):
+            return {t for t in re.sub(r"[^a-z0-9 ]", "", (s or "").lower()).split() if t not in self._STOP} - {"20", "201", "202", "203"}
         target = toks(title)
         if not target:
             return None
@@ -165,7 +169,13 @@ class DocumentStore:
         source = "remote-oa" if pdf_url else "incoming"
         tmp_pdf: Path | None = None
         if pdf_url:
-            tmp_pdf = self.root / f"tmp_{int(time.time() * 1000) % 10**9}.pdf"
+            # RETENTION (2026-09-03): downloaded OA PDFs persist under
+            # pdfs/ keyed by paper — future runs reuse instead of re-fetch;
+            # mirrors chat tool-call data handling (nothing deleted).
+            pdf_dir = self.root / "pdfs"
+            pdf_dir.mkdir(parents=True, exist_ok=True)
+            safe_key = re.sub(r"[^A-Za-z0-9_.-]", "_", key)[:120]
+            tmp_pdf = pdf_dir / f"{safe_key}.pdf"
             try:
                 req = urllib.request.Request(pdf_url, headers=_UA)
                 with (
@@ -190,8 +200,8 @@ class DocumentStore:
             self._save_index()
             return False
         text = self._pdf_to_text(tmp_pdf)
-        if source == "remote-oa":
-            tmp_pdf.unlink(missing_ok=True)
+        # RETENTION (2026-09-03): remote PDFs live in pdfs/ permanently —
+        # no unlink; future fetches short-circuit on the stored index sha.
         if len(text.strip()) < 500:
             self.index[key] = {
                 "sha": None,

@@ -227,6 +227,13 @@ def predict_svm_scores(sentence: str) -> dict[str, float]:
     return scores
 
 
+def predict_svm(sentence: str) -> tuple[str, float]:
+    """Best stance label + confidence for one sentence."""
+    scores = predict_svm_scores(sentence)
+    stance = max(scores, key=lambda k: scores[k])
+    return stance, float(scores[stance])
+
+
 def discourse_stance_scores(sentence: str) -> dict[str, float]:
     """Score stance based on discourse markers.
 

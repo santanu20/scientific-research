@@ -3,7 +3,7 @@
 Downloads minerals (IMA-approved species), mineral groups, and rock types
 from Wikidata. Replaces manual hardcoded term lists with 8000+ terms.
 
-Cache: ~/.cache/geokit/geo_dictionary.json (refreshed every 30 days).
+Cache: ~/.cache/scientific-research/geo_dictionary.json (refreshed every 30 days).
 Fallback: bundled curated terms if Wikidata unreachable.
 
 Sources:
@@ -21,11 +21,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from _timeouts import TIMEOUTS  # type: ignore[import-not-found]
+from _timeouts import TIMEOUTS  # noqa: E402  # type: ignore[import-not-found]
 
 log = logging.getLogger("scientific_research.geodict")
 
-_CACHE_PATH = Path.home() / ".cache" / "geokit" / "geo_dictionary.json"
+_CACHE_PATH = Path.home() / ".cache" / "scientific-research" / "geo_dictionary.json"
 _CACHE_TTL_DAYS = 30
 _BATCH_SIZE = 500
 _SPARQL_TIMEOUT = 30
@@ -238,7 +238,7 @@ def get_rocks() -> list[str]:
 # =============================================================================
 # Journal ISSN discovery via Crossref
 # =============================================================================
-_JOURNAL_CACHE_PATH = Path.home() / ".cache" / "geokit" / "geo_journals.json"
+_JOURNAL_CACHE_PATH = Path.home() / ".cache" / "scientific-research" / "geo_journals.json"
 _GEO_JOURNAL_QUERIES = [
     "geology",
     "geochemistry",

@@ -63,7 +63,7 @@ if _MISSING:
 
 # --- Polite-pool configuration ---
 _EMAIL = os.environ.get(
-    "SCIENTIFIC_RESEARCH_EMAIL", "scientific-research@geokit.dev"
+    "SCIENTIFIC_RESEARCH_EMAIL", "scientific-research@skill.local"
 )  # OpenAlex/Crossref polite-pool identity (single source, A9)
 # pyalex 0.21+: use `pyalex.config` dict (older versions used `pyalex.settings`)
 _pyalex_cfg = getattr(pyalex, "config", None) or getattr(pyalex, "settings", None)
@@ -130,7 +130,7 @@ class PaperRecord:
     pmid: str | None = None
     title: str = ""
     abstract: str = ""
-    full_text: str | None = None  # optional full text (geokit PDF pipeline)
+    full_text: str | None = None  # optional full text
     authors: list[dict] = field(default_factory=list)
     year: int | None = None
     venue: str = ""
@@ -161,6 +161,12 @@ class PaperRecord:
     verification_status: str = ""
     """§5 H20 gate state: "" (unverified input), "resolved", or "unresolved".
     Unresolved papers are FORBIDDEN to cite — synthesis filters them out."""
+    discovery_provenance: str = ""
+    """HOW this paper entered the corpus (2026-09-03): e.g.
+    'discovery:primary', 'discovery:typo-repair-rediscovery',
+    'rescue:web-relevance', 'kb:local'. Distinct from `source` (which
+    API served it) — this records the ROUTE, for the brief's provenance
+    appendix and corpus-variance audits."""
 
     @property
     def primary_id(self) -> str:
@@ -956,6 +962,13 @@ _arxiv_circuit_open: bool = False
 _arxiv_last_call: float = 0.0
 _ARXIV_MIN_INTERVAL: float = 1.0
 
+def reset_arxiv_circuit() -> None:
+    """Reset the arXiv circuit breaker + pacing state (tests, forks)."""
+    global _arxiv_consecutive_failures, _arxiv_circuit_open, _arxiv_last_call
+    _arxiv_consecutive_failures = 0
+    _arxiv_circuit_open = False
+    _arxiv_last_call = 0.0
+
 
 @retry_with_backoff(max_attempts=3)
 def arxiv_search(query: str, max_results: int = 25) -> list[PaperRecord]:
@@ -1049,6 +1062,31 @@ def citation_count(doi: str) -> int | None:
     except Exception as e:
         log.warning("citation_count failed for %s: %s", doi, e)
         return None
+
+
+def export_citation(doi: str, fmt: str = "bibtex") -> str:
+    """Single-DOI citation via doi.org content negotiation.
+
+    fmt: 'bibtex' | 'ris' | 'text' (formatted citation). Raises on network
+    errors so callers can surface/skip them; 30 s hard timeout.
+    """
+    import requests
+
+    accept = {
+        "bibtex": "application/x-bibtex",
+        "ris": "application/x-research-info-systems",
+        "text": "text/x-bibliography; style=apa; locale=en-US",
+    }.get(fmt)
+    if accept is None:
+        raise ValueError(f"unknown citation format {fmt!r} (bibtex|ris|text)")
+    resp = requests.get(
+        f"https://doi.org/{doi}",
+        headers={"Accept": accept, "User-Agent": "scientific-research-skill/1.0"},
+        timeout=30,
+        allow_redirects=True,
+    )
+    resp.raise_for_status()
+    return resp.text
 
 
 # =============================================================================

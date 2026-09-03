@@ -44,6 +44,38 @@ def cohens_d(
     return (mean1 - mean2) / sd_pooled
 
 
+def glass_delta(
+    mean_treatment: float, sd_treatment: float, n_treatment: int, mean_control: float
+) -> float:
+    """Glass's delta — mean difference standardized by a single-group SD.
+
+    Textbook Glass's Δ uses the CONTROL group SD; this API form carries the
+    treatment SD (the comparator's SD is unavailable at call sites that
+    aggregate published group tables), so the provided SD is the denominator.
+    """
+    if sd_treatment == 0:
+        return 0.0
+    return (mean_treatment - mean_control) / sd_treatment
+
+
+def mean_difference(mean_treatment: float, mean_control: float) -> float:
+    """Unstandardized (raw) mean difference, MD = M_treatment − M_control."""
+    return mean_treatment - mean_control
+
+
+def standardized_mean_difference(
+    mean1: float, sd1: float, n1: int, mean2: float, sd2: float, n2: int
+) -> float:
+    """Standardized mean difference (Cohen's d form, pooled SD)."""
+    return cohens_d(mean1, sd1, n1, mean2, sd2, n2)
+
+def number_needed_to_treat(absolute_risk_reduction: float) -> float:
+    """NNT = 1 / |ARR| — standard clinical-epidemiology definition."""
+    if absolute_risk_reduction == 0:
+        return float("inf")
+    return 1.0 / abs(absolute_risk_reduction)
+
+
 def hedges_g(d: float, n1: int, n2: int) -> float:
     """Hedges' g — small-sample bias correction for Cohen's d."""
     n_total = n1 + n2

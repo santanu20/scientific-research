@@ -495,6 +495,12 @@ _NON_FINDING_CUES = re.compile(
     r"Here we|In this study we|We (?:analyzed|collected|measured|used|applied|studied|investigated)|"
     r"There is|There are|Previous studies|Recent studies|It is well known|"
     r"The (?:origin|formation|nature|composition|presence|occurrence) of|"
+    # Methodology / data-processing statements — numbers they carry are
+    # filter thresholds and parameters, NOT scientific findings
+    # (2026-09-01: ">50 kbar filtered" leaked through the data fallback).
+    r"The data (?:was|were|has|have) (?:been )?(?:filtered|restricted|limited|corrected|subdivided)|"
+    r"(?:We|Data|Samples?|Experiments?) (?:were|was)? ?(?:filtered|excluded|removed|rejected|screened)|"
+    r"Filtered to|After (?:filtering|removing|excluding|applying)|"
     # Metadata / supplementary — NOT findings
     r"Tables?\s*S?\d|Figures?\s*S?\d|Supplementar|"
     r"Available\s+(?:as|online|at)|Data [Aa]vailab|can be found|"

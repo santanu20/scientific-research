@@ -15,7 +15,7 @@ Architecture:
     Layer 3: Caller falls back to LLM
 
 Caching:
-    Centroids computed once from seed terms, cached to ~/.cache/geokit/
+    Centroids computed once from seed terms, cached to ~/.cache/scientific-research/
     Query embeddings cached by content hash (in _embeddings.py)
 """
 
@@ -771,7 +771,11 @@ _ALIAS_GEO_UNIT = re.compile(
     r"africa|asia|europe|north america|south america|antarctica|"
     r"oceania|maharashtra)$"
 )
-_ALIAS_TRANSCRIPTION = re.compile(r"[\[\]/ˈˌɡʈɖɳɽt͡ʃd͡ʒ]")
+# IPA-transcription detector. NOTE (bug 2026-09-01): the affricates t͡ʃ/d͡ʒ
+# MUST be alternations, NOT character-class members — inside [...] they
+# decompose to plain 't' and 'd', rejecting most English aliases
+# ("fool's gold" has a 'd').
+_ALIAS_TRANSCRIPTION = re.compile(r"[\[\]/ˈˌɡʈɖɳɽ͡ʃʒ]|t͡ʃ|d͡ʒ")
 
 
 def _clean_alias(v: str, low_term: str, existing: list[str]) -> bool:

@@ -51,8 +51,16 @@ class Contradiction:
 
 
 def extract_claims(paper: dict, fulltext: str = "") -> list[NumericClaim]:
-    """Numeric claims from abstract, then full text (if provided)."""
+    """Numeric claims from abstract, then full text (if provided).
+
+    Deduplicated on (paper_key, quantity, unit, value): the same value
+    typically appears in both abstract and full text — duplicates made
+    contradiction reports list one source twice per value (live brief,
+    2026-09-02). Distinct sentences with identical value+quantity from the
+    same paper are one claim.
+    """
     out: list[NumericClaim] = []
+    seen: set[tuple[str, str, str, float]] = set()
     key = (paper.get("doi") or paper.get("arxiv_id") or paper.get("title") or "")[:120]
     for source, text in (
         ("abstract", paper.get("abstract") or ""),
@@ -66,13 +74,22 @@ def extract_claims(paper: dict, fulltext: str = "") -> list[NumericClaim]:
             for s in eff.get("single_measurements", []):
                 if s.get("value") is None or not s.get("unit"):
                     continue
+                ident = (
+                    key,
+                    s.get("measurement") or "measurement",
+                    s["unit"],
+                    float(s["value"]),
+                )
+                if ident in seen:
+                    continue
+                seen.add(ident)
                 out.append(
                     NumericClaim(
                         paper_key=key,
-                        quantity=s.get("measurement") or "measurement",
-                        unit=s["unit"],
-                        value=float(s["value"]),
-                        sentence=sent[:300],
+                        quantity=ident[1],
+                        unit=ident[2],
+                        value=ident[3],
+                        sentence=sent,
                         source=source,
                     )
                 )

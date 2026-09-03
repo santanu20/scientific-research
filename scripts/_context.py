@@ -158,7 +158,8 @@ def build_research_context(query: str, *, use_network: bool = True) -> ResearchC
     for m in _COORD_RE.finditer(query.lower()):
         w1 = m.group(1)
         w2 = m.group(2)
-        stem = lambda w: w[:-1] if w.endswith("s") and len(w) > 4 else w
+        def stem(w):
+            return w[:-1] if w.endswith("s") and len(w) > 4 else w
         if stem(w1) in content_set and stem(w2) in content_set:
             coord_pairs.append((stem(w1), stem(w2)))
 

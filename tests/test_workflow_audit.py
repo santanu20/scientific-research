@@ -31,10 +31,13 @@ class _P(dict):
 
 class TestA1PipelineCaps:
     def test_caps_default_none(self):
+        """Cap contract (r5 audit 2026-09-01):
+        generous deliberate floors (50000/200000), never the silent 6000
+        truncation this pin originally guarded against."""
         import config
 
-        assert config.ResearchConfig(query="q").abstract_cap is None
-        assert config.ResearchConfig(query="q").fulltext_cap is None
+        assert config.ResearchConfig(query="q").abstract_cap == 50000
+        assert config.ResearchConfig(query="q").fulltext_cap == 200000
 
     def test_pipeline_guard_handles_none(self):
         src = (Path(__file__).parent.parent / "scripts" / "pipeline.py").read_text()

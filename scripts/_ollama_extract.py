@@ -806,13 +806,19 @@ def generate_brief_ollama(
     n_stripped = 0
     _parts: list[str] = []
     _last = 0
-    for _m in re.finditer(r"\[(\d+(?:\s*,\s*\d+)*)\]", draft):
+    for _m in re.finditer(r"\[(\d+(?:\s*[-,\u2013]\s*\d+)*)\]", draft):
         _parts.append(draft[_last : _m.start()])
         # Comma-list citations ("[2, 10]") are one citation GROUP — the
         # old single-[N] regex never matched them, so they leaked into
         # the final brief verbatim (live 2026-09-03 PG-basin brief).
         _cites: list[str] = []
-        for _n in (int(x) for x in re.findall(r"\d+", _m.group(1))):
+        _nums: list[int] = []
+        for _part in re.findall(r"(\d+)\s*[-,\u2013]\s*(\d+)|(\d+)", _m.group(1)):
+            if _part[2]:  # single
+                _nums.append(int(_part[2]))
+            else:  # range N-M: enumerate (bounded)
+                _nums.extend(range(int(_part[0]), int(_part[1]) + 1))
+        for _n in _nums:
             if not 1 <= _n <= max_ref:
                 n_stripped += 1
                 continue
@@ -886,7 +892,13 @@ def generate_brief_ollama(
 
     def _humanize(m: re.Match) -> str:
         outs: list[str] = []
-        for n in (int(x) for x in re.findall(r"\d+", m.group(1))):
+        _nums_h: list[int] = []
+        for _part in re.findall(r"(\d+)\s*[-,\u2013]\s*(\d+)|(\d+)", m.group(1)):
+            if _part[2]:
+                _nums_h.append(int(_part[2]))
+            else:
+                _nums_h.extend(range(int(_part[0]), int(_part[1]) + 1))
+        for n in _nums_h:
             if not (1 <= n <= len(papers_data)):
                 continue
             p = papers_data[n - 1]
@@ -900,7 +912,7 @@ def generate_brief_ollama(
                 outs.append(f"(Ref. {n})")
         return "; ".join(outs) if outs else m.group(0)
 
-    _body = re.sub(r"\[(\d+(?:\s*,\s*\d+)*)\]", _humanize, _body)
+    _body = re.sub(r"\[(\d+(?:\s*[-,\u2013]\s*\d+)*)\]", _humanize, _body)
     draft = _normalize_brief_text(_body + _rest)
 
     # ── Verification ──

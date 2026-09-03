@@ -349,7 +349,7 @@ class TestCitationHonestyFixes:
         """Pass-4a grounding and the final _humanize sweep must both match
         citation GROUPS ('[2, 10]'), not only single [N]."""
         src = (_SCRIPTS / "_ollama_extract.py").read_text(encoding="utf-8")
-        assert src.count(r"\[(\d+(?:\s*,\s*\d+)*)\]") == 2
+        assert src.count(r"\[(\d+(?:\s*[-,\u2013]\s*\d+)*)\]") == 2  # comma + hyphen-range groups
 
     def test_title_mining_fallback_deleted(self) -> None:
         """_extract_author (capitalized-title-word 'surname' mining) is

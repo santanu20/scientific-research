@@ -715,7 +715,9 @@ def extract_paper(
             # Try strict JSON parse first
             try:
                 result = json.loads(response_text)
-            except json.JSONDecodeError:
+                if isinstance(result, str):
+                    result = json.loads(result)
+            except (json.JSONDecodeError, TypeError):
                 # Fallback: extract JSON object from response
                 result = _extract_json_from_text(response_text)
                 if result is None:
@@ -920,6 +922,13 @@ def _empty_result() -> dict:
 def _validate_extraction(data: dict) -> dict:
     """Validate and normalize LLM extraction output (field-agnostic format)."""
     result = _empty_result()
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except (json.JSONDecodeError, TypeError):
+            return result
+    if not isinstance(data, dict):
+        return result
     result.update({k: v for k, v in data.items() if k in result})
 
     # Coerce None → "" for string fields (LLM may return null)

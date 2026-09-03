@@ -137,6 +137,17 @@ def _entity_description(term: str) -> str:
         return ""
 
 
+# Domain -> scholarly anchor term (module-level: shared by strategy
+# construction below AND the pipeline's zero-term recall round).
+_DOMAIN_TERMS = {
+    "igneous": "geochemistry",
+    "metamorphic": "petrology",
+    "sedimentary": "sedimentology",
+    "economic": "mineralization",
+    "structural": "structural geology",
+}
+
+
 def build_research_context(query: str, *, use_network: bool = True) -> ResearchContext:
     """Decompose a raw query into the structured research context.
 
@@ -214,13 +225,6 @@ def build_research_context(query: str, *, use_network: bool = True) -> ResearchC
     # ("gondpipiri dyke geochemistry") returns the actual intrusions
     # literature. Works generically — the domain comes from the BGE
     # classifier, not a hardcoded list.
-    _DOMAIN_TERMS = {
-        "igneous": "geochemistry",
-        "metamorphic": "petrology",
-        "sedimentary": "sedimentology",
-        "economic": "mineralization",
-        "structural": "structural geology",
-    }
     domain_hint = ""
     shared = [t for t in terms if t not in coord_flat]
     shared_ctx = list(shared)

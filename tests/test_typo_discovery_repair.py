@@ -377,3 +377,62 @@ def test_unit__query_state__frozen_and_token_fix_propagation() -> None:
 # ── A5: pdf_ocr page-range clamp (full-text path, found live) ────────────
 
 
+def test_unit__zero_match_recall__correctly_spelled_term_round(monkeypatch, tmp_path) -> None:
+    """Correctly-spelled zero-match term (gadchiroli — not a typo): the
+    recall round searches term+subject+domain-anchor and merges keepers
+    through the paired gate, tagged 'discovery:zero-term-recall'."""
+    import _context
+    import _query as _q
+    import _ranking
+    import discover
+    from _sources import PaperRecord
+    from config import ResearchConfig
+
+    from pipeline import _phase_discovery
+
+    calls: list[str] = []
+
+    def fake_sms(query, **kwargs):
+        calls.append(query)
+        if "geochemistry" in query:  # recall query carries the domain anchor
+            return [
+                PaperRecord(
+                    doi="10.9999/wairagarh",
+                    title="Geochemical Characteristics of Mafic Dykes from Wairagarh Area",
+                    abstract="Mafic dykes of the Gadchiroli district, Bastar craton.",
+                    source="openalex",
+                )
+            ]
+        return [
+            PaperRecord(
+                doi="10.9999/off",
+                title="Sedimentary ripple marks in Jaipur",
+                abstract="ripple marks",
+                source="crossref",
+            )
+        ]
+
+    monkeypatch.setattr(discover, "search_multi_source", fake_sms)
+    monkeypatch.setattr(
+        _context, "build_research_context",
+        lambda q, **k: SimpleNamespace(
+            intent="subtopic", domain="igneous", niche=True, entities=[],
+            search_strategies=[q], alias_map={}, screening_terms=[],
+            source_notes=[], to_dict=lambda: {},
+        ),
+    )
+    monkeypatch.setattr(_q, "normalize_query", lambda q, **k: (q, [], []))
+    import _sources as _so
+
+    monkeypatch.setattr(_so, "openalex_get_by_doi", lambda doi: None)
+    monkeypatch.setattr(
+        _ranking, "semantic_relevance_scores",
+        lambda q, papers: __import__("numpy").zeros(len(papers)),
+    )
+
+    cfg = ResearchConfig(query="dykes age exposed in gadchiroli", max_papers=10)
+    papers, qs, *_ = _phase_discovery(cfg, tmp_path, lambda n, m: None)
+    recalled = [p for p in papers if p.discovery_provenance == "discovery:zero-term-recall"]
+    assert recalled, [p.title for p in papers]
+    assert "Wairagarh" in recalled[0].title
+    assert any("gadchiroli" in c and "dyke" in c for c in calls), calls

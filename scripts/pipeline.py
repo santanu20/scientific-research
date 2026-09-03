@@ -2108,6 +2108,72 @@ def _zero_match_repair(
                             len(_kept2),
                             len(papers),
                         )
+                else:
+                    # RECALL ROUND (2026-09-03, live gadchiroli case): the
+                    # zero-match term is CORRECTLY spelled (web vocab found
+                    # no fix) — the literature may exist yet never have been
+                    # retrieved (Wairagarh/Gondpipri dyke papers live in
+                    # OpenAlex but missed the candidate pool for a narrow
+                    # district query). One domain-anchored search per
+                    # unmatched term, through the SAME term gate.
+                    _recall_raw: list = []
+                    # Query construction (live-tested): zero term + the
+                    # query's SUBJECT term + the mapped domain anchor —
+                    # 'gadchiroli dyke geochemistry' surfaces the Wairagarh
+                    # dykes; domain-only ('gadchiroli igneous') pulls district
+                    # junk (police-stress, avifaunal studies).
+                    try:
+                        from _context import _DOMAIN_TERMS as _DT
+                    except ImportError:
+                        _DT = {}
+                    _dom_anchor = _DT.get(
+                        getattr(research_ctx, "domain", "") or "", ""
+                    ) or getattr(research_ctx, "domain", "") or ""
+                    _subject = next((u for u in _audit_terms if u not in _zero), "")
+                    for t in _zero[:3]:
+                        _rq = " ".join(x for x in (t, _subject, _dom_anchor) if x)
+                        _recall_raw.extend(
+                            _rr
+                            for _rr in search_multi_source(
+                                _rq,
+                                max_per_source=max(3, over_fetch // 4 + 2),
+                                sources=effective_sources,
+                                per_source_timeout=config.search_timeout,
+                                filters=search_filters or None,
+                                original_query=qs.audit,
+                                domain_hint=getattr(research_ctx, "domain", "") or "",
+                                use_web_search=(
+                                    config.use_web_search or "web_search" in effective_sources
+                                ),
+                                use_web_search_agentic=config.use_web_search_agentic,
+                            )
+                        )
+                    for _rr in _recall_raw:
+                        _rr.discovery_provenance = "discovery:zero-term-recall"
+                    # Recall gate: the zero terms + subject pair, NOT the
+                    # full audit query — we are recalling papers ABOUT the
+                    # unmatched term; generic sibling-subject papers that
+                    # match only the subject stay out.
+                    _recall_query = " ".join(
+                        x for x in [*_zero[:3], _subject] if x
+                    )
+                    _kept3, _ = _ftc(
+                        _recall_raw,
+                        _recall_query,
+                        alias_map=getattr(research_ctx, "alias_map", None),
+                    )
+                    if _kept3:
+                        papers = dedup_papers(list(papers) + _kept3)
+                        emit(
+                            1,
+                            f"Zero-term recall: +{len(_kept3)} paper(s) for "
+                            f"{', '.join(_zero[:3])}",
+                        )
+                        log.info(
+                            "Zero-term recall round: +%d papers (kept pool now %d)",
+                            len(_kept3),
+                            len(papers),
+                        )
     except Exception as e:
         log.warning("Zero-match term repair skipped (fail-open): %s", e)
     return papers, qs

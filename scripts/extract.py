@@ -542,9 +542,10 @@ def extract_from_paper(
 
                 confidence = _confidence(pico, effects)
                 # Boost confidence if LLM extracted paired effect sizes
-                if llm_result.get("effect_sizes") and any(
-                    e.get("group1") and e.get("group2")
-                    for e in llm_result["effect_sizes"]
+                _llm_es = llm_result.get("effect_sizes")
+                if isinstance(_llm_es, list) and any(
+                    isinstance(e, dict) and e.get("group1") and e.get("group2")
+                    for e in _llm_es
                 ):
                     confidence = "high"
 

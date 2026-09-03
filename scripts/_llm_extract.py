@@ -931,6 +931,25 @@ def _validate_extraction(data: dict) -> dict:
         return result
     result.update({k: v for k, v in data.items() if k in result})
 
+    # Container coercion (live 2026-09-03): model returned "effect_sizes":
+    # "none" — iteration hit e.get() on each CHARACTER. Wrong-typed
+    # containers become empty; list fields keep only well-typed entries.
+    for _list_field in ("effect_sizes", "key_results", "study_design",
+                        "abbreviations", "geological_concepts"):
+        _v = result.get(_list_field)
+        if isinstance(_v, str):
+            result[_list_field] = []
+        elif isinstance(_v, list):
+            result[_list_field] = [e for e in _v if isinstance(e, dict)] if _list_field in (
+                "effect_sizes", "key_results"
+            ) else _v
+        elif _v is not None:
+            result[_list_field] = []
+    if not isinstance(result.get("pico"), dict):
+        result["pico"] = {}
+    if not isinstance(result.get("subject"), dict):
+        result["subject"] = {}
+
     # Coerce None → "" for string fields (LLM may return null)
     for _k in (
         "discipline",

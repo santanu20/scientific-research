@@ -72,9 +72,7 @@ class PipelineTimeoutError(Exception):
         self.phase = phase
         self.elapsed = elapsed
         self.budget = budget
-        super().__init__(
-            f"Pipeline budget exhausted at phase {phase}: {elapsed:.1f}s > {budget:.1f}s budget"
-        )
+        super().__init__(f"Pipeline budget exhausted at phase {phase}: {elapsed:.1f}s > {budget:.1f}s budget")
 
 
 def _check_budget(t0: float, budget_s: float | None, phase: int) -> None:
@@ -223,9 +221,7 @@ def _phase_correlation(
                 no_llm_stance=not config.use_llm,
             )
             correlation_path.write_text(
-                orjson.dumps(
-                    correlation_data, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY
-                ).decode("utf-8"),
+                orjson.dumps(correlation_data, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY).decode("utf-8"),
                 encoding="utf-8",
             )
             emit(4, "Correlation complete")
@@ -274,16 +270,14 @@ def _phase_synthesis(
         try:
             import urllib.request as _ur_t1
 
-            with _ur_t1.urlopen(
-                _ur_t1.Request("http://127.0.0.1:11434/api/tags"), timeout=3
-            ):
+            with _ur_t1.urlopen(_ur_t1.Request("http://127.0.0.1:11434/api/tags"), timeout=3):
                 _ollama_reachable = True
         except Exception:
             _ollama_reachable = False
         if config.synthesis_tier == "ollama" and not _ollama_reachable:
             raise RuntimeError(
                 "synthesis_tier='ollama' but Ollama is unreachable at "
- "http://127.0.0.1:11434 — start Ollama or pick another tier"
+                "http://127.0.0.1:11434 — start Ollama or pick another tier"
             )
 
     if _ollama_reachable and config.synthesis_tier in ("auto", "ollama"):
@@ -312,10 +306,7 @@ def _phase_synthesis(
                     for p in vp:
                         if not p.doi:
                             continue
-                        names = [
-                            a.get("name", "") if isinstance(a, dict) else str(a)
-                            for a in (p.authors or [])
-                        ]
+                        names = [a.get("name", "") if isinstance(a, dict) else str(a) for a in (p.authors or [])]
                         # Fallback: Crossref API lookup when authors missing
                         if not names and p.doi:
                             try:
@@ -325,17 +316,12 @@ def _phase_synthesis(
                                 _cr_url = f"https://api.crossref.org/works/{p.doi}"
                                 _cr_req = _cu.Request(
                                     _cr_url,
-                                    headers={
-                                        "User-Agent": "scientific-research-skill/1.0"
-                                    },
+                                    headers={"User-Agent": "scientific-research-skill/1.0"},
                                 )
                                 _cr_resp = _cj.loads(_cu.urlopen(_cr_req, timeout=5).read())
                                 _msg = _cr_resp.get("message", {})
                                 _cr_authors = _msg.get("author", [])
-                                names = [
-                                    f"{a.get('given', '')} {a.get('family', '')}".strip()
-                                    for a in _cr_authors
-                                ]
+                                names = [f"{a.get('given', '')} {a.get('family', '')}".strip() for a in _cr_authors]
                                 if not p.year:
                                     _dp = _msg.get("published", {}).get("date-parts", [[None]])
                                     if _dp and _dp[0] and _dp[0][0]:
@@ -356,13 +342,9 @@ def _phase_synthesis(
                         if p.title:
                             doi_title_map[p.doi] = p.title
                     if n_crossref_lookup:
-                        log.info(
-                            "Author enrichment: %d papers looked up via Crossref", n_crossref_lookup
-                        )
+                        log.info("Author enrichment: %d papers looked up via Crossref", n_crossref_lookup)
                     if n_crossref_failed:
-                        log.warning(
-                            "Author enrichment: %d Crossref lookups failed", n_crossref_failed
-                        )
+                        log.warning("Author enrichment: %d Crossref lookups failed", n_crossref_failed)
                     # Merge into extraction dicts
                     for ext in ext_data:
                         if isinstance(ext, dict):
@@ -400,9 +382,7 @@ def _phase_synthesis(
                                             if isinstance(stats.get("mean"), (int, float))
                                             else f"  {var}: range data"
                                         )
-                                    for calc_name, calc_val in (
-                                        qd.get("calculations") or {}
-                                    ).items():
+                                    for calc_name, calc_val in (qd.get("calculations") or {}).items():
                                         if isinstance(calc_val, dict):
                                             quant_lines.append(f"  {calc_name}: {calc_val}")
                                         else:
@@ -411,9 +391,7 @@ def _phase_synthesis(
                                     quant_summary = (
                                         "\n\n## QUANTITATIVE DATA FROM PAPER TABLES\n"
                                         "Use these ACTUAL measured values in your synthesis. "
-                                        "Cite them with the paper's [ref_id]:\n"
-                                        + "\n".join(quant_lines)
-                                        + "\n"
+                                        "Cite them with the paper's [ref_id]:\n" + "\n".join(quant_lines) + "\n"
                                     )
                                     log.info(
                                         "Enriching synthesis with %d quantitative data points",
@@ -516,11 +494,9 @@ def _phase_synthesis(
                                     p
                                     for p in verified_papers
                                     if not p.doi
-                                    or p.doi not in min_map  # unclassified = keep (2026-09-01: reflect-added papers carry no pico)
-                                    or all(
-                                        any(qm in pm for pm in min_map[p.doi])
-                                        for qm in query_minerals
-                                    )
+                                    or p.doi
+                                    not in min_map  # unclassified = keep (2026-09-01: reflect-added papers carry no pico)
+                                    or all(any(qm in pm for pm in min_map[p.doi]) for qm in query_minerals)
                                 ]
                                 # Safety: don't filter below 3 papers
                                 if len(filtered) >= 3:
@@ -531,8 +507,7 @@ def _phase_synthesis(
                                         f"papers (minerals: {query_minerals})",
                                     )
                                     log.info(
-                                        "PaperQA2 corpus pre-filtered: %d/%d papers "
-                                        "(query minerals: %s)",
+                                        "PaperQA2 corpus pre-filtered: %d/%d papers (query minerals: %s)",
                                         len(pqa_papers),
                                         len(verified_papers),
                                         query_minerals,
@@ -568,9 +543,7 @@ def _phase_synthesis(
                             timeout_per_download=15.0,
                         )
                         n_fulltext_pqa = n_ft
-                        enriched_map = {
-                            pd["doi"]: pd for pd in paper_dicts if pd.get("has_fulltext")
-                        }
+                        enriched_map = {pd["doi"]: pd for pd in paper_dicts if pd.get("has_fulltext")}
                         log.info("PaperQA2: %d/%d papers with full-text", n_ft, len(paper_dicts))
                 except Exception as e:
                     log.warning("PaperQA2 full-text download failed (abstracts only): %s", e)
@@ -650,7 +623,6 @@ def _phase_synthesis(
                     # of EVERY corpus (dyke geochronology got asked about
                     # "Ferry & Spear calibrations").
                     questions = [
-
                         (
                             "Methods and Data",
                             f"What analytical methods, instruments, and calibration or "
@@ -842,16 +814,14 @@ def _phase_synthesis(
                     )
                     brief_path.write_text(brief_text, encoding="utf-8")
                     log.warning(
-                        "Web synthesis supplement DROPPED: confidence %.2f, "
-                        "%d/%d facets covered",
+                        "Web synthesis supplement DROPPED: confidence %.2f, %d/%d facets covered",
                         _pro_conf,
                         _pro_covered,
                         len(_pro_facets),
                     )
                     emit(
                         5,
-                        f"Web synthesis dropped (confidence {_pro_conf:.2f}, "
-                        f"{_pro_covered}/{len(_pro_facets)} facets)",
+                        f"Web synthesis dropped (confidence {_pro_conf:.2f}, {_pro_covered}/{len(_pro_facets)} facets)",
                     )
         except Exception as e:
             log.warning("Web synthesis supplement failed: %s", e)
@@ -925,9 +895,7 @@ def _enrich_fulltext(
             if getattr(p, "oa_pdf_url", None) and getattr(p, "doi", None)
         ]
         if oa_papers:
-            paper_dicts = [
-                {"doi": p.doi, "oa_pdf_url": p.oa_pdf_url, "title": p.title} for p in oa_papers
-            ]
+            paper_dicts = [{"doi": p.doi, "oa_pdf_url": p.oa_pdf_url, "title": p.title} for p in oa_papers]
             emit(1, f"Full-text enrichment: {len(paper_dicts)} OA papers...")
             t_ft = time.time()
             n_enriched, _n_ft_failed = enrich_papers(
@@ -1239,18 +1207,13 @@ def _phase_verification(
         except Exception as e:
             failed += 1
             err_str = str(e).lower()
-            if (
-                "name or service not known" in err_str
-                or "name resolution" in err_str
-                or "gaierror" in err_str
-            ):
+            if "name or service not known" in err_str or "name resolution" in err_str or "gaierror" in err_str:
                 dns_failures_consecutive += 1
                 if dns_failures_consecutive >= DNS_FAILURE_THRESHOLD:
                     dns_tripped = True
                     remaining = len(corpus_papers) - i - 1
                     log.error(
-                        "DNS circuit breaker tripped — skipping %d remaining papers. "
-                        "Check network connectivity.",
+                        "DNS circuit breaker tripped — skipping %d remaining papers. Check network connectivity.",
                         remaining,
                     )
                     emit(2, f"DNS down — skipping {remaining} remaining verifications")
@@ -1277,8 +1240,7 @@ def _phase_verification(
         )
         if failure_rate > 20:
             log.warning(
-                "  HIGH verification failure rate (>20%%) — consider "
-                "checking network connectivity or API rate limits"
+                "  HIGH verification failure rate (>20%%) — consider checking network connectivity or API rate limits"
             )
 
     save_corpus(
@@ -1357,9 +1319,7 @@ def _phase_meta_and_assessment(
                 log.debug("Assessment build failed for %s: %s", getattr(record, "doi", "?"), e)
         if assessments:
             assessment_path.write_text(
-                orjson.dumps(
-                    assessments, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY
-                ).decode("utf-8"),
+                orjson.dumps(assessments, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY).decode("utf-8"),
                 encoding="utf-8",
             )
             log.info("Assessment: %d papers assessed", len(assessments))
@@ -1407,9 +1367,7 @@ def _kb_merge_and_enrich(
                         paper_embs = embed_texts([t for _, t in kb_texts])
                         if query_emb is not None and paper_embs is not None:
                             q_norm = query_emb[0] / (np.linalg.norm(query_emb[0]) + 1e-8)
-                            p_norms = paper_embs / (
-                                np.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-8
-                            )
+                            p_norms = paper_embs / (np.linalg.norm(paper_embs, axis=1, keepdims=True) + 1e-8)
                             cosines = p_norms @ q_norm
                             RELEVANCE_THRESHOLD = 0.70
                             from _sources import PaperRecord
@@ -1463,10 +1421,7 @@ def _kb_merge_and_enrich(
 
                     def _has_overlap(kr: dict) -> bool:
                         hay = f"{kr.get('title', '')} {kr.get('snippet', '')}".lower()
-                        toks = {
-                            t[:-1] if t.endswith("s") and len(t) > 4 else t
-                            for t in re.findall(r"[a-z]{4,}", hay)
-                        }
+                        toks = {t[:-1] if t.endswith("s") and len(t) > 4 else t for t in re.findall(r"[a-z]{4,}", hay)}
                         return bool(_q_tokens & toks)
 
                     for kr, _ in kb_texts:
@@ -1662,10 +1617,7 @@ def _phase_extraction(
                     r"mineralogist|economic geology|journal of|transactions)",
                     _title_lower,
                 )
-                _filename_stem = (
-                    len(_re_strip.findall(r"\w+", title)) < 3
-                    and not entry.get("doi")
-                )
+                _filename_stem = len(_re_strip.findall(r"\w+", title)) < 3 and not entry.get("doi")
                 if _header_garbage or _filename_stem:
                     log.info(
                         "Local paper rejected (header/filename title): %s",
@@ -1788,13 +1740,10 @@ def _phase_extraction(
         try:
             from _llm_extract import extract_papers_batch
 
-            papers_input = [
-                {"abstract": r.abstract or "", "title": r.title or ""} for r in prepared
-            ]
+            papers_input = [{"abstract": r.abstract or "", "title": r.title or ""} for r in prepared]
             emit(
                 3,
-                f"Batch extracting {len(papers_input)} papers "
-                f"(batch_size={config.llm_batch_size})…",
+                f"Batch extracting {len(papers_input)} papers (batch_size={config.llm_batch_size})…",
             )
             t_batch = time.time()
             extract_papers_batch(
@@ -1862,8 +1811,7 @@ def _phase_extraction(
     if llm_elapsed and llm_budget is not None and llm_elapsed >= llm_budget:
         llm_budget_exhausted = True
         log.warning(
-            "LLM budget exhausted during batch pre-population "
-            "(%.1fs/%.1fs) — per-paper loop uses non-LLM path",
+            "LLM budget exhausted during batch pre-population (%.1fs/%.1fs) — per-paper loop uses non-LLM path",
             llm_elapsed,
             llm_budget,
         )
@@ -1890,8 +1838,7 @@ def _phase_extraction(
             if effective_use_llm and llm_budget is not None and llm_elapsed >= llm_budget:
                 llm_budget_exhausted = True
                 log.warning(
-                    "LLM budget exhausted after %d/%d papers "
-                    "(%.1fs/%.1fs) — remaining papers use non-LLM path",
+                    "LLM budget exhausted after %d/%d papers (%.1fs/%.1fs) — remaining papers use non-LLM path",
                     i + 1,
                     n_total,
                     llm_elapsed,
@@ -1899,8 +1846,7 @@ def _phase_extraction(
                 )
                 emit(
                     3,
-                    f"LLM budget exhausted ({llm_elapsed:.0f}s) — "
-                    f"non-LLM for remaining {n_total - i - 1} papers",
+                    f"LLM budget exhausted ({llm_elapsed:.0f}s) — non-LLM for remaining {n_total - i - 1} papers",
                 )
             extractions.append(result.to_dict())
             log.debug(
@@ -1947,9 +1893,7 @@ def _phase_extraction(
         "extractions": extractions,
     }
     extracted_path.write_text(
-        orjson.dumps(
-            extracted_data, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY
-        ).decode("utf-8"),
+        orjson.dumps(extracted_data, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY).decode("utf-8"),
         encoding="utf-8",
     )
     log.info(
@@ -1958,9 +1902,7 @@ def _phase_extraction(
         len(extractions),
         n_fulltext,
         len(verified_records) - len(extractions),
-        f", llm={llm_elapsed:.1f}s" + (" [budget exhausted]" if llm_budget_exhausted else "")
-        if config.use_llm
-        else "",
+        f", llm={llm_elapsed:.1f}s" + (" [budget exhausted]" if llm_budget_exhausted else "") if config.use_llm else "",
     )
     emit(3, f"Extraction complete: {len(extractions)} papers ({n_fulltext} full-text)")
     return extractions, extracted_path, n_fulltext, verified_records
@@ -2023,15 +1965,8 @@ def _zero_match_repair(
 
         _audit_terms = _qct(qs.audit)
         if papers and _audit_terms:
-            _hays = [
-                f"{getattr(p, 'title', '') or ''} {getattr(p, 'abstract', '') or ''}".lower()
-                for p in papers
-            ]
-            _zero = [
-                t
-                for t in _audit_terms
-                if len(t) >= 8 and not any(_term_matches(t, h) for h in _hays)
-            ]
+            _hays = [f"{getattr(p, 'title', '') or ''} {getattr(p, 'abstract', '') or ''}".lower() for p in papers]
+            _zero = [t for t in _audit_terms if len(t) >= 8 and not any(_term_matches(t, h) for h in _hays)]
             if _zero:
                 emit(1, f"Term(s) match no candidate: {', '.join(_zero)} — live-web typo repair...")
                 log.info("Zero-match distinctive terms %s — web-vocab repair", _zero)
@@ -2047,10 +1982,7 @@ def _zero_match_repair(
                         quiet=True,
                     )
                     if _rc == 0:
-                        _web_vocab = [
-                            f"{_r.get('title', '')} {_r.get('body', '')}"
-                            for _r in _data.get("results", [])
-                        ]
+                        _web_vocab = [f"{_r.get('title', '')} {_r.get('body', '')}" for _r in _data.get("results", [])]
                 except Exception as _ex:
                     log.warning("Web-vocab repair probe failed (fail-open): %s", _ex)
                 _fixes: dict[str, str] = {}
@@ -2075,9 +2007,7 @@ def _zero_match_repair(
                     qs = qs.with_token_fixes(_fixes, notes=_qs_notes)
                     search_filters["query"] = qs.search
                     _round2_raw: list = []
-                    for sq in dict.fromkeys(
-                        [_sub_tokens(s) for s in strategy_queries] + [qs.audit]
-                    ):
+                    for sq in dict.fromkeys([_sub_tokens(s) for s in strategy_queries] + [qs.audit]):
                         _round2_raw.extend(
                             _r2
                             for _r2 in search_multi_source(
@@ -2088,9 +2018,7 @@ def _zero_match_repair(
                                 filters=search_filters or None,
                                 original_query=qs.audit,
                                 domain_hint=getattr(research_ctx, "domain", "") or "",
-                                use_web_search=(
-                                    config.use_web_search or "web_search" in effective_sources
-                                ),
+                                use_web_search=(config.use_web_search or "web_search" in effective_sources),
                                 use_web_search_agentic=config.use_web_search_agentic,
                             )
                         )
@@ -2126,9 +2054,11 @@ def _zero_match_repair(
                         from _context import _DOMAIN_TERMS as _DT
                     except ImportError:
                         _DT = {}
-                    _dom_anchor = _DT.get(
-                        getattr(research_ctx, "domain", "") or "", ""
-                    ) or getattr(research_ctx, "domain", "") or ""
+                    _dom_anchor = (
+                        _DT.get(getattr(research_ctx, "domain", "") or "", "")
+                        or getattr(research_ctx, "domain", "")
+                        or ""
+                    )
                     _subject = next((u for u in _audit_terms if u not in _zero), "")
                     for t in _zero[:3]:
                         _rq = " ".join(x for x in (t, _subject, _dom_anchor) if x)
@@ -2142,9 +2072,7 @@ def _zero_match_repair(
                                 filters=search_filters or None,
                                 original_query=qs.audit,
                                 domain_hint=getattr(research_ctx, "domain", "") or "",
-                                use_web_search=(
-                                    config.use_web_search or "web_search" in effective_sources
-                                ),
+                                use_web_search=(config.use_web_search or "web_search" in effective_sources),
                                 use_web_search_agentic=config.use_web_search_agentic,
                             )
                         )
@@ -2154,9 +2082,7 @@ def _zero_match_repair(
                     # full audit query — we are recalling papers ABOUT the
                     # unmatched term; generic sibling-subject papers that
                     # match only the subject stay out.
-                    _recall_query = " ".join(
-                        x for x in [*_zero[:3], _subject] if x
-                    )
+                    _recall_query = " ".join(x for x in [*_zero[:3], _subject] if x)
                     _kept3, _ = _ftc(
                         _recall_raw,
                         _recall_query,
@@ -2166,8 +2092,7 @@ def _zero_match_repair(
                         papers = dedup_papers(list(papers) + _kept3)
                         emit(
                             1,
-                            f"Zero-term recall: +{len(_kept3)} paper(s) for "
-                            f"{', '.join(_zero[:3])}",
+                            f"Zero-term recall: +{len(_kept3)} paper(s) for {', '.join(_zero[:3])}",
                         )
                         log.info(
                             "Zero-term recall round: +%d papers (kept pool now %d)",
@@ -2233,7 +2158,7 @@ def _rank_and_trim(deduped: list, search_str: str, max_papers: int) -> list:
         without_abstract = [p for p, _ in ranked if not (p.abstract or "").strip()]
 
         if len(with_abstract) >= max_papers:
-            papers = with_abstract[: max_papers]
+            papers = with_abstract[:max_papers]
             log.info(
                 "Discarded %d papers without abstracts, kept %d with abstracts",
                 len(without_abstract),
@@ -2247,7 +2172,7 @@ def _rank_and_trim(deduped: list, search_str: str, max_papers: int) -> list:
                 len(papers) - len(with_abstract),
             )
         else:
-            papers = [p for p, _ in ranked[: max_papers]]
+            papers = [p for p, _ in ranked[:max_papers]]
             log.warning("No papers have abstracts — using title-based fallback for all")
 
         log.info(
@@ -2258,7 +2183,7 @@ def _rank_and_trim(deduped: list, search_str: str, max_papers: int) -> list:
         )
     except Exception as e:
         log.warning("Ranking failed (%s), using arbitrary order", e)
-        papers = deduped[: max_papers]
+        papers = deduped[:max_papers]
 
     return papers
 
@@ -2284,7 +2209,6 @@ def _phase_discovery(
 
     from _sources import dedup_papers
     from discover import search_multi_source
-
 
     # ── Query normalization ──
     # search_query: retrieval string (synonym-expanded — max recall).
@@ -2312,9 +2236,7 @@ def _phase_discovery(
                 f"Note: ambiguous term(s): {', '.join(t for t, _ in ambiguities)}",
             )
     except ImportError:
-        log.warning(
-            "Query normalization module not available — no spelling correction or abbreviation expansion"
-        )
+        log.warning("Query normalization module not available — no spelling correction or abbreviation expansion")
 
     if config.use_llm:
         try:
@@ -2345,6 +2267,7 @@ def _phase_discovery(
 
             _idx = Path(__file__).resolve().parents[3] / "references" / "INDEX.json"
             if _idx.exists():
+
                 def _titles(node):
                     if isinstance(node, dict):
                         for k, v in node.items():
@@ -2361,9 +2284,7 @@ def _phase_discovery(
         except Exception as e:
             log.warning("references INDEX vocab unavailable: %s", e)
 
-        audit_query, spell_fix_notes = spellcorrect_query(
-            config.query, extra_vocab=_lib_vocab
-        )
+        audit_query, spell_fix_notes = spellcorrect_query(config.query, extra_vocab=_lib_vocab)
         search_query, _search_spell_notes = spellcorrect_query(search_query)
         if spell_fix_notes:
             emit(1, f"Query spell-corrected: {'; '.join(spell_fix_notes)}")
@@ -2413,7 +2334,6 @@ def _phase_discovery(
     except Exception as e:
         log.warning("Context builder unavailable (fail-open): %s", e)
     t_phase = time.time()
-
 
     # ── Multi-source search ──
     search_filters: dict = {}
@@ -2524,9 +2444,7 @@ def _phase_discovery(
         try:
             from discover import web_search_agentic_discovery
 
-            agentic_papers = web_search_agentic_discovery(
-                qs.audit, max_results=min(config.max_papers, 10)
-            )
+            agentic_papers = web_search_agentic_discovery(qs.audit, max_results=min(config.max_papers, 10))
             if agentic_papers:
                 for _r in agentic_papers:
                     _r.discovery_provenance = "escalation:agentic-crawl"
@@ -2627,8 +2545,7 @@ def _run_pipeline_impl(
         log.debug("LLM journal unavailable", exc_info=True)
 
     log.info(
-        "=== PIPELINE START === query='%s' sources=%s max=%d llm=%s "
-        "local_pdfs=%s skip_verify=%s skip_correlate=%s",
+        "=== PIPELINE START === query='%s' sources=%s max=%d llm=%s local_pdfs=%s skip_verify=%s skip_correlate=%s",
         config.query[:80],
         config.sources,
         config.max_papers,
@@ -2666,11 +2583,7 @@ def _run_pipeline_impl(
             _tags = _mj.loads(_mu.urlopen("http://127.0.0.1:11434/api/tags", timeout=3).read())
             _names = [m.get("name", "") for m in _tags.get("models", [])]
             # Exclude non-chat models (embedding, OCR)
-            _chat = [
-                n
-                for n in _names
-                if not any(k in n.lower() for k in ("embed", "ocr", "whisper", "tts"))
-            ]
+            _chat = [n for n in _names if not any(k in n.lower() for k in ("embed", "ocr", "whisper", "tts"))]
             if _chat:
                 config.llm_model = _chat[0]
                 log.info("Auto-detected Ollama model: %s", config.llm_model)
@@ -2697,9 +2610,7 @@ def _run_pipeline_impl(
     from _sources import save_corpus
 
     # ── Phase 1: DISCOVERY ──────────────────────────────────────────────
-    papers, qs, rtype, research_ctx, spell_fix_notes = _phase_discovery(
-        config, results_dir, _emit
-    )
+    papers, qs, rtype, research_ctx, spell_fix_notes = _phase_discovery(config, results_dir, _emit)
 
     # ── Phase 1b: Local Knowledge Base search + metadata enrichment ─────
     _kb_merge_and_enrich(papers, config, _emit)
@@ -2731,21 +2642,16 @@ def _run_pipeline_impl(
             from _query import spellcorrect_query
 
             _cand_vocab = [f"{getattr(p, 'title', '') or ''}" for p in papers]
-            screen_query, _screen_fixes = spellcorrect_query(
-                config.query, extra_vocab=_cand_vocab
-            )
+            screen_query, _screen_fixes = spellcorrect_query(config.query, extra_vocab=_cand_vocab)
             if _screen_fixes:
                 _emit(
                     1,
-                    "Screening query typo-fixed vs candidates: "
-                    + "; ".join(_screen_fixes),
+                    "Screening query typo-fixed vs candidates: " + "; ".join(_screen_fixes),
                 )
         except Exception as e:
             log.warning("Candidate-vocab spell-correct unavailable: %s", e)
         before_terms = len(papers)
-        papers, term_excluded = filter_by_term_coverage(
-            papers, screen_query, alias_map=alias_map
-        )
+        papers, term_excluded = filter_by_term_coverage(papers, screen_query, alias_map=alias_map)
         if term_excluded:
             log.info(
                 "Term-coverage filter: %d → %d papers (excluded %d single-term matches)",
@@ -2762,11 +2668,7 @@ def _run_pipeline_impl(
         # gate zeroes the corpus and web search hasn't run yet, escalate:
         # fetch web-discovered papers and pass them through the SAME
         # term-coverage gate — they earn their place, no quality loosening.
-        if (
-            not papers
-            and not config.use_web_search
-            and not config.use_web_search_agentic
-        ):
+        if not papers and not config.use_web_search and not config.use_web_search_agentic:
             _emit(1, "Academic sources off-target — escalating to web search...")
             log.info("Relevance-empty corpus — web-search rescue for %r", qs.audit)
             try:
@@ -2783,18 +2685,14 @@ def _run_pipeline_impl(
                 )
                 rescue_raw: list = []
                 for rq in rescue_queries[:4]:
-                    got_r = web_search_paper_discovery(
-                        rq, max_results=max(6, config.max_papers)
-                    )
+                    got_r = web_search_paper_discovery(rq, max_results=max(6, config.max_papers))
                     rescue_raw.extend(got_r)
                     if len(rescue_raw) >= config.max_papers * 2:
                         break
                 rescue = dedup_papers(rescue_raw)
                 if rescue:
                     log.info("Web rescue: %d raw candidates", len(rescue))
-                    rescued_kept, rescued_excluded = _ftc(
-                        rescue, qs.audit, alias_map=alias_map
-                    )
+                    rescued_kept, rescued_excluded = _ftc(rescue, qs.audit, alias_map=alias_map)
                     screening_log.extend(rescued_excluded)
                     if rescued_kept:
                         for _r in rescued_kept:
@@ -2805,9 +2703,7 @@ def _run_pipeline_impl(
                             len(papers),
                         )
                     else:
-                        log.info(
-                            "Web rescue candidates also failed relevance gate"
-                        )
+                        log.info("Web rescue candidates also failed relevance gate")
             except Exception as ex:
                 log.warning("Web-search rescue failed: %s", ex)
     except Exception as e:
@@ -3081,9 +2977,7 @@ def _run_pipeline_impl(
         try:
             import urllib.request as _ur_reflect
 
-            with _ur_reflect.urlopen(
-                _ur_reflect.Request("http://127.0.0.1:11434/api/tags"), timeout=3
-            ):
+            with _ur_reflect.urlopen(_ur_reflect.Request("http://127.0.0.1:11434/api/tags"), timeout=3):
                 _reflect_llm_ok = True
         except Exception:
             _reflect_llm_ok = False
@@ -3112,16 +3006,11 @@ def _run_pipeline_impl(
                 _ext_art = load_extractions(extracted_path)
                 _scan_papers = _extract_papers(_ext_art, load_verified(verified_path))
                 _fulltexts = {
-                    str(e.get("doi") or ""): e.get("full_text") or ""
-                    for e in (_ext_art.get("extractions") or [])
+                    str(e.get("doi") or ""): e.get("full_text") or "" for e in (_ext_art.get("extractions") or [])
                 }
                 _claims = []
                 for _p in _scan_papers:
-                    _claims.extend(
-                        extract_claims(
-                            _p, _fulltexts.get(str(_p.get("doi") or ""), "")
-                        )
-                    )
+                    _claims.extend(extract_claims(_p, _fulltexts.get(str(_p.get("doi") or ""), "")))
                 _cons = detect_contradictions(_claims)
                 if _cons:
                     _contradiction_text = contradiction_report(_cons)
@@ -3166,10 +3055,7 @@ def _run_pipeline_impl(
                     break
                 if _critique["verdict"] == "sufficient":
                     _emit(6, "Reflect critique: SUFFICIENT — brief stands")
-                    _reflect_notes.append(
-                        f"- Critique verdict: **sufficient** — "
-                        f"{_critique.get('reasoning', '')}"
-                    )
+                    _reflect_notes.append(f"- Critique verdict: **sufficient** — {_critique.get('reasoning', '')}")
                     break
                 _queries = _critique["follow_up_queries"]
                 _emit(
@@ -3239,14 +3125,9 @@ def _run_pipeline_impl(
             # Transparency appendix: contradictions + reflection provenance
             _appendix = []
             if _contradiction_text:
-                _appendix.append(
-                    "## Numeric Contradictions (advisory — analyst adjudicates)\n\n"
-                    + _contradiction_text
-                )
+                _appendix.append("## Numeric Contradictions (advisory — analyst adjudicates)\n\n" + _contradiction_text)
             if _reflect_notes:
-                _appendix.append(
-                    "## Reflective Research Notes\n\n" + "\n".join(_reflect_notes)
-                )
+                _appendix.append("## Reflective Research Notes\n\n" + "\n".join(_reflect_notes))
             if _appendix:
                 brief_text = brief_text + "\n\n---\n\n" + "\n\n".join(_appendix)
                 brief_path.write_text(brief_text, encoding="utf-8")
@@ -3268,10 +3149,7 @@ def _run_pipeline_impl(
         "query_fixes": list(qs.fixes),
         "spell_fix_notes": spell_fix_notes,
         "model": config.llm_model or "auto",
-        "config": {
-            k: str(v) if isinstance(v, Path) else v
-            for k, v in config.__dict__.items()
-        },
+        "config": {k: str(v) if isinstance(v, Path) else v for k, v in config.__dict__.items()},
         "artifact_sha256": _artifact_hashes,
         "research_type": rtype,
         "n_papers": len(extractions),
@@ -3320,9 +3198,7 @@ def _run_pipeline_impl(
         "quality": {
             "embeddings_available": _check_embeddings_available(),
             "llm_used": config.use_llm,
-            "fulltext_pdfs_downloaded": n_fulltext_enriched
-            if "n_fulltext_enriched" in dir()
-            else 0,
+            "fulltext_pdfs_downloaded": n_fulltext_enriched if "n_fulltext_enriched" in dir() else 0,
             "sources_used": config.sources,
         },
     }
@@ -3346,10 +3222,132 @@ def _update_research_index(results_dir: Path, meta: dict) -> None:
             "dir": str(results_dir),
         }
         index_path.write_text(
-            orjson.dumps(index, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY).decode(
-                "utf-8"
-            ),
+            orjson.dumps(index, option=orjson.OPT_INDENT_2 | orjson.OPT_SERIALIZE_NUMPY).decode("utf-8"),
             encoding="utf-8",
         )
     except Exception as e:
         log.warning("Failed to update research index: %s", e)
+
+
+# ── CLI entry (2026-10-06): make the pipeline reachable without the GUI ──
+import argparse
+from datetime import datetime, timezone
+
+
+def _slugify(text: str, max_len: int = 40) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return slug[:max_len].rstrip("-") or "research"
+
+
+def _default_output_dir(query: str) -> Path:
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return Path("research_outputs") / f"pipeline-{ts}-{_slugify(query)}"
+
+
+def build_config(args: argparse.Namespace) -> ResearchConfig:
+    return ResearchConfig(
+        query=args.query,
+        sources=[s.strip() for s in args.sources.split(",") if s.strip()],
+        max_papers=args.max,
+        use_llm=args.use_llm,
+        llm_model=args.llm_model,
+        llm_quality=args.llm_quality,
+        research_type_override=args.research_type,
+        skip_verify=args.skip_verify,
+        skip_correlate=args.skip_correlate,
+        match_local_pdfs=not args.no_local_pdfs,
+        output_dir=Path(args.out_dir) if args.out_dir else _default_output_dir(args.query),
+        fulltext_dir=Path(args.fulltext_dir) if args.fulltext_dir else None,
+        reflect_iterations=0 if args.no_reflect else args.reflect,
+        use_web_search=not args.no_web_search,
+        use_web_search_agentic=args.agentic_web,
+        use_web_pro=not args.no_web_pro,
+        year_from=args.from_year,
+        year_to=args.to_year,
+        open_access_only=args.open_access_only,
+        publication_type=args.type,
+        max_pdf_downloads=args.max_pdf,
+        wall_clock_budget_s=args.budget,
+    )
+
+
+def _progress_to_stderr(phase_num: int, message: str) -> None:
+    print(f"[phase {phase_num}] {message}", file=sys.stderr, flush=True)
+
+
+def main(argv: list[str] | None = None) -> int:
+    import _bootstrap
+
+    _bootstrap.ensure_env()
+
+    parser = argparse.ArgumentParser(
+        prog="pipeline.py",
+        description="5-phase scientific research pipeline (discovery -> verification -> "
+        "extraction -> correlation -> synthesis). Writes brief + corpus + verified "
+        "DOIs + extraction JSON under the output dir.",
+    )
+    parser.add_argument("query", help="Research question (quoted string)")
+    parser.add_argument("--max", type=int, default=30, help="Max papers to keep (default 30)")
+    parser.add_argument(
+        "--sources",
+        default="web_search,crossref,openalex,s2,eartharxiv,usgs",
+        help="Comma-separated discovery sources",
+    )
+    parser.add_argument("--use-llm", action="store_true", help="Enable Ollama LLM extraction")
+    parser.add_argument("--llm-model", default="", help="Ollama model (empty = auto-detect smallest)")
+    parser.add_argument(
+        "--llm-quality",
+        choices=["fast", "balanced", "quality"],
+        default="balanced",
+        help="Model selection policy",
+    )
+    parser.add_argument("--from-year", type=int, default=None, help="Earliest publication year")
+    parser.add_argument("--to-year", type=int, default=None, help="Latest publication year")
+    parser.add_argument("--open-access-only", action="store_true", help="Only open-access papers")
+    parser.add_argument("--type", default="", help="Publication type filter (e.g. journal-article)")
+    parser.add_argument("--reflect", type=int, default=1, help="LLM critic re-search rounds (default 1)")
+    parser.add_argument("--no-reflect", action="store_true", help="Disable the reflect loop")
+    parser.add_argument("--no-web-pro", action="store_true", help="Skip the Perplexity-style web synthesis section")
+    parser.add_argument("--no-web-search", action="store_true", help="Disable web_search discovery source")
+    parser.add_argument("--agentic-web", action="store_true", help="Deep web discovery (trafilatura + DOI mining)")
+    parser.add_argument("--skip-verify", action="store_true", help="Skip Phase 2 DOI verification")
+    parser.add_argument("--skip-correlate", action="store_true", help="Skip Phase 4 cross-correlation")
+    parser.add_argument("--no-local-pdfs", action="store_true", help="Do not match local PDF library")
+    parser.add_argument("--max-pdf", type=int, default=10, help="Max OA PDFs to download + extract")
+    parser.add_argument("--budget", type=float, default=None, help="Wall-clock budget in seconds")
+    parser.add_argument("--out-dir", default=None, help="Output dir (default research_outputs/pipeline-<ts>-<slug>)")
+    parser.add_argument("--fulltext-dir", default=None, help="Local PDF library dir to match")
+    parser.add_argument("--research-type", default=None, help="Override auto-detected research type")
+    parser.add_argument("--json", action="store_true", help="Print results as JSON to stdout")
+    parser.add_argument(
+        "--with-brief",
+        action="store_true",
+        help="With --json: include full brief_text in the JSON output",
+    )
+    args = parser.parse_args(argv)
+
+    config = build_config(args)
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        results = run_pipeline(config, progress=_progress_to_stderr)
+    except PipelineBusyError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+
+    if args.json:
+        payload = {k: v for k, v in results.items() if (args.with_brief or k != "brief_text")}
+        print(json.dumps(payload, default=str))
+    else:
+        print(f"Research type : {results.get('research_type', '?')}")
+        print(
+            f"Papers        : {results.get('n_papers', '?')} (fulltext matched: {results.get('n_fulltext_matched', '?')})"
+        )
+        print(f"Elapsed       : {results.get('elapsed', 0):.1f}s")
+        for name, p in (results.get("paths") or {}).items():
+            print(f"{name:<13} : {p}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

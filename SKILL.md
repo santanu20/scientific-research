@@ -634,6 +634,7 @@ Per-script flags:
 | Meta | **1.5s** | 1.5s | Pure math |
 | Export | **0.3s** | 0.3s | From PaperRecord |
 | **Cached re-search** | **<1s** | <1s | Knowledge base HIT |
+| **Full pipeline e2e** (2026-10-06, live: 82 discovered → 12 verified, `--max 15 --max-pdf 2`, 24-core CPU, qwen3.5:9b for narrative synthesis) | **300s wall** | — | via `scripts/pipeline.py` CLI; all 5 phases + assessment + citations export; warm KB not used (fresh query) |
 
 ## Anti-fabrication checklist (before reporting done)
 
@@ -667,11 +668,12 @@ In-scope boundary notes (2026-10-06):
   full-text enrichment (`--max-pdf`, default 10, 15s timeout each,
   fitz-first with OCR fallback via the configured vision model). That is
   paper-level enrichment, not page-scale digitization.
-- The pipeline DOES append a Perplexity-style web synthesis section to
-  the brief by default (`use_web_pro=True`; disable `--no-web-pro`) and
-  uses the `web-search` skill as a discovery source — the scholarly
-  corpus stays the verified core, web results are a clearly-labeled
-  advisory supplement with URLs (not DOIs).
+- The pipeline DOES use the `web-search` skill as a discovery source, and
+  `use_web_pro=True` requests a Perplexity-style web synthesis supplement
+  (disable `--no-web-pro`). Standalone-CLI status (verified live
+  2026-10-06): the web-pro supplement logs a warning and is skipped in
+  the standalone skill tree — its renderer targets the original GUI host.
+  The scholarly corpus stays the verified core either way.
 
 ## Self-improvement loop
 

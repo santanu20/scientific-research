@@ -31,8 +31,13 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
 
-RESEARCH_VENV = os.path.expanduser("~/.omp/agent/skills/scientific-research/.venv")
+# Self-relative: the venv belongs to THIS skill tree, wherever it lives
+# (2026-10-06: previous hardcoded home path went stale after the tree moved,
+# causing silent re-exec into a resurrected venv at the dead location).
+_SKILL_ROOT = Path(__file__).resolve().parent.parent
+RESEARCH_VENV = str(_SKILL_ROOT / ".venv")
 RESEARCH_VENV_PY = os.path.join(RESEARCH_VENV, "bin", "python")
 
 BASE_IMPORTS = (
@@ -45,6 +50,9 @@ BASE_IMPORTS = (
     "sklearn",
     "httpx",
     "pypdf",
+    "orjson",
+    "fastembed",
+    "networkx",
 )
 BASE_INSTALLS = (
     "habanero",
@@ -56,6 +64,9 @@ BASE_INSTALLS = (
     "scikit-learn",
     "httpx",
     "pypdf",
+    "orjson",  # pipeline.py JSON I/O (missing here broke re-exec'd runs)
+    "fastembed",  # BGE embeddings (_embeddings.py, _ollama_extract.py)
+    "networkx",  # citation graph (_citation_graph.py)
     "matplotlib",  # PRISMA flow diagram rendering (discover.py)
     "pytest",  # test-suite runner (kept in venv for `uv run pytest` parity)
     "ruff==0.16.3",  # lint gate — PINNED (A10): unpinned tools drift between sessions

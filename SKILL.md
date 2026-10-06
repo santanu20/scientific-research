@@ -670,10 +670,13 @@ In-scope boundary notes (2026-10-06):
   paper-level enrichment, not page-scale digitization.
 - The pipeline DOES use the `web-search` skill as a discovery source, and
   `use_web_pro=True` requests a Perplexity-style web synthesis supplement
-  (disable `--no-web-pro`). Standalone-CLI status (verified live
-  2026-10-06): the web-pro supplement logs a warning and is skipped in
-  the standalone skill tree — its renderer targets the original GUI host.
-  The scholarly corpus stays the verified core either way.
+  (disable `--no-web-pro`). Standalone-CLI status (2026-10-06): the
+  supplement shells out to the sibling `web-search` skill's `pro` command
+  (2 rounds, 480s timeout, unit-pinned; sibling located by relative path
+  or `WEB_SEARCH_SKILL_DIR` env). Every failure mode (missing sibling,
+  timeout, non-zero exit, bad JSON, empty synthesis) logs a warning and
+  skips the section — the brief is never corrupted, and the scholarly
+  corpus stays the verified core either way.
 
 ## Self-improvement loop
 

@@ -91,7 +91,7 @@ SKILL=~/.config/opencode/skills/scientific-research
 uv venv "$SKILL/.venv" --python 3.13
 uv pip install --python "$SKILL/.venv/bin/python" \
     habanero pyalex semanticscholar arxiv numpy scipy scikit-learn \
-    httpx pytest ruff
+    httpx orjson fastembed networkx pypdf matplotlib pytest ruff
 
 # Retraction Watch local index (optional but recommended — 109k DOIs):
 git clone https://gitlab.com/crossref/retraction-watch-data \
@@ -535,6 +535,37 @@ Thread-safety verified by `tests/test_ratelimits.py` (concurrent failure + pacin
 
 ## Key flags
 
+### Full-pipeline one-shot CLI (2026-10-06)
+
+`pipeline.py` is directly runnable — all 5 phases in one command, no GUI needed:
+
+```bash
+# minimal (defaults: 30 papers, web+crossref+openalex+s2+eartharxiv+usgs,
+# reflect loop on, web-pro section on, timestamped research_outputs/ dir)
+.venv/bin/python scripts/pipeline.py "magma ocean thermal evolution"
+
+# curated: LLM extraction, OA only, 2020+, machine-readable output
+.venv/bin/python scripts/pipeline.py "perovskite solar cell stability" \
+    --max 20 --use-llm --from-year 2020 --open-access-only --json
+```
+
+Core flags: `--max N` `--sources a,b` `--use-llm` `--llm-model M`
+`--llm-quality fast|balanced|quality` `--from-year/--to-year`
+`--open-access-only` `--type T` `--reflect N`/`--no-reflect`
+`--no-web-pro` `--no-web-search` `--agentic-web` `--skip-verify`
+`--skip-correlate` `--no-local-pdfs` `--max-pdf N` `--budget SECONDS`
+`--out-dir D` (default `research_outputs/pipeline-<UTC-ts>-<slug>`,
+never clobbers prior runs) `--fulltext-dir D` `--research-type T`
+`--json` (stdout: `{query, research_type, n_papers,
+n_fulltext_matched, paths{corpus,verified,extracted,correlation,brief},
+elapsed}`; add `--with-brief` to include the full brief text).
+
+Progress lines stream to stderr (`[phase N] ...`); exit 0 = success,
+2 = busy/args, 1 = failure. Env toggles: `SCIENTIFIC_RESEARCH_NO_SKILL_VENV=1`
+(skip venv re-exec), `SCIENTIFIC_RESEARCH_NO_BOOTSTRAP=1` (skip auto-install).
+
+Per-script flags:
+
 | Flag | Script | Purpose |
 |---|---|---|
 | `--force-refresh` | discover.py, verify.py | Skip knowledge base, fetch fresh from APIs |
@@ -627,9 +658,20 @@ Thread-safety verified by `tests/test_ratelimits.py` (concurrent failure + pacin
 
 | Need | Delegate to |
 |---|---|
-| Local PDF text extraction | `pdf-ocr` skill |
+| Page-scale PDF digitization (batches, mixed formats) | `pdf-ocr` skill |
 | RAG / QA over PDF corpus | PaperQA2 (GPU env) |
-| Web research outside academic APIs | `duckduckgo-search` or `ctx_fetch_and_index` |
+| General web research (no scholarly corpus) | `web-search` skill (`text`/`pro`) |
+
+In-scope boundary notes (2026-10-06):
+- The pipeline DOES download + extract a bounded set of OA PDFs for
+  full-text enrichment (`--max-pdf`, default 10, 15s timeout each,
+  fitz-first with OCR fallback via the configured vision model). That is
+  paper-level enrichment, not page-scale digitization.
+- The pipeline DOES append a Perplexity-style web synthesis section to
+  the brief by default (`use_web_pro=True`; disable `--no-web-pro`) and
+  uses the `web-search` skill as a discovery source — the scholarly
+  corpus stays the verified core, web results are a clearly-labeled
+  advisory supplement with URLs (not DOIs).
 
 ## Self-improvement loop
 

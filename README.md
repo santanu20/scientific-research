@@ -1,5 +1,7 @@
 # scientific-research
 
+[![CI](https://github.com/santanu20/scientific-research/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/santanu20/scientific-research/actions/workflows/ci.yml)
+
 Deep academic research pipeline as a CLI: literature discovery across Crossref,
 OpenAlex, Semantic Scholar, arXiv, EarthArXiv and USGS, DOI/arXiv verification
 (multi-resolver, retraction-aware), screening, optional open-access full-text

@@ -265,7 +265,7 @@ new-paper ratio drops below 15%. **PRISMA diagram** auto-generated as `prisma.pn
 #### Web-search skill integration (`--use-web-search` family)
 
 The scientific-research skill can delegate to the **web-search skill** (separate
-MCP skill (installed at ~/.omp/agent/skills/web-search/) for SOTA web-wide paper
+MCP skill (installed at ~/.config/opencode/skills/web-search/) for SOTA web-wide paper
 discovery. Three modes, all opt-in. Set `WEB_SEARCH_SCRIPT=/path/to/web_search.py`
 to override auto-detection if web-search is installed elsewhere.
 

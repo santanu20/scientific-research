@@ -348,7 +348,9 @@ def bench_cost(verified_path: Path | None) -> dict:
 
     stages = []
     if verified_path and verified_path.exists():
-        tmp = Path("/tmp/opencode/bench_cost")
+        import tempfile
+
+        tmp = Path(tempfile.gettempdir()) / "scientific-research-bench"
         tmp.mkdir(parents=True, exist_ok=True)
         cmds = [
             (
@@ -467,9 +469,9 @@ def main() -> int:
         return 0
     p = argparse.ArgumentParser(prog="benchmark")
     p.add_argument("--bench", default="all", help="all|screening|authenticity|pooling|cost")
-    p.add_argument("--verified", type=Path, default=Path("/tmp/opencode/valrun2/verified.json"))
-    p.add_argument("--extracted", type=Path, default=Path("/tmp/opencode/valrun2/extracted.json"))
-    p.add_argument("--meta", type=Path, default=Path("/tmp/opencode/valrun2/meta.json"))
+    p.add_argument("--verified", type=Path, default=None)
+    p.add_argument("--extracted", type=Path, default=None)
+    p.add_argument("--meta", type=Path, default=None)
     p.add_argument("--out", type=Path, default=Path("research_outputs/benchmark"))
     args = p.parse_args()
     run = args.bench == "all" or "screening" in args.bench

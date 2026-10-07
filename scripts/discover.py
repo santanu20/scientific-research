@@ -71,7 +71,6 @@ from _sources import (
 log = logging.getLogger("scientific_research.discover")
 
 
-
 # S2 search + references are tightly rate-limited (separate bucket from
 # paper/batch lookup). Drop S2 as a discovery source — use Crossref for
 # search. S2 is still used for batch DOI enrichment (Phase 1.5) and
@@ -193,11 +192,7 @@ def _extract_key_terms(query: str) -> list[str]:
     # proper noun poisoned the AND-query with generic terms and truncated
     # real place-name discriminators away (2026-08-22 fix).
     alpha_words = [w for w in raw_words if w and w[0].isalpha()]
-    title_case = (
-        sum(1 for w in alpha_words if w[0].isupper()) / len(alpha_words) > 0.6
-        if alpha_words
-        else False
-    )
+    title_case = sum(1 for w in alpha_words if w[0].isupper()) / len(alpha_words) > 0.6 if alpha_words else False
 
     required_terms: list[str] = []  # Tier 1: proper nouns (strict AND)
     important_terms: list[str] = []  # Tier 2: domain nouns (should match)
@@ -317,12 +312,12 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
         if tl.endswith("ical") and len(tl) > 6:
             forms.add(tl[:-2])  # geological → geologic
         if tl.endswith("ing") and len(tl) > 6:
-            forms.add(tl[:-3])          # weathering → weather (matches weathered)
+            forms.add(tl[:-3])  # weathering → weather (matches weathered)
         if tl.endswith("ed") and len(tl) > 5:
-            forms.add(tl[:-2])          # weathered → weather
+            forms.add(tl[:-2])  # weathered → weather
         if tl.endswith("ic") and len(tl) > 4:
-            forms.add(tl[:-2])          # basaltic → basalt
-            forms.add(tl[:-1])          # ...and basalti- substring safety
+            forms.add(tl[:-2])  # basaltic → basalt
+            forms.add(tl[:-1])  # ...and basalti- substring safety
         return list(forms)
 
     term_forms = {t: _forms(t) for t in key_terms}
@@ -357,8 +352,7 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
 
     if dropped_unverified:
         log.info(
-            "Co-occurrence: %d query term(s) absent from whole pool — "
-            "excluded from scoring: %s",
+            "Co-occurrence: %d query term(s) absent from whole pool — excluded from scoring: %s",
             len(dropped_unverified),
             ", ".join(dropped_unverified),
         )
@@ -381,20 +375,14 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
     MIN_MATCHED = 2
     if log.isEnabledFor(logging.DEBUG):
         for t_ in sorted(idf, key=idf.get, reverse=True):
-            df_ = sum(
-                1 for p in papers
-                if any(f in _doc_text(p) for f in term_forms[t_])
-            )
+            df_ = sum(1 for p in papers if any(f in _doc_text(p) for f in term_forms[t_]))
             log.debug("coocc term %-18s df=%d idf=%.2f", t_, df_, idf[t_])
 
     filtered = []
     rejected = 0
     for p in papers:
         text = _doc_text(p)
-        matched_terms = [
-            t for t, forms in term_forms.items()
-            if t in idf and any(f in text for f in forms)
-        ]
+        matched_terms = [t for t, forms in term_forms.items() if t in idf and any(f in text for f in forms)]
         matched_mass = sum(idf[t] for t in matched_terms)
         # Head-term rule: at least one match among the two highest-IDF
         # verified terms. Generic-word-only matches ("selected", "area")
@@ -406,11 +394,7 @@ def _enforce_cooccurrence(papers: list, query: str) -> list:
             head_ok = bool(head_set & set(matched_terms))
         elif not matched_terms:
             head_ok = False
-        if (
-            matched_mass >= COVERAGE * total_mass
-            and len(matched_terms) >= MIN_MATCHED
-            and head_ok
-        ):
+        if matched_mass >= COVERAGE * total_mass and len(matched_terms) >= MIN_MATCHED and head_ok:
             filtered.append(p)
         else:
             rejected += 1
@@ -589,20 +573,14 @@ def _query_overlap_ok(record: object, query_tokens: set[str]) -> bool:
     text_toks = set(re.findall(r"[a-z0-9]+", fold_text(text)))
     for tok in query_tokens:
         ft = fold_text(tok)
-        if any(
-            abs(len(t2) - len(ft)) <= 1 and _dl_within1(ft, t2) for t2 in text_toks
-        ):
+        if any(abs(len(t2) - len(ft)) <= 1 and _dl_within1(ft, t2) for t2 in text_toks):
             return True
     return False
 
 
-
 def _locate_web_search_script() -> str:
     """Locate the OMP web-search skill CLI (standalone-skill fallback)."""
-    candidates = (
-        "~/.omp/agent/skills/web-search/web_search.py",
-        "~/.config/opencode/skills/web-search/web_search.py",
-    )
+    candidates = ("~/.config/opencode/skills/web-search/web_search.py",)
     for c in candidates:
         p = Path(os.path.expanduser(c))
         if p.exists():
@@ -629,9 +607,25 @@ def _web_text_engine(
         env["WEB_SEARCH_NO_CACHE"] = "1"
     try:
         proc = _sp.run(
-            ["python3", script, "text", query, "--max-results", str(max_results),
-             "--sort", "relevance", "--extract", "0", "--call-budget", str(call_budget)],
-            capture_output=True, text=True, timeout=120, check=False, env=env,
+            [
+                "python3",
+                script,
+                "text",
+                query,
+                "--max-results",
+                str(max_results),
+                "--sort",
+                "relevance",
+                "--extract",
+                "0",
+                "--call-budget",
+                str(call_budget),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+            env=env,
         )
     except _sp.TimeoutExpired:
         return 1, {"error": "web-search subprocess timed out"}
@@ -668,11 +662,7 @@ def web_search_paper_discovery(
         # papers, so place collisions ride through DOI harvesting). The
         # anchor is DYNAMIC: the detected research domain plus a scholarly
         # scope token, never a hardcoded vocabulary.
-        _anchor = " ".join(
-            t
-            for t in (domain_hint.strip(), "research paper")
-            if t and t.lower() not in query.lower()
-        )
+        _anchor = " ".join(t for t in (domain_hint.strip(), "research paper") if t and t.lower() not in query.lower())
         web_query = f"{query} {_anchor}".strip() if _anchor else query
         if _anchor:
             log.info("web_search query anchored: %r", web_query[:90])
@@ -791,9 +781,7 @@ def web_search_agentic_discovery(query: str, max_results: int = 15, force_refres
         log.warning("web_search_agentic source degraded (%s): %s", type(e).__name__, str(e)[:150])
         return []
     if rc != 0:
-        log.warning(
-            "web-search agentic failed (rc=%d): %s", rc, str(data.get("error"))[:200]
-        )
+        log.warning("web-search agentic failed (rc=%d): %s", rc, str(data.get("error"))[:200])
         return []
 
     # Collect text from ALL result tiers: search hits, extracted pages, adaptive crawl
@@ -892,11 +880,7 @@ def _is_domain_relevant(paper: Any, query: str) -> bool:
     """
     if not query:
         return True
-    text = (
-        (getattr(paper, "title", "") or "")
-        + " "
-        + (getattr(paper, "abstract", "") or "")
-    ).lower()
+    text = ((getattr(paper, "title", "") or "") + " " + (getattr(paper, "abstract", "") or "")).lower()
     q_tokens = sorted(_content_tokens(query))
     if not q_tokens:
         return True
@@ -1527,10 +1511,7 @@ def main() -> int:
         _ctx = build_research_context(args.query, use_network=True)
         # Raw-count heuristic: filtering typically collapses a pool 5-10x,
         # so a pool under ~4x the ask usually yields a thin final corpus.
-        if (
-            len(_ctx.search_strategies) > 1
-            and len(results) < args.max * 4
-        ):
+        if len(_ctx.search_strategies) > 1 and len(results) < args.max * 4:
             probe_sources = [s for s in sources if s in ("crossref", "openalex")]
             for strat in _ctx.search_strategies[1:3]:
                 try:
@@ -1550,10 +1531,7 @@ def main() -> int:
                 except Exception as pe:
                     log.warning("Strategy probe failed %r: %s", strat[:60], pe)
             if _ctx.niche:
-                log.info(
-                    "Niche locality-anchored topic — consider --use-web-search "
-                    "for regional-journal coverage"
-                )
+                log.info("Niche locality-anchored topic — consider --use-web-search for regional-journal coverage")
     except Exception as e:
         log.warning("Context builder unavailable — single-strategy search: %s", e)
 

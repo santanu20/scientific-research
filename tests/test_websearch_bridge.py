@@ -72,6 +72,7 @@ def test_unit__bridge__happy_path_maps_contract(tmp_path, monkeypatch) -> None:
     assert seen["cwd"] == root
     assert seen["cmd"][1:][:3] == ["web_search.py", "pro", "methane hydrate slope failure"]
     assert "--max-rounds" in seen["cmd"]
+    assert "--no-llm" in seen["cmd"]
     # Contract mapping
     assert result["confidence"] == 0.55
     assert sorted(result["facets"]) == ["hydrate", "methane", "slope"]

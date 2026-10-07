@@ -64,6 +64,11 @@ def run_pro_synthesis(query: str, **kwargs):  # noqa: ANN001, ANN003
         query,
         "--max-rounds",
         str(_PRO_MAX_ROUNDS),
+        # Deterministic heuristic supplement: no LLM dependency. The
+        # pipeline's own phase-5 synthesis already used Ollama; a second
+        # 9B synthesis here would contend for it inside the subprocess
+        # timeout (found live 2026-10-07).
+        "--no-llm",
     ]
     try:
         proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
@@ -83,11 +88,13 @@ def run_pro_synthesis(query: str, **kwargs):  # noqa: ANN001, ANN003
         log.warning("web-pro synthesis failed to launch: %s — skipping", e)
         return None
     if proc.returncode != 0:
-        tail = (proc.stderr or "").strip().splitlines()[-1:] or [f"exit {proc.returncode}"]
+        # Last 5 stderr lines: one line hid the real error in the first
+        # live run (found 2026-10-07) — the failing call site matters.
+        tail = (proc.stderr or "").strip().splitlines()[-5:] or [f"exit {proc.returncode}"]
         log.warning(
             "web-pro synthesis exited %d: %s — skipping",
             proc.returncode,
-            tail[0][:200],
+            " | ".join(line[:200] for line in tail),
         )
         return None
     try:

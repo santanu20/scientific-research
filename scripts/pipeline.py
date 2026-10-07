@@ -88,6 +88,81 @@ def _check_budget(t0: float, budget_s: float | None, phase: int) -> None:
         raise PipelineTimeoutError(phase, elapsed, budget_s)
 
 
+def _timeout_partial_result(config: ResearchConfig, exc: PipelineTimeoutError) -> dict[str, Any]:
+    """Build a partial result from on-disk artifacts after a wall-clock timeout.
+
+    Disk is the source of truth: only artifacts actually written are
+    reported, so the caller sees exactly what survived the budget —
+    never a fabricated path.
+    """
+    results_dir = config.results_dir
+    paths: dict[str, str | None] = {
+        name: str(results_dir / fname) if (results_dir / fname).exists() else None
+        for name, fname in (
+            ("corpus", "corpus.json"),
+            ("verified", "verified.json"),
+            ("extracted", "extracted.json"),
+            ("correlation", "correlation.json"),
+            ("brief", "research_brief.md"),
+            ("meta", "meta.json"),
+            ("meta_analysis", "meta_analysis.json"),
+            ("assessment", "assessment.json"),
+            ("citations", "citations.bib"),
+            ("screening", "screening_decisions.json"),
+        )
+    }
+
+    def _count(path_str: str | None, list_key: str | None = None) -> int:
+        if not path_str:
+            return 0
+        try:
+            data = json.loads(Path(path_str).read_text(encoding="utf-8"))
+            if isinstance(data, dict) and list_key:
+                data = data.get(list_key, [])
+            return len(data) if isinstance(data, list) else 0
+        except Exception:
+            return 0
+
+    research_type = "unknown"
+    try:
+        ctx_path = results_dir / "research_context.json"
+        if ctx_path.exists():
+            research_type = json.loads(ctx_path.read_text(encoding="utf-8")).get("research_type") or research_type
+    except Exception:
+        pass
+
+    brief_text = None
+    try:
+        if paths["brief"]:
+            brief_text = Path(paths["brief"]).read_text(encoding="utf-8")
+    except Exception:
+        pass
+
+    log.warning(
+        "Pipeline timed out at phase %d (%.1fs > %.1fs budget) — returning partial result from %s",
+        exc.phase,
+        exc.elapsed,
+        exc.budget,
+        results_dir,
+    )
+    return {
+        "query": config.query,
+        "research_type": research_type,
+        "n_papers": _count(paths["extracted"], "extractions"),
+        "n_verified": _count(paths["verified"]),
+        "n_failed_verification": 0,
+        "verification_skipped": config.skip_verify,
+        "n_fulltext_matched": 0,
+        "paths": paths,
+        "brief_text": brief_text,
+        "elapsed": exc.elapsed,
+        "results_dir": str(results_dir),
+        "quality": {"timed_out_partial": True, "sources_used": config.sources},
+        "timed_out": True,
+        "timeout_phase": exc.phase,
+    }
+
+
 def _check_embeddings_available() -> bool:
     """Check if BGE semantic embeddings are available without loading model."""
     try:
@@ -148,6 +223,12 @@ def run_pipeline(
         )
     try:
         return _run_pipeline_impl(config, progress)
+    except PipelineTimeoutError as exc:
+        # Contract (docstring above + PipelineTimeoutError docstring): a
+        # wall-clock overrun never destroys the run — return what landed.
+        partial = _timeout_partial_result(config, exc)
+        _notify_research_complete(partial)
+        return partial
     finally:
         _pipeline_lock.release()
 
@@ -3339,6 +3420,11 @@ def main(argv: list[str] | None = None) -> int:
         payload = {k: v for k, v in results.items() if (args.with_brief or k != "brief_text")}
         print(json.dumps(payload, default=str))
     else:
+        if results.get("timed_out"):
+            print(
+                f"NOTE         : wall-clock budget exceeded in phase {results.get('timeout_phase')} "
+                "— partial result, artifacts on disk are complete up to the interruption"
+            )
         print(f"Research type : {results.get('research_type', '?')}")
         print(
             f"Papers        : {results.get('n_papers', '?')} (fulltext matched: {results.get('n_fulltext_matched', '?')})"
@@ -3346,7 +3432,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Elapsed       : {results.get('elapsed', 0):.1f}s")
         for name, p in (results.get("paths") or {}).items():
             print(f"{name:<13} : {p}")
-    return 0
+    return 3 if results.get("timed_out") else 0
 
 
 if __name__ == "__main__":

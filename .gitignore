@@ -17,3 +17,6 @@ scripts/research_outputs/
 
 # OS
 .DS_Store
+
+# Personal agent memory (kept local)
+MEMORY.md

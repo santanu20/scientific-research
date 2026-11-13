@@ -402,6 +402,32 @@ def _crossref_cb() -> CircuitBreaker:
     return get_registry().crossref
 
 
+def crossref_search_title(title: str) -> PaperRecord | None:
+    """First Crossref bibliographic-search hit for a title.
+
+    Metadata recovery for local-library injections (live 2026-09-03:
+    sidecar MDs lose authors/DOI/year; the synthesis then cited
+    'Anonymous 2024' for Amarasinghe 2015). Caller guards by title
+    similarity. Circuit-breaker aware; returns None on any failure.
+    """
+    cb = _crossref_cb()
+    if not cb.available:
+        return None
+    try:
+        res = _crossref_client.works(query=title, limit=3)
+        items = (res.get("message") or {}).get("items") or []
+        cb.record_success()
+        for it in items:
+            if (it.get("title") or [""])[0]:
+                return _crossref_to_record(it)
+        return None
+    except Exception as e:
+        if "429" in str(e):
+            cb.record_failure()
+        log.debug("crossref title search failed: %s", e)
+        return None
+
+
 def reset_crossref_circuit() -> None:
     """Reset Crossref circuit breaker for new pipeline runs (backward-compat wrapper)."""
     _crossref_cb().reset()

@@ -83,6 +83,11 @@ def _author_short(authors: list[str]) -> str:
     """Short author citation: 'Smith et al.' or 'Smith & Jones'.
     Normalizes ALL-CAPS names to Title Case."""
     if not authors:
+        # Display layer (reference lists, provenance tables): explicit
+        # 'Anonymous' is the honest unknown-marker contract (2026-09-03).
+        # The LLM-FEED paths (_build_papers_data/_render_citations in
+        # _ollama_extract) use empty author + '(Ref. N)' instead — the
+        # model must never cite 'Anonymous' as prose (2026-09-04).
         return "Anonymous"
     last_names = []
     for a in authors[:3]:
@@ -2865,7 +2870,7 @@ def _filter_topical(papers: list, topic: str, min_relevance: float = 0.05) -> li
                             relevant.append((p, s))
                 return [p for p, _ in relevant]
     except Exception:
-        pass
+        log.debug("BGE topical filter failed; falling back to caller ranking", exc_info=True)
 
     # Fallback: TF-IDF cosine similarity
     scores = _semantic_topical_scores(papers, topic)

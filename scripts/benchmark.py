@@ -46,6 +46,12 @@ SYNERGY_URLS = [
 ]
 
 
+
+import logging
+
+log = logging.getLogger(__name__)
+
+
 def _try_load_synergy():
     """Fetch a labeled gold set; None on failure (bench falls back synthetic)."""
     for url in SYNERGY_URLS:
@@ -241,7 +247,7 @@ def bench_authenticity(verified_path: Path) -> dict:
             if a and b_ and len(a & b_) / len(a | b_) >= 0.5:
                 matched += 1
         except Exception:
-            pass
+            log.debug("crossref resolve/match failed for one DOI", exc_info=True)
         time.sleep(0.3)
 
     # known-retracted: first 5 DOIs straight from the local RW database

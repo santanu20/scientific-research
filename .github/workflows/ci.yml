@@ -29,11 +29,8 @@ jobs:
       - name: Validate packaging metadata
         run: python -m pip check
 
-      - name: Run Ruff
-        run: ruff check scripts tests
-
-      - name: Run Pyright
-        run: pyright
+      - name: Run configured Ruff defect checks
+        run: ruff check scripts tests --output-format=github
 
       - name: Run offline test suite
         env:

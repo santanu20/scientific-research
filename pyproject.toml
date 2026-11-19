@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "habanero",
     "orjson",
-    "fastembed",
+    "fastembed>=0.8.0",
     "symspellpy",
     "pyalex",
     "semanticscholar",
@@ -21,7 +21,6 @@ dependencies = [
     "httpx",
     "pypdf",
     "matplotlib",
-    "fastembed>=0.8.0",
     "networkx>=3.6.1",
 ]
 

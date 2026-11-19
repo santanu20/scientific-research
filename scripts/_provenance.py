@@ -20,8 +20,14 @@ import sys
 import time
 from importlib import metadata as _ilmd
 from pathlib import Path
+from typing import Any
 
 PROVENANCE_FILENAME = "run_provenance.json"
+
+
+class ProvenanceManifestError(RuntimeError):
+    """Raised when an existing provenance manifest cannot be trusted."""
+
 
 # deps whose versions matter for reproducibility (skip silently if absent)
 _TRACKED_DEPS = (
@@ -36,7 +42,7 @@ _TRACKED_DEPS = (
 )
 
 
-def _file_info(path: Path | None) -> dict | None:
+def _file_info(path: Path | None) -> dict[str, Any] | None:
     """SHA-256 + size + mtime for a file; None if path is None or missing."""
     if path is None:
         return None
@@ -44,18 +50,19 @@ def _file_info(path: Path | None) -> dict | None:
     if not path.exists() or not path.is_file():
         return {"path": str(path), "missing": True}
     h = hashlib.sha256()
-    with open(path, "rb") as fh:
+    with path.open("rb") as fh:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
+    stat = path.stat()
     return {
         "path": str(path),
         "sha256": h.hexdigest(),
-        "size_bytes": path.stat().st_size,
-        "mtime": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(path.stat().st_mtime)),
+        "size_bytes": stat.st_size,
+        "mtime": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(stat.st_mtime)),
     }
 
 
-def _env_snapshot() -> dict:
+def _env_snapshot() -> dict[str, Any]:
     deps: dict[str, str] = {}
     for name in _TRACKED_DEPS:
         try:
@@ -70,6 +77,26 @@ def _env_snapshot() -> dict:
     }
 
 
+def _read_manifest(path: Path) -> list[dict[str, Any]]:
+    """Read an existing manifest without ever replacing untrusted contents."""
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise ProvenanceManifestError(
+            f"Existing provenance manifest is unreadable; preserving it at {path}: {exc}"
+        ) from exc
+    if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+        return data
+    if isinstance(data, dict):
+        return [data]
+    raise ProvenanceManifestError(
+        f"Existing provenance manifest has an invalid root/schema at {path}; "
+        "expected an object or a list of objects"
+    )
+
+
 def record_stage(
     stage: str,
     params: dict,
@@ -78,12 +105,18 @@ def record_stage(
     results_dir: Path,
     extra: dict | None = None,
 ) -> dict:
-    """Append one stage record to run_provenance.json. Returns the record.
+    """Append one stage record to run_provenance.json.
 
-    Inputs/outputs: {logical_name: path}. Missing files are recorded as
-    {"missing": true} — provenance must show gaps, not hide them.
+    Invalid existing manifests fail closed: they are never silently reset,
+    because that would destroy the only record of earlier pipeline stages.
+    Writes are atomic; the original manifest remains intact on failure.
     """
+    if not isinstance(stage, str) or not stage.strip():
+        raise ValueError("stage must be a non-empty string")
+
     results_dir = Path(results_dir)
+    manifest_path = results_dir / PROVENANCE_FILENAME
+    manifest = _read_manifest(manifest_path)
     record = {
         "stage": stage,
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -94,30 +127,19 @@ def record_stage(
     }
     if extra:
         record["extra"] = extra
-    manifest_path = results_dir / PROVENANCE_FILENAME
-    manifest: list[dict] = []
-    if manifest_path.exists():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if not isinstance(manifest, list):
-                manifest = [manifest]
-        except (json.JSONDecodeError, OSError):
-            manifest = []  # corrupt manifest → start fresh rather than fail the run
     manifest.append(record)
+
     results_dir.mkdir(parents=True, exist_ok=True)
-    tmp = manifest_path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(manifest_path)
+    tmp = manifest_path.with_name(f".{manifest_path.name}.{time.time_ns()}.tmp")
+    try:
+        tmp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(manifest_path)
+    finally:
+        tmp.unlink(missing_ok=True)
     return record
 
 
 def load_manifest(results_dir: Path) -> list[dict]:
-    """Load the provenance manifest; empty list if absent/corrupt."""
-    p = Path(results_dir) / PROVENANCE_FILENAME
-    if not p.exists():
-        return []
-    try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else [data]
-    except (json.JSONDecodeError, OSError):
-        return []
+    """Load provenance, preserving a strict distinction between absent and corrupt."""
+    path = Path(results_dir) / PROVENANCE_FILENAME
+    return _read_manifest(path)

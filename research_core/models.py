@@ -51,6 +51,8 @@ class EvidenceRelation(StrEnum):
 
 
 class SearchExecutionStatus(StrEnum):
+    """Adapter outcomes; EMPTY means no records were returned, not a verified zero-hit API response."""
+
     SUCCEEDED = "succeeded"
     EMPTY = "empty"
     FAILED = "failed"

@@ -927,6 +927,7 @@ def search_multi_source(
     use_web_search_agentic: bool = False,
     original_query: str | None = None,
     domain_hint: str = "",
+    execution_records: list | None = None,
 ) -> list[PaperRecord]:
     """Search across multiple sources IN PARALLEL, return merged list.
 
@@ -1043,22 +1044,104 @@ def search_multi_source(
         ", ".join(source_calls),
     )
 
+    # An optional collector keeps the established list return type backward compatible.
+    # EMPTY means the adapter returned no records; some legacy adapters soften
+    # provider errors into [] and therefore cannot prove a provider-side zero-hit response.
+    SearchExecution = SearchExecutionStatus = None
+    if execution_records is not None:
+        repository_root = str(Path(__file__).resolve().parents[1])
+        if repository_root not in sys.path:
+            sys.path.insert(0, repository_root)
+        from research_core import SearchExecution, SearchExecutionStatus
+        from datetime import datetime, timezone
+        from uuid import uuid4
+
+    if not source_calls:
+        log.warning("No discovery sources were configured")
+        return out
+
+    source_queries = {
+        name: (query if name.startswith("web_search") else expanded_query)
+        for name in source_calls
+    }
+    source_parameters: dict[str, dict[str, str]] = {}
+    for name in source_calls:
+        params = {
+            "max_results": str(
+                min(max_per_source, 10) if name == "web_search_agentic"
+                else min(max_per_source, 15) if name == "web_search"
+                else max_per_source
+            ),
+            "per_source_timeout_seconds": str(per_source_timeout),
+            "force_refresh": str(force_refresh).lower(),
+        }
+        if original_query:
+            params["original_query"] = original_query
+        if filters:
+            params["filters_json"] = json.dumps(filters, sort_keys=True, ensure_ascii=False, default=str)
+        if name == "crossref" and cr_filter:
+            params["crossref_filter_json"] = json.dumps(cr_filter, sort_keys=True, default=str)
+        if name.startswith("openalex") and oa_filter:
+            params["openalex_filter_json"] = json.dumps(oa_filter, sort_keys=True, default=str)
+        source_parameters[name] = params
+
+    def _record_execution(
+        source_name: str,
+        result_count: int,
+        status: Any,
+        error_type: str | None = None,
+    ) -> None:
+        if execution_records is None:
+            return
+        started_at, started_clock = source_started[source_name]
+        finished_at = datetime.now(timezone.utc)
+        finished_iso = finished_at.isoformat()
+        started_iso = started_at.isoformat()
+        execution_records.append(
+            SearchExecution(
+                execution_id=uuid4().hex,
+                provider=source_name,
+                exact_query=source_queries[source_name],
+                executed_at_utc=finished_iso,
+                result_count=result_count,
+                parameters=tuple(sorted(source_parameters[source_name].items())),
+                status=status,
+                started_at_utc=started_iso,
+                finished_at_utc=finished_iso,
+                elapsed_ms=max(0, int((time.perf_counter() - started_clock) * 1000)),
+                error_type=error_type,
+            )
+        )
+
     # Use ThreadPoolExecutor WITHOUT context manager — __exit__ blocks waiting
     # for ALL threads including hanging ones (S2 library retries 429s internally).
     pool = ThreadPoolExecutor(max_workers=len(source_calls))
-    future_to_source = {pool.submit(fn): name for name, fn in source_calls.items()}
+    future_to_source: dict[Any, str] = {}
+    source_started: dict[str, tuple[Any, float]] = {}
+    for name, fn in source_calls.items():
+        if execution_records is not None:
+            source_started[name] = (datetime.now(timezone.utc), time.perf_counter())
+        future_to_source[pool.submit(fn)] = name
     try:
         for future in as_completed(future_to_source, timeout=per_source_timeout + 5):
             src_name = future_to_source[future]
             try:
-                results = future.result(timeout=5)
+                raw_results = future.result(timeout=5)
+                results = list(raw_results or [])
                 out.extend(results)
+                if execution_records is not None:
+                    status = SearchExecutionStatus.SUCCEEDED if results else SearchExecutionStatus.EMPTY
+                    _record_execution(src_name, len(results), status)
                 log.info("  %-12s → %d results", src_name, len(results))
             except Exception as e:
                 if src_name == "s2":
                     from _sources import _s2_record_failure  # internal module
 
                     _s2_record_failure()
+                if execution_records is not None:
+                    _record_execution(
+                        src_name, 0, SearchExecutionStatus.FAILED, type(e).__name__
+                    )
                 log.warning("  %-12s → FAILED: %s", src_name, e)
     except FuturesTimeout:
         for future, src_name in future_to_source.items():
@@ -1072,6 +1155,10 @@ def search_multi_source(
                     from _sources import _s2_record_failure  # internal module
 
                     _s2_record_failure()
+                if execution_records is not None:
+                    _record_execution(
+                        src_name, 0, SearchExecutionStatus.TIMED_OUT, "TimeoutError"
+                    )
                 future.cancel()
     finally:
         # shutdown(wait=False) abandons hanging threads — they don't block caller.

@@ -3304,7 +3304,8 @@ def _run_pipeline_impl(
             "assessment": str(assessment_path) if assessment_path.exists() else None,
             "citations": str(citations_bib_path) if citations_bib_path.exists() else None,
             "screening": str(results_dir / "screening_decisions.json")
-            if (results_dir / "screening_decisions.json").exists(),
+            if (results_dir / "screening_decisions.json").exists()
+            else None,
             "search_executions": str(results_dir / "search_executions.json")
             if (results_dir / "search_executions.json").exists()
             else None,

@@ -109,6 +109,7 @@ def _timeout_partial_result(config: ResearchConfig, exc: PipelineTimeoutError) -
             ("assessment", "assessment.json"),
             ("citations", "citations.bib"),
             ("screening", "screening_decisions.json"),
+            ("search_executions", "search_executions.json"),
         )
     }
 
@@ -852,8 +853,8 @@ def _phase_synthesis(
     brief_text += (
         "\n\n---\n\n## Data and Code Availability\n\n"
         "All inputs are retained in this run directory for reproduction and "
-        "audit: full LLM call journal (prompts and responses, "
-        "llm_calls.jsonl), screened corpus (corpus.json), extractions "
+        "audit: search execution records (search_executions.json), full LLM call "
+        "journal (prompts and responses, llm_calls.jsonl), screened corpus (corpus.json), extractions "
         "(extracted.json), screening decisions, and per-artifact SHA-256 "
         "hashes with the complete configuration snapshot (meta.json).\n"
     )
@@ -2001,6 +2002,7 @@ def _zero_match_repair(
     over_fetch: int,
     research_ctx,
     emit,
+    execution_records: list | None = None,
 ) -> tuple[list, QueryState]:
     """Kept-pool repair contract: (papers, qs) -> (papers, qs).
 
@@ -2155,6 +2157,7 @@ def _zero_match_repair(
                                 domain_hint=getattr(research_ctx, "domain", "") or "",
                                 use_web_search=(config.use_web_search or "web_search" in effective_sources),
                                 use_web_search_agentic=config.use_web_search_agentic,
+                                execution_records=execution_records,
                             )
                         )
                     for _rr in _recall_raw:
@@ -2443,6 +2446,30 @@ def _phase_discovery(
         emit(1, "Niche query detected — web search enabled upfront")
 
     raw_papers: list = []
+    search_executions: list = []
+
+    def _persist_search_executions() -> None:
+        # Persist after each query so a later query failure does not erase the audit.
+        from dataclasses import asdict
+        from _artifact import save_artifact
+
+        save_artifact(
+            {
+                "schema_version": "1.0",
+                "meta": {
+                    "phase": "discovery",
+                    "audited_query": qs.audit,
+                    "result_count_semantics": (
+                        "records returned by the provider adapter; an empty adapter result "
+                        "does not prove the provider returned zero hits if the adapter "
+                        "internally soft-failed"
+                    ),
+                },
+                "executions": [asdict(item) for item in search_executions],
+            },
+            results_dir / "search_executions.json",
+        )
+
     strategy_queries = (
         [research_ctx.search_strategies[0]]
         if research_ctx is not None and research_ctx.search_strategies
@@ -2472,7 +2499,9 @@ def _phase_discovery(
             # or GUI-built run. Respect the config flag; srcs still force-add.
             use_web_search=(config.use_web_search or "web_search" in srcs),
             use_web_search_agentic=config.use_web_search_agentic,
+            execution_records=search_executions,
         )
+        _persist_search_executions()
         for _r in got:
             _r.discovery_provenance = _r.discovery_provenance or "discovery:primary"
         raw_papers.extend(got)
@@ -2603,8 +2632,10 @@ def _phase_discovery(
         over_fetch=over_fetch,
         research_ctx=research_ctx,
         emit=emit,
+        execution_records=search_executions,
     )
 
+    _persist_search_executions()
     return papers, qs, rtype, research_ctx, spell_fix_notes
 
 
@@ -2900,6 +2931,7 @@ def _run_pipeline_impl(
                 "corpus": str(corpus_path),
                 "brief": str(brief_path),
                 "screening": str(results_dir / "screening_decisions.json"),
+                "search_executions": str(results_dir / "search_executions.json"),
             },
             "brief_text": brief_text,
             "elapsed": time.time() - t0,
@@ -2929,6 +2961,7 @@ def _run_pipeline_impl(
                 "corpus": str(corpus_path),
                 "brief": str(brief_path),
                 "screening": str(results_dir / "screening_decisions.json"),
+                "search_executions": str(results_dir / "search_executions.json"),
             },
             "brief_text": brief_text,
             "elapsed": time.time() - t0,
@@ -3271,6 +3304,9 @@ def _run_pipeline_impl(
             "citations": str(citations_bib_path) if citations_bib_path.exists() else None,
             "screening": str(results_dir / "screening_decisions.json")
             if (results_dir / "screening_decisions.json").exists()
+            else None,
+            "search_executions": str(results_dir / "search_executions.json")
+            if (results_dir / "search_executions.json").exists()
             else None,
         },
         "brief_text": brief_text,

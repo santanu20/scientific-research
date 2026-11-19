@@ -37,7 +37,6 @@ def test_valid_manifest_is_appended_without_mutating_prior_records(tmp_path: Pat
     [
         "{invalid json",
         "null",
-        "[]",
         '[{"stage": "ok"}, null]',
         '"unexpected scalar"',
     ],

@@ -1123,7 +1123,7 @@ def search_multi_source(
             source_started[name] = (datetime.now(timezone.utc), time.perf_counter())
         future_to_source[pool.submit(fn)] = name
     try:
-        for future in as_completed(future_to_source, timeout=per_source_timeout + 5):
+        for future in as_completed(future_to_source, timeout=per_source_timeout):
             src_name = future_to_source[future]
             try:
                 raw_results = future.result(timeout=5)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -79,3 +80,25 @@ def test_execution_collector_is_optional_and_return_type_is_unchanged(monkeypatc
     result = discover.search_multi_source("test query", sources=["crossref"])
 
     assert result is expected
+
+
+
+def test_search_multi_source_records_timeout(monkeypatch) -> None:
+    def slow(query, **kwargs):
+        time.sleep(0.15)
+        return []
+
+    monkeypatch.setattr(discover, "crossref_search", slow)
+    executions = []
+
+    papers = discover.search_multi_source(
+        "slow query",
+        sources=["crossref"],
+        per_source_timeout=0.01,
+        execution_records=executions,
+    )
+
+    assert papers == []
+    assert len(executions) == 1
+    assert executions[0].status is SearchExecutionStatus.TIMED_OUT
+    assert executions[0].error_type == "TimeoutError"

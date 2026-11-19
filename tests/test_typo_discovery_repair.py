@@ -344,12 +344,12 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
 
     # Corrected-rediscovery papers carry the provenance route
     rediscovered = [p for p in papers if "Pranhita" in (p.title or "")]
+    titles = [p.title or "" for p in papers]
     assert rediscovered, titles
     assert all(
         p.discovery_provenance == "discovery:typo-repair-rediscovery"
         for p in rediscovered
     ), [p.discovery_provenance for p in rediscovered]
-    titles = [p.title or "" for p in papers]
     assert any("Pranhita" in t for t in titles), titles
     assert any("Godavari" in t or "Godāvari" in t for t in titles), titles
 

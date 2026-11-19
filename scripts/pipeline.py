@@ -1061,7 +1061,7 @@ def _phase_quantitative_extraction(
             dataset = extract_domain_data(pdf_path, domain=domain)
             if dataset and dataset.tables:
                 # Run GeoKit calculations
-                calculations = run_domain_calculations(dataset)
+                log.info("GeoKit calculations unavailable in standalone mode; retaining extracted tables")\n                calculations = None
                 all_datasets.append(
                     {
                         "source": pdf_path.name,

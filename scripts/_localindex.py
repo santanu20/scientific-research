@@ -192,28 +192,7 @@ def _parse_pdf_to_text(pdf_path: Path, *, ocr_model: str | None = None) -> str:
             return text
     except Exception:
         log.debug("suppressed Exception in _fulltext.py", exc_info=True)
-    # Fallback: pdf_ocr
-    try:
-        import sys
-
-        if str(ocr_pkg.parent) not in sys.path:
-            sys.path.insert(0, str(ocr_pkg.parent))
-        raise ImportError("standalone skill: fitz handles text extraction")
-
-        # Page-capped OCR (2026-09-03): research full-text needs the paper's
-        # core (title/abstract/intro/methods), not a 300-page monograph.
-        # Wall-clock caps alone let the server-side generation outlive the
-        # client timeout and wedge the GPU runner (live incident 2026-09-02).
-        _OCR_PAGE_CAP = "1-30"
-        doc = (
-            ocr_parse(pdf_path, fast=True, models=ocr_model, pages=_OCR_PAGE_CAP)
-            if ocr_model
-            else ocr_parse(pdf_path, fast=True, pages=_OCR_PAGE_CAP)
-        )
-        return doc.full_text
-    except Exception as e:
-        log.warning("PDF parse failed for %s: %s", pdf_path.name, e)
-        return ""
+    # OCR is not bundled with the standalone skill. Report the limitation\n    # explicitly rather than invoking an unavailable integration.\n    log.info("OCR unavailable for %s; no text extracted by fitz", pdf_path.name)\n    return ""
 
 
 def _extract_title_from_pdf(text: str) -> str | None:

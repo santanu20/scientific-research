@@ -75,25 +75,7 @@ class DocumentStore:
     # ── PDF → text ────────────────────────────────────────────────────
     @staticmethod
     def _pdf_to_text(pdf_path: Path) -> str:
-        # Route 1: vision OCR engine — not available in the standalone skill.
-        # GEOKIT_OCR_MODELS overrides the engine's default vision model
-        # (e.g. "chandra-ocr-2") — same convention as ALPHAMELTS_LIB.
-        # Deliberate degrade path: any OCR failure falls through to pypdf,
-        # logged at WARNING so degradation is never silent.
-        try:
-            raise ImportError("standalone skill: no vision OCR engine")
-
-            doc = _ocr_parse(
-                pdf_path,
-                timeout_s=300,
-                models=os.environ.get("GEOKIT_OCR_MODELS") or None,
-            )
-            text = doc.full_text
-            if len(text.strip()) > 200:
-                return text
-        except Exception as e:
-            log.warning("text extraction failed for %s: %s", pdf_path, e)
-        # Route 2: pypdf (born-digital)
+        # Standalone mode uses pypdf for born-digital PDFs. OCR is an optional\n        # external capability and is intentionally not referenced unless wired.\n        # Route 2: pypdf (born-digital)
         try:
             from pypdf import PdfReader  # pyright: ignore[reportMissingImports]
 

@@ -551,7 +551,7 @@ def run_domain_calculations(
                 if len(data) >= 8:  # need at least 8 oxides
                     df = pd.DataFrame(data)
                     try:
-                        norm = cipw_hb(df)
+                        from _geochem_calculations import cipw_hb\n\n                        norm = cipw_hb(df)
                         results["cipw_norm"] = {
                             "n_samples": len(norm),
                             "quartz_mean": float(norm.get("Q", pd.Series()).mean())

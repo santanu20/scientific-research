@@ -30,6 +30,16 @@ from .screening import (
     ScreeningReviewSet,
     ScreeningStage,
 )
+from .statistics import (
+    AnalysisDataset,
+    AnalysisModel,
+    AnalysisPlan,
+    ConfidenceIntervalMethod,
+    EffectEstimate,
+    EffectMeasure,
+    StatisticalContractError,
+    TauSquaredEstimator,
+)
 
 __all__ = [
     "SCHEMA_VERSION",
@@ -54,4 +64,12 @@ __all__ = [
     "ScreeningDecisionCode",
     "ScreeningReviewSet",
     "ScreeningStage",
+    "AnalysisDataset",
+    "AnalysisModel",
+    "AnalysisPlan",
+    "ConfidenceIntervalMethod",
+    "EffectEstimate",
+    "EffectMeasure",
+    "StatisticalContractError",
+    "TauSquaredEstimator",
 ]

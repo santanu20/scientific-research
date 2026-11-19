@@ -3,9 +3,16 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from _provenance import PROVENANCE_FILENAME, load_manifest, record_stage
+from _provenance import (
+    PROVENANCE_FILENAME,
+    ProvenanceManifestError,
+    load_manifest,
+    record_stage,
+)
 
 
 class TestRecordStage:
@@ -45,11 +52,13 @@ class TestRecordStage:
             "missing": True,
         }
 
-    def test_corrupt_manifest_starts_fresh(self, tmp_path):
-        (tmp_path / PROVENANCE_FILENAME).write_text("{not json")
-        rec = record_stage("s", {}, {}, {}, results_dir=tmp_path)
-        assert rec["stage"] == "s"
-        assert len(load_manifest(tmp_path)) == 1
+    def test_corrupt_manifest_is_preserved_and_fails_closed(self, tmp_path):
+        path = tmp_path / PROVENANCE_FILENAME
+        original = "{not json"
+        path.write_text(original)
+        with pytest.raises(ProvenanceManifestError):
+            record_stage("s", {}, {}, {}, results_dir=tmp_path)
+        assert path.read_text() == original
 
     def test_env_snapshot_present(self, tmp_path):
         rec = record_stage("s", {}, {}, {}, results_dir=tmp_path)

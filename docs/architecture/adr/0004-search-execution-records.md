@@ -11,7 +11,7 @@ The discovery pipeline returned a merged list of paper records. This did not ret
 
 Add an optional execution-record collector to the multi-source discovery function. The established list return type remains unchanged. When a collector is supplied, each source adapter attempt records its adapter-level query string, provider name, returned record count, outcome, UTC start/finish times, elapsed milliseconds, maximum-results/filter parameters, and exception class on raised errors.
 
-The pipeline's Phase 1 primary, typo-repair rediscovery, and zero-term recall searches pass a shared collector and atomically persist it to search_executions.json. The artifact is also surfaced in result paths and the data-availability section.
+The pipeline's Phase 1 primary strategies and the subsequent zero-match repair/recall helper pass a shared collector and atomically persist it to search_executions.json. The artifact is also surfaced in result paths and the data-availability section.
 
 ## Semantics and limitations
 
@@ -20,7 +20,7 @@ The pipeline's Phase 1 primary, typo-repair rediscovery, and zero-term recall se
 - EMPTY means the adapter returned no records. Some pre-existing wrappers intentionally swallow internal errors and return an empty list; those attempts cannot yet be distinguished from a true zero-result response.
 - FAILED captures exceptions that escape the adapter; TIMED_OUT captures futures still running at the orchestrator timeout.
 - Error messages are intentionally excluded to avoid persisting arbitrary provider text or secrets; only exception class is retained.
-- This change covers Phase 1 search strategies, typo-repair and zero-term recall. Later reflective-search and direct CLI discovery paths require separate wiring.
+- This change covers Phase 1 search strategies plus its subsequent zero-match typo-repair and recall helper. Later reflective-search and direct CLI discovery paths require separate wiring.
 
 ## Consequences
 

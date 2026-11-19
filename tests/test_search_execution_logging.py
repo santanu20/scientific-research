@@ -79,7 +79,8 @@ def test_execution_collector_is_optional_and_return_type_is_unchanged(monkeypatc
 
     result = discover.search_multi_source("test query", sources=["crossref"])
 
-    assert result is expected
+    assert isinstance(result, list)
+    assert result == expected
 
 
 

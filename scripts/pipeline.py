@@ -2002,6 +2002,7 @@ def _zero_match_repair(
     over_fetch: int,
     research_ctx,
     emit,
+    execution_records: list | None = None,
 ) -> tuple[list, QueryState]:
     """Kept-pool repair contract: (papers, qs) -> (papers, qs).
 
@@ -2102,10 +2103,8 @@ def _zero_match_repair(
                                 domain_hint=getattr(research_ctx, "domain", "") or "",
                                 use_web_search=(config.use_web_search or "web_search" in effective_sources),
                                 use_web_search_agentic=config.use_web_search_agentic,
-                                execution_records=search_executions,
                             )
                         )
-                        _persist_search_executions()
                         for _r2 in _round2_raw:
                             _r2.discovery_provenance = "discovery:typo-repair-rediscovery"
                     _kept2, _ = _ftc(
@@ -2634,6 +2633,7 @@ def _phase_discovery(
         over_fetch=over_fetch,
         research_ctx=research_ctx,
         emit=emit,
+        execution_records=search_executions,
     )
 
     _persist_search_executions()

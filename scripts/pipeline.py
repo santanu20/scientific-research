@@ -2157,10 +2157,9 @@ def _zero_match_repair(
                                 domain_hint=getattr(research_ctx, "domain", "") or "",
                                 use_web_search=(config.use_web_search or "web_search" in effective_sources),
                                 use_web_search_agentic=config.use_web_search_agentic,
-                                execution_records=search_executions,
+                                execution_records=execution_records,
                             )
                         )
-                        _persist_search_executions()
                     for _rr in _recall_raw:
                         _rr.discovery_provenance = "discovery:zero-term-recall"
                     # Recall gate: the zero terms + subject pair, NOT the

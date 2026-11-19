@@ -14,7 +14,6 @@ select = [
     "F",        # pyflakes (real bugs: undefined names, unused vars/imports)
     "I",        # import order
     "C4",       # comprehension hygiene
-    "ISC004",   # implicit string concat in collection literals
     "FLY002",   # static join -> f-string
     "PERF102",  # incorrect dict iterator
     "PERF402",  # manual list copy
@@ -25,7 +24,6 @@ select = [
     "RUF015",   # unnecessary iterable allocation for first element
     "RUF021",   # parenthesize chained operators
     "RUF034",   # useless if-else
-    "RUF100",   # unused noqa
 ]
 ignore = [
     "E501",   # line length: legacy long lines; enforced socially, not by gate

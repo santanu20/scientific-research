@@ -672,7 +672,11 @@ def web_search_paper_discovery(
             call_budget=90,
             no_cache=force_refresh,
         )
-    except Exception as e:\n        # Isolate optional web-search failures from scholarly source discovery.\n        log.warning("web_search source degraded (%s): %s", type(e).__name__, str(e)[:150])\n        return []\n    if rc == 3:
+    except Exception as e:
+        # Isolate optional web-search failures from scholarly source discovery.
+        log.warning("web_search source degraded (%s): %s", type(e).__name__, str(e)[:150])
+        return []
+    if rc == 3:
         # Engine "genuine empty": content floor dropped everything usable.
         log.info("web_search: 0 usable results for %s (content floor)", query[:60])
         return []

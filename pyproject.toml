@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "scientific-research-skill"
 version = "2.0.0"
@@ -27,3 +31,7 @@ dev = [
     "ruff==0.16.3",
     "pyright==1.1.411",
 ]
+
+[tool.setuptools.packages.find]
+include = ["research_core*", "scripts*"]
+exclude = ["tests*"]

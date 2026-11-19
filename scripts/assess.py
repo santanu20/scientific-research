@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
 """Risk-of-bias scaffolds + GRADE evidence profiles.
 
-Generates EMPTY assessment scaffolds for each verified paper. The LLM (or a
-domain expert) fills the domain judgments. Pre-populates tool selection based
-on study design detected in extract.py.
-
-SOTA references:
-    - RoB 2 (Sterne JAC et al. BMJ 2019;366:l4898) — for randomized trials
-    - ROBINS-I (Sterne JAC et al. Ann Intern Med 2016) — for non-randomized
-    - QUADAS-2 (Whiting PF et al. Ann Intern Med 2011) — for diagnostic accuracy
-    - Newcastle-Ottawa Scale (Wells GA et al.) — for observational studies
-    - GRADE (Guyatt GH et al. BMJ 2008;336:924-926) — for evidence profiles
-    - Cochrane Handbook Ch 8, 25 (https://training.cochrane.org/handbook/current)
-
-Each paper gets ONE scaffold (tool selected automatically). LLM fills domains.
+This module generates assessment scaffolds for expert review. It does not
+perform validated risk-of-bias or GRADE assessments. Abstract-only LLM
+judgments are explicitly labeled as preliminary and must not be presented as
+completed domain-level assessments.
 """
 
 from __future__ import annotations
@@ -34,35 +25,53 @@ import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 from _sources import PaperRecord, load_corpus
 
 log = logging.getLogger("scientific_research.assess")
 
-# Load RoB tool definitions + GRADE factors from JSON data files (DRY).
-# JSON keeps ~250 lines of domain knowledge out of Python source.
 _DATA_DIR = Path(__file__).parent / "data"
-with open(_DATA_DIR / "rob_tools.json") as _f:
-    ROB_TOOLS: dict = json.load(_f)
-with open(_DATA_DIR / "grade_factors.json") as _f:
-    GRADE_FACTORS: dict = json.load(_f)
+with (_DATA_DIR / "rob_tools.json").open(encoding="utf-8") as _f:
+    ROB_TOOLS: dict[str, dict[str, Any]] = json.load(_f)
+with (_DATA_DIR / "grade_factors.json").open(encoding="utf-8") as _f:
+    GRADE_FACTORS: dict[str, str] = json.load(_f)
+
+_ALLOWED_JUDGMENTS = {"low", "some concerns", "high", "unknown", "not applicable"}
+_ALLOWED_GRADE_JUDGMENTS = {
+    "no serious concern",
+    "serious",
+    "very serious",
+    "not serious",
+    "suspected",
+    "very likely",
+    "large",
+    "very large",
+    "dose-response present",
+    "plausible confounding present",
+    "not assessed",
+}
 
 
 def select_rob_tool(study_design: str) -> str:
-    """Pick RoB tool based on detected study design."""
+    """Pick a candidate risk-of-bias instrument from the study design.
+
+    This is a routing hint, not a risk-of-bias judgment. Ambiguous designs
+    remain explicitly unknown instead of being forced into ROBINS-I.
+    """
     d = (study_design or "").lower()
-    if "rct" in d or "randomized" in d or "randomised" in d:
+    if any(term in d for term in ("rct", "randomized", "randomised")):
         return "RoB 2"
-    if "cohort" in d or "case-control" in d or "observational" in d:
-        return (
-            "ROBINS-I"
-            if "intervention" in d or "comparator" in d
-            else "Newcastle-Ottawa"
-        )
     if "diagnostic" in d or "sensitivity" in d or "specificity" in d:
         return "QUADAS-2"
-    return "ROBINS-I"  # default for empirical
+    if any(term in d for term in ("prediction model", "prognostic model", "diagnostic model")):
+        return "PROBAST"
+    if any(term in d for term in ("cohort", "case-control", "observational")):
+        if any(term in d for term in ("exposure", "environmental", "occupational")):
+            return "ROBINS-E"
+        return "ROBINS-I" if any(term in d for term in ("intervention", "comparator")) else "Newcastle-Ottawa"
+    return "Unclassified"
 
 
 @dataclass
@@ -72,12 +81,14 @@ class Assessment:
     title: str
     study_design_detected: str
     rob_tool_selected: str
-    rob_scaffold: dict  # full tool definition from ROB_TOOLS
-    rob_judgments: dict  # individual domain judgments (empty if scaffold-only)
-    risk_of_bias: str  # overall: low, some_concerns, high, unknown
-    quality_score: str  # 1-10 from LLM or empty
+    rob_scaffold: dict
+    rob_judgments: dict
+    risk_of_bias: str
+    quality_score: str
     grade_profile: dict
-    grade_judgments: dict  # empty — LLM/expert fills
+    grade_judgments: dict
+    assessment_status: str
+    assessment_limitations: list[str]
     assessment_timestamp: str
 
 
@@ -89,74 +100,49 @@ def build_assessment(
     llm_risk_of_bias: str = "",
     llm_quality_score: str = "",
 ) -> Assessment:
-    """Build assessment for a paper. Tool selected from design hint.
-
-    If llm_risk_of_bias is provided (from extraction), uses it directly — no LLM call.
-    Otherwise falls back to LLM call (slower) or scaffold-only.
-    """
+    """Build an expert-review scaffold; never propagate an overall label to all domains."""
     tool_name = select_rob_tool(study_design_hint)
-    scaffold = ROB_TOOLS[tool_name]
+    scaffold = ROB_TOOLS.get(tool_name, {"indication": "Study design requires expert classification", "domains": []})
+    domains = scaffold.get("domains", [])
+    rob_judgments = {d["name"]: "unknown" for d in domains}
 
-    rob_judgments = {d["name"]: "" for d in scaffold["domains"]}
-    risk_of_bias = llm_risk_of_bias or "unknown"
-    quality_score = llm_quality_score or ""
+    risk_of_bias = "unknown"
+    quality_score = ""
+    assessment_status = "scaffold_only"
+    limitations = [
+        "No completed domain-level risk-of-bias assessment is available.",
+        "Abstract-only information is insufficient for most signaling questions.",
+        "A qualified reviewer must consult the full text, protocol, and outcome-level data.",
+        "GRADE certainty is outcome-specific and has not been assessed by this paper-level scaffold.",
+    ]
 
-    # Fill domain-level judgments from overall risk (if available from extraction)
-    if risk_of_bias and risk_of_bias != "unknown":
-        domain_value = risk_of_bias.replace(
-            "_", " "
-        )  # "some_concerns" → "some concerns"
-        for domain_name in rob_judgments:
-            rob_judgments[domain_name] = domain_value
+    # Do not treat an extractor's single overall risk label as evidence for
+    # each individual domain. Preserve it as a provisional summary only.
+    if llm_risk_of_bias:
+        normalized = llm_risk_of_bias.strip().lower().replace("_", " ")
+        if normalized in _ALLOWED_JUDGMENTS:
+            risk_of_bias = normalized
+            assessment_status = "provisional_overall_label_only"
+            limitations.append("Overall risk label supplied by an upstream model; domain judgments remain unknown.")
+        else:
+            limitations.append("Unrecognized upstream risk label was ignored.")
 
-    # LLM RoB assessment is OPT-IN only (--use-llm flag or env var)
-    # Default: skip LLM, return scaffold with "unknown" domains
-    use_llm = (os.environ.get("SCIENTIFIC_RESEARCH_USE_LLM") or "").lower() in (
-        "1",
-        "true",
-        "yes",
-    )
-    if use_llm and not llm_risk_of_bias and abstract and abstract.strip():
+    if llm_quality_score:
         try:
-            import json as _json
+            score = float(llm_quality_score)
+        except (TypeError, ValueError):
+            limitations.append("Unparseable upstream quality score was ignored.")
+        else:
+            if 1 <= score <= 10:
+                quality_score = str(score)
+                limitations.append("The 1–10 score is an unvalidated model heuristic, not a validated quality instrument.")
+            else:
+                limitations.append("Upstream quality score outside the 1–10 range was ignored.")
 
-            from _llm_extract import _call_ollama, get_model, is_available
-
-            if is_available():
-                model = get_model("simple")
-                if model:
-                    prompt = f"""Assess risk of bias for this study based on its abstract.
-
-Title: {paper.title or ""}
-Study design: {study_design_hint or "unknown"}
-Abstract: {abstract[:2000]}
-
-For each domain, judge: "low", "some concerns", "high", or "unknown".
-Return JSON:
-{{
-  "domains": {{"{scaffold["domains"][0]["name"]}": "low|some concerns|high|unknown"}},
-  "overall_risk": "low|some concerns|high|unknown",
-  "quality_score": 1-10,
-  "reason": "one sentence"
-}}
-"""
-                    response = _call_ollama(model, prompt, task="simple")
-                    try:
-                        result = _json.loads(response)
-                    except _json.JSONDecodeError:
-                        from _llm_extract import _extract_json_from_text
-
-                        result = _extract_json_from_text(response)
-
-                    if result:
-                        for d in scaffold["domains"]:
-                            key = d["name"]
-                            if key in result.get("domains", {}):
-                                rob_judgments[key] = result["domains"][key]
-                        risk_of_bias = result.get("overall_risk", "unknown")
-                        quality_score = str(result.get("quality_score", ""))
-        except Exception as e:
-            log.debug("LLM RoB assessment failed: %s", e)
+    # Abstract-only LLM scoring is intentionally not invoked here. A
+    # validated instrument requires full-text evidence and reviewer rationale.
+    if os.environ.get("SCIENTIFIC_RESEARCH_USE_LLM", "").lower() in {"1", "true", "yes"}:
+        limitations.append("LLM assessment is not implemented as a validated instrument; no automated domain judgment was made.")
 
     return Assessment(
         paper_id=paper.primary_id,
@@ -169,126 +155,99 @@ Return JSON:
         risk_of_bias=risk_of_bias,
         quality_score=quality_score,
         grade_profile=GRADE_FACTORS,
-        grade_judgments=dict.fromkeys(GRADE_FACTORS, ""),
+        grade_judgments={factor: "not assessed" for factor in GRADE_FACTORS},
+        assessment_status=assessment_status,
+        assessment_limitations=limitations,
         assessment_timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
     )
 
 
-# =============================================================================
-# Rendered report
-# =============================================================================
 def render_assessment_report(assessments: list[Assessment]) -> str:
-    out = ["# Risk-of-Bias Assessment Scaffolds + GRADE Profiles", ""]
+    out = [
+        "# Risk-of-Bias Scaffolds and GRADE Evidence-Profile Template",
+        "",
+        "> **Not a completed assessment.** This report contains routing suggestions and blank expert-review fields. "
+        "It must not be cited as a completed risk-of-bias evaluation or GRADE certainty rating.",
+        "",
+        "GRADE judgments are outcome-specific and should be made across the body of evidence, not inferred from a "
+        "single paper-level score.",
+        "",
+        "## Candidate tool distribution",
+    ]
     from collections import Counter
 
-    tool_counts = Counter(a.rob_tool_selected for a in assessments)
-    out.append("## Tool distribution")
-    for tool, n in sorted(tool_counts.items()):
+    for tool, n in sorted(Counter(a.rob_tool_selected for a in assessments).items()):
         ref = ROB_TOOLS.get(tool, {}).get("reference", "")
         out.append(f"- **{tool}** ({n} papers): {ref}")
-    out.append("")
-    out.append("## GRADE factors (apply to all outcomes)")
-    for factor, options in GRADE_FACTORS.items():
-        out.append(f"- **{factor}**: {options}")
-    out.append("")
-    out.append("## Per-paper scaffolds")
-    for a in assessments:
-        out.append(f"\n### `{a.doi or a.paper_id}` — {a.title[:80]}")
-        out.append(f"**Design**: {a.study_design_detected}  ")
-        out.append(f"**Tool**: {a.rob_tool_selected}  ")
-        out.append(f"**Reference**: {a.rob_scaffold.get('reference', '')}  ")
-        out.append("")
-        out.append("#### RoB domains (LLM/expert fills response):")
-        for d in a.rob_scaffold["domains"]:
-            opts = d.get("response_options") or d.get("concerns") or []
-            out.append(f"- **{d['name']}** {'/ '.join(opts[:3])}")
-            for q in d.get("signaling_questions", []):
-                out.append(f"    - {q}")
-            for item_key in ("items_cohort", "items_case_control", "items"):
-                if item_key in d:
-                    for item in d[item_key]:
-                        out.append(f"    - [{item}] __ stars: ___")
-        out.append("\n#### GRADE judgments (LLM/expert fills):")
-        for factor in GRADE_FACTORS:
-            out.append(f"- **{factor}**: ___ ")
+    out.extend(["", "## Per-paper review scaffolds"])
+    for assessment in assessments:
+        out.extend(
+            [
+                f"\n### `{assessment.doi or assessment.paper_id}` — {assessment.title[:80]}",
+                f"**Design hint**: {assessment.study_design_detected}",
+                f"**Candidate tool**: {assessment.rob_tool_selected}",
+                f"**Status**: {assessment.assessment_status}",
+                "",
+                "#### Domain judgments (reviewer must complete from full text)",
+            ]
+        )
+        if not assessment.rob_scaffold.get("domains"):
+            out.append("No tool domains were preselected; classify the study design before assessment.")
+        for domain in assessment.rob_scaffold.get("domains", []):
+            out.append(f"- **{domain['name']}**: unknown")
+            for question in domain.get("signaling_questions", []):
+                out.append(f"  - {question}")
+        out.extend(["", "#### GRADE outcome-level judgments"])
+        out.extend(f"- **{factor}**: not assessed" for factor in GRADE_FACTORS)
+        out.extend(["", "#### Limitations"])
+        out.extend(f"- {limitation}" for limitation in assessment.assessment_limitations)
     return "\n".join(out)
 
 
-# =============================================================================
-# CLI
-# =============================================================================
 def main() -> int:
-    # Pre-parser self-check — bypasses required-positional validation
     if "--self-check" in sys.argv:
         print(f"OK {sys.argv[0]}: hard deps verified by bootstrap, ready")
         return 0
-    p = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         prog="assess",
-        description="Generate RoB scaffolds + GRADE evidence profiles.",
+        description="Generate expert-review risk-of-bias scaffolds and GRADE templates.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    p.add_argument(
-        "--self-check",
-        action="store_true",
-        help="verify deps + key imports, then exit 0",
-    )  # SCIENTIFIC_RESEARCH_SELF_CHECK_WIRED
-    p.add_argument("verified", type=Path, help="verified.json from verify.py")
-    p.add_argument(
-        "--extractions",
-        type=Path,
-        help="optional extracted.json for design hints (improves tool selection)",
-    )
-    p.add_argument(
-        "-o", "--output", type=Path, default=Path("research_outputs/assessment.json")
-    )
-    p.add_argument(
-        "--report", type=Path, default=Path("research_outputs/assessment_report.md")
-    )
-    p.add_argument("-v", "--verbose", action="count", default=0)
-    args = p.parse_args()
-    level = logging.WARNING - 10 * args.verbose
+    parser.add_argument("--self-check", action="store_true", help="verify deps + key imports, then exit 0")
+    parser.add_argument("verified", type=Path, help="verified.json from verify.py")
+    parser.add_argument("--extractions", type=Path, help="optional extracted.json for design hints")
+    parser.add_argument("-o", "--output", type=Path, default=Path("research_outputs/assessment.json"))
+    parser.add_argument("--report", type=Path, default=Path("research_outputs/assessment_report.md"))
+    parser.add_argument("-v", "--verbose", action="count", default=0)
+    args = parser.parse_args()
     logging.basicConfig(
-        level=max(level, logging.DEBUG),
+        level=max(logging.WARNING - 10 * args.verbose, logging.DEBUG),
         format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
     )
 
-    papers = load_corpus(args.verified)
-    log.info("Loaded %d verified papers", len(papers))
+    verified = load_corpus(args.verified)
+    log.info("Loaded %d verified papers", len(verified))
 
-    # Load design hints from extract.py output if provided
     design_hints: dict[str, str] = {}
-    if args.extractions and args.extractions.exists():
-        try:
-            ex_data = json.loads(args.extractions.read_text())
-            for ex in ex_data.get("extractions", []):
-                hint = ex.get("pico", {}).get("study_design_hint", "")
-                if hint:
-                    design_hints[ex["paper_id"]] = hint
-        except Exception as e:
-            log.warning("Could not parse extractions: %s", e)
-
-    # Load RoB + quality from extraction if available (avoids redundant LLM calls)
     rob_hints: dict[str, str] = {}
     quality_hints: dict[str, str] = {}
     if args.extractions and args.extractions.exists():
         try:
-            ex_data = json.loads(args.extractions.read_text())
-            for ex in ex_data.get("extractions", []):
-                pico = ex.get("pico", {})
-                rob = pico.get("risk_of_bias", "")
-                qs = pico.get("quality_score", "")
-                if rob:
-                    rob_hints[ex["paper_id"]] = rob
-                if qs:
-                    quality_hints[ex["paper_id"]] = str(qs)
-            if rob_hints:
-                log.info(
-                    "Loaded RoB from extraction for %d papers (no LLM calls needed)",
-                    len(rob_hints),
-                )
-        except Exception as e:
-            log.warning("Could not parse extraction RoB: %s", e)
+            extraction_data = json.loads(args.extractions.read_text(encoding="utf-8"))
+            for extraction in extraction_data.get("extractions", []):
+                key = extraction.get("paper_id", "")
+                pico = extraction.get("pico", {})
+                if not key:
+                    continue
+                if pico.get("study_design_hint"):
+                    design_hints[key] = pico["study_design_hint"]
+                if pico.get("risk_of_bias"):
+                    rob_hints[key] = pico["risk_of_bias"]
+                if pico.get("quality_score") is not None:
+                    quality_hints[key] = str(pico["quality_score"])
+        except (OSError, json.JSONDecodeError, AttributeError, TypeError) as exc:
+            log.warning("Could not parse extraction hints: %s", exc)
 
     assessments = [
         build_assessment(
@@ -298,22 +257,24 @@ def main() -> int:
             llm_risk_of_bias=rob_hints.get(paper.primary_id, ""),
             llm_quality_score=quality_hints.get(paper.primary_id, ""),
         )
-        for paper in papers
+        for paper in verified["papers"]
     ]
     payload = {
         "meta": {
             "source": str(args.verified),
-            "n_papers": len(papers),
+            "n_papers": len(verified["papers"]),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "assessment_status": "scaffolds_only_not_completed_assessments",
         },
         "assessments": [asdict(a) for a in assessments],
     }
     from _artifact import save_artifact
 
     save_artifact(payload, args.output)
-    print(f"Wrote {len(assessments)} assessments → {args.output}")
+    print(f"Wrote {len(assessments)} assessment scaffolds → {args.output}")
 
-    args.report.write_text(render_assessment_report(assessments))
+    args.report.parent.mkdir(parents=True, exist_ok=True)
+    args.report.write_text(render_assessment_report(assessments), encoding="utf-8")
     print(f"Wrote assessment report → {args.report}")
     return 0
 

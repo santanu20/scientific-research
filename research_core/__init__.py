@@ -17,6 +17,7 @@ from .models import (
     ResearchProtocol,
     ReviewStatus,
     SearchExecution,
+    SearchExecutionStatus,
     SourceRecord,
 )
 from .screening import (
@@ -43,6 +44,7 @@ __all__ = [
     "ResearchProtocol",
     "ReviewStatus",
     "SearchExecution",
+    "SearchExecutionStatus",
     "SourceRecord",
     "AdjudicationStatus",
     "DecisionOrigin",

@@ -184,6 +184,36 @@
               "type": "null"
             }
           ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "succeeded",
+            "empty",
+            "failed",
+            "timed_out"
+          ]
+        },
+        "started_at_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "finished_at_utc": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_hit": {
+          "type": "boolean"
         }
       }
     },
@@ -392,4 +422,4 @@
       }
     }
   }
-}\n
+}

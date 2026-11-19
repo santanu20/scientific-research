@@ -15,6 +15,7 @@ from research_core import (
     ResearchProtocol,
     ReviewStatus,
     SearchExecution,
+    SearchExecutionStatus,
     SourceRecord,
 )
 
@@ -322,3 +323,124 @@ def test_from_dict_rejects_unknown_nested_fields() -> None:
 def test_json_parse_error_is_a_contract_error() -> None:
     with pytest.raises(ContractError, match="valid JSON"):
         ResearchBundle.from_json("{not-json")
+
+
+
+def test_search_execution_distinguishes_empty_results_from_failure() -> None:
+    empty = SearchExecution(
+        execution_id="empty-1",
+        provider="crossref",
+        exact_query="a query with no matches",
+        executed_at_utc="2026-11-19T10:00:00Z",
+        result_count=0,
+    )
+    failed = SearchExecution(
+        execution_id="failed-1",
+        provider="openalex",
+        exact_query="a query",
+        executed_at_utc="2026-11-19T10:00:00Z",
+        result_count=0,
+        status=SearchExecutionStatus.FAILED,
+        error_type="ConnectionError",
+    )
+    assert empty.status is SearchExecutionStatus.EMPTY
+    assert failed.status is SearchExecutionStatus.FAILED
+    assert empty.error_type is None
+
+
+def test_search_execution_records_timing_cache_and_page_metadata() -> None:
+    execution = SearchExecution(
+        execution_id="search-timed",
+        provider="openalex",
+        exact_query="exact adapter query",
+        executed_at_utc="2026-11-19T10:01:00Z",
+        result_count=22,
+        status=SearchExecutionStatus.SUCCEEDED,
+        started_at_utc="2026-11-19T10:00:59Z",
+        finished_at_utc="2026-11-19T10:01:00Z",
+        elapsed_ms=1000,
+        page_count=2,
+        cache_hit=False,
+    )
+    assert execution.elapsed_ms == 1000
+    assert execution.page_count == 2
+    assert execution.cache_hit is False
+
+
+@pytest.mark.parametrize(
+    ("status", "count", "error_type"),
+    [
+        (SearchExecutionStatus.SUCCEEDED, 0, None),
+        (SearchExecutionStatus.EMPTY, 2, None),
+        (SearchExecutionStatus.FAILED, 1, "TimeoutError"),
+        (SearchExecutionStatus.TIMED_OUT, 0, None),
+    ],
+)
+def test_search_execution_rejects_inconsistent_outcome(status, count, error_type) -> None:
+    with pytest.raises(ContractError):
+        SearchExecution(
+            execution_id="bad",
+            provider="provider",
+            exact_query="query",
+            executed_at_utc="2026-11-19T10:00:00Z",
+            result_count=count,
+            status=status,
+            error_type=error_type,
+        )
+
+
+def test_search_execution_rejects_negative_elapsed_time_or_pages() -> None:
+    with pytest.raises(ContractError, match="elapsed_ms"):
+        SearchExecution(
+            execution_id="bad-time",
+            provider="provider",
+            exact_query="query",
+            executed_at_utc="2026-11-19T10:00:00Z",
+            result_count=1,
+            elapsed_ms=-1,
+        )
+    with pytest.raises(ContractError, match="page_count"):
+        SearchExecution(
+            execution_id="bad-pages",
+            provider="provider",
+            exact_query="query",
+            executed_at_utc="2026-11-19T10:00:00Z",
+            result_count=1,
+            page_count=-1,
+        )
+
+
+def test_search_execution_rejects_finish_before_start() -> None:
+    with pytest.raises(ContractError, match="precede"):
+        SearchExecution(
+            execution_id="bad-order",
+            provider="provider",
+            exact_query="query",
+            executed_at_utc="2026-11-19T10:00:00Z",
+            result_count=1,
+            started_at_utc="2026-11-19T10:01:00Z",
+            finished_at_utc="2026-11-19T10:00:00Z",
+        )
+
+
+def test_search_execution_status_survives_bundle_serialization() -> None:
+    bundle = sample_bundle()
+    failed = SearchExecution(
+        execution_id="search-failed",
+        provider="s2",
+        exact_query="a query",
+        executed_at_utc="2026-11-19T08:36:00Z",
+        result_count=0,
+        status=SearchExecutionStatus.FAILED,
+        error_type="HTTPError",
+    )
+    mixed = ResearchBundle(
+        bundle.protocol,
+        (*bundle.search_executions, failed),
+        bundle.sources,
+        bundle.evidence_spans,
+        bundle.claims,
+        bundle.relationships,
+    )
+    loaded_bundle = ResearchBundle.from_json(mixed.to_json())
+    assert loaded_bundle.search_executions[1].status is SearchExecutionStatus.FAILED

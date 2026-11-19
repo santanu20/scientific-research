@@ -50,6 +50,13 @@ class EvidenceRelation(StrEnum):
     CONTEXTUALIZES = "contextualizes"
 
 
+class SearchExecutionStatus(StrEnum):
+    SUCCEEDED = "succeeded"
+    EMPTY = "empty"
+    FAILED = "failed"
+    TIMED_OUT = "timed_out"
+
+
 class ReviewStatus(StrEnum):
     UNREVIEWED = "unreviewed"
     HUMAN_REVIEWED = "human_reviewed"
@@ -147,7 +154,13 @@ class ResearchProtocol:
 
 @dataclass(frozen=True, slots=True)
 class SearchExecution:
-    """An executed provider query, not merely a planned search string."""
+    """An executed provider query, including empty and failed attempts.
+
+    exact_query is the exact string passed to the provider adapter. Adapter
+    implementations that transform it must record the effective expression
+    in provider parameters or a future adapter-specific request field.
+    error_type stores only the exception class, never arbitrary error text.
+    """
 
     execution_id: str
     provider: str
@@ -156,6 +169,13 @@ class SearchExecution:
     result_count: int
     parameters: tuple[tuple[str, str], ...] = ()
     export_sha256: str | None = None
+    status: SearchExecutionStatus | None = None
+    started_at_utc: str | None = None
+    finished_at_utc: str | None = None
+    elapsed_ms: int | None = None
+    error_type: str | None = None
+    page_count: int | None = None
+    cache_hit: bool | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "execution_id", _text(self.execution_id, "execution_id"))
@@ -167,6 +187,46 @@ class SearchExecution:
         object.__setattr__(self, "parameters", _parameter_pairs(self.parameters))
         if self.export_sha256 is not None:
             object.__setattr__(self, "export_sha256", _sha256(self.export_sha256, "export_sha256"))
+
+        status = self.status
+        if status is None:
+            status = SearchExecutionStatus.SUCCEEDED if self.result_count else SearchExecutionStatus.EMPTY
+        object.__setattr__(self, "status", _enum(status, SearchExecutionStatus, "status"))
+        if self.status is SearchExecutionStatus.SUCCEEDED and self.result_count == 0:
+            raise ContractError("succeeded search executions must return at least one result")
+        if self.status is SearchExecutionStatus.EMPTY and self.result_count != 0:
+            raise ContractError("empty search executions must have result_count=0")
+        if self.status in (SearchExecutionStatus.FAILED, SearchExecutionStatus.TIMED_OUT):
+            if self.result_count != 0:
+                raise ContractError("failed or timed-out executions cannot claim a complete result count")
+            object.__setattr__(self, "error_type", _text(self.error_type, "error_type"))
+        elif self.error_type is not None:
+            raise ContractError("successful or empty executions cannot carry error_type")
+
+        for name in ("started_at_utc", "finished_at_utc"):
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, _timestamp(value, name))
+        if self.started_at_utc and self.finished_at_utc:
+            started = datetime.fromisoformat(self.started_at_utc.replace("Z", "+00:00"))
+            finished = datetime.fromisoformat(self.finished_at_utc.replace("Z", "+00:00"))
+            if finished < started:
+                raise ContractError("finished_at_utc cannot precede started_at_utc")
+
+        if self.elapsed_ms is not None and (
+            isinstance(self.elapsed_ms, bool)
+            or not isinstance(self.elapsed_ms, int)
+            or self.elapsed_ms < 0
+        ):
+            raise ContractError("elapsed_ms must be a non-negative integer")
+        if self.page_count is not None and (
+            isinstance(self.page_count, bool)
+            or not isinstance(self.page_count, int)
+            or self.page_count < 0
+        ):
+            raise ContractError("page_count must be a non-negative integer")
+        if self.cache_hit is not None and not isinstance(self.cache_hit, bool):
+            raise ContractError("cache_hit must be a boolean or null")
 
 
 @dataclass(frozen=True, slots=True)
@@ -410,7 +470,7 @@ class ResearchBundle:
             raise ContractError(f"unsupported research bundle schema_version: {payload['schema_version']!r}")
 
         protocol = _construct(ResearchProtocol, payload["protocol"], enum_fields={"status": ProtocolStatus}, tuple_fields={"inclusion_criteria", "exclusion_criteria", "planned_sources"})
-        searches = _construct_many(SearchExecution, payload["search_executions"], enum_fields={}, tuple_fields={"parameters"})
+        searches = _construct_many(SearchExecution, payload["search_executions"], enum_fields={"status": SearchExecutionStatus}, tuple_fields={"parameters"})
         sources = _construct_many(SourceRecord, payload["sources"])
         spans = _construct_many(EvidenceSpan, payload["evidence_spans"])
         claims = _construct_many(ResearchClaim, payload["claims"], enum_fields={"kind": ClaimKind})

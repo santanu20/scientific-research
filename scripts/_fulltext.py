@@ -321,11 +321,9 @@ def extract_tables_fitz(pdf_path: Path) -> list[str]:
                     # Convert to markdown
                     rows = tab.extract()
                     if rows and len(rows) > 1:
-                        md_rows = [
-                            "| " + " | ".join(str(c or "") for c in row) + " |" for row in rows
-                        ]
+                        md_rows = ["| " + " | ".join(str(c or "") for c in row) + " |" for row in rows]
                         header_sep = "| " + " | ".join("---" for _ in rows[0]) + " |"
-                        md_table = "\n".join([md_rows[0], header_sep] + md_rows[1:])
+                        md_table = "\n".join([md_rows[0], header_sep, *md_rows[1:]])
                         tables.append(f"<!-- Page {page_num + 1} -->\n{md_table}")
             except Exception:
                 log.debug("Optional feature failed in _fulltext.py", exc_info=True)

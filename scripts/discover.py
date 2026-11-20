@@ -1052,9 +1052,10 @@ def search_multi_source(
         repository_root = str(Path(__file__).resolve().parents[1])
         if repository_root not in sys.path:
             sys.path.insert(0, repository_root)
-        from research_core import SearchExecution, SearchExecutionStatus
         from datetime import datetime, timezone
         from uuid import uuid4
+
+        from research_core import SearchExecution, SearchExecutionStatus
 
     if not source_calls:
         log.warning("No discovery sources were configured")

@@ -67,16 +67,9 @@ def _title_jaccard(title1: str, title2: str) -> float:
             "those",
         }
     )
-    t1 = set(
-        w.lower().strip(".,;:!?\"'()[]{}")
-        for w in title1.split()
-        if len(w) > 2 and w.lower() not in _STOP
-    )
-    t2 = set(
-        w.lower().strip(".,;:!?\"'()[]{}")
-        for w in title2.split()
-        if len(w) > 2 and w.lower() not in _STOP
-    )
+    strip_punct = ".,;:!?\"'()[]{}"
+    t1 = {w.lower().strip(strip_punct) for w in title1.split() if len(w) > 2 and w.lower() not in _STOP}
+    t2 = {w.lower().strip(strip_punct) for w in title2.split() if len(w) > 2 and w.lower() not in _STOP}
     if not t1 or not t2:
         return 0.0
     return len(t1 & t2) / len(t1 | t2)
@@ -163,10 +156,7 @@ def build_local_index(papers_dir: Path, *, ocr_model: str | None = None) -> list
         # Store as .md alongside for downstream consumers — rewrite when
         # stale (a pre-existing guard only wrote when ABSENT, so an
         # outdated sidecar lived forever)
-        if (
-            not md_path.exists()
-            or md_path.stat().st_mtime < pdf_file.stat().st_mtime
-        ):
+        if not md_path.exists() or md_path.stat().st_mtime < pdf_file.stat().st_mtime:
             header = f"<!-- Source: PDF {pdf_file.name} -->\n\n"
             md_path.write_text(header + text[:50000], encoding="utf-8")
         index.append(

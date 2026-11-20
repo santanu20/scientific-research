@@ -64,7 +64,7 @@ def _paragraphs(text: str) -> list[str]:
 
 def term_priority(text: str, query: str) -> float:
     """Dynamic priority: distinct query-content-term density in the unit."""
-    terms = {t for t in re.findall(r"[a-z][a-z]{3,}", query.lower())}
+    terms = set(re.findall(r"[a-z][a-z]{3,}", query.lower()))
     if not terms:
         return 0.0
     body = text.lower()

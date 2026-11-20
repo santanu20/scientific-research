@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from _query import QueryState
-
     from config import ResearchConfig
 
 import hashlib
@@ -33,7 +32,6 @@ from pathlib import Path
 from typing import Any
 
 import orjson
-
 from _localindex import (
     build_local_index,
     get_local_paper_count,
@@ -2451,6 +2449,7 @@ def _phase_discovery(
     def _persist_search_executions() -> None:
         # Persist after each query so a later query failure does not erase the audit.
         from dataclasses import asdict
+
         from _artifact import save_artifact
 
         save_artifact(

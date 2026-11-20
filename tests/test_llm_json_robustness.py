@@ -4,8 +4,9 @@
 
 
 def test_unit__llm_extract__double_encoded_json_decodes() -> None:
-    from _llm_extract import _validate_extraction
     import json
+
+    from _llm_extract import _validate_extraction
 
     payload = json.dumps(
         json.dumps({"discipline": "sedimentology", "key_finding": "Facies shift."})

@@ -155,7 +155,7 @@ def build_assessment(
         risk_of_bias=risk_of_bias,
         quality_score=quality_score,
         grade_profile=GRADE_FACTORS,
-        grade_judgments={factor: "not assessed" for factor in GRADE_FACTORS},
+        grade_judgments=dict.fromkeys(GRADE_FACTORS, "not assessed"),
         assessment_status=assessment_status,
         assessment_limitations=limitations,
         assessment_timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),

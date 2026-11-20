@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import discover
 from _sources import PaperRecord
+
 from research_core import SearchExecutionStatus
 
 

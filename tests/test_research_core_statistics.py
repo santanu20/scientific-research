@@ -21,7 +21,6 @@ from research_core import (
     TauSquaredEstimator,
 )
 
-
 DIGEST = "c" * 64
 
 

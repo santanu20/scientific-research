@@ -19,7 +19,6 @@ from research_core import (
     SourceRecord,
 )
 
-
 DIGEST = "a" * 64
 
 

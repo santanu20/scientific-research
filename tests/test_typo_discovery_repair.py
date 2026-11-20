@@ -240,7 +240,6 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
     import _ranking
     import discover
     from _sources import PaperRecord
-
     from config import ResearchConfig
     from pipeline import _phase_discovery
 
@@ -387,7 +386,6 @@ def test_unit__zero_match_recall__correctly_spelled_term_round(monkeypatch, tmp_
     import discover
     from _sources import PaperRecord
     from config import ResearchConfig
-
     from pipeline import _phase_discovery
 
     calls: list[str] = []

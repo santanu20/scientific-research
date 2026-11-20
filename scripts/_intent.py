@@ -1257,7 +1257,7 @@ def expand_with_intent(intent: ResearchIntent) -> str:
 
     # Add material synonyms
     if intent.material_synonyms:
-        seen = set(w.lower() for w in parts)
+        seen = {w.lower() for w in parts}
         for syn in intent.material_synonyms[:10]:
             if syn.lower() not in seen:
                 parts.append(syn)
@@ -1265,13 +1265,13 @@ def expand_with_intent(intent: ResearchIntent) -> str:
 
     # Add method/template synonyms
     if intent.template and intent.template.synonyms:
-        seen = set(w.lower() for w in parts)
+        seen = {w.lower() for w in parts}
         for syn in intent.template.synonyms:
             if syn.lower() not in seen:
                 parts.append(syn)
                 seen.add(syn.lower())
     elif intent.method_synonyms:
-        seen = set(w.lower() for w in parts)
+        seen = {w.lower() for w in parts}
         for syn in intent.method_synonyms:
             if syn.lower() not in seen:
                 parts.append(syn)

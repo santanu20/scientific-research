@@ -12,7 +12,6 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 
 

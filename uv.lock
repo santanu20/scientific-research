@@ -1360,7 +1360,7 @@ wheels = [
 [[package]]
 name = "scientific-research-skill"
 version = "2.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "arxiv" },
     { name = "fastembed" },
@@ -1388,7 +1388,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "arxiv" },
-    { name = "fastembed" },
     { name = "fastembed", specifier = ">=0.8.0" },
     { name = "habanero" },
     { name = "httpx" },

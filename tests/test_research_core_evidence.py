@@ -7,7 +7,6 @@ import pytest
 from research_core.evidence import EvidenceLocatorError, build_evidence_span, source_sha256
 from research_core.models import ResearchBundle, ResearchProtocol, SourceRecord
 
-
 SOURCE_BYTES = b"%PDF-1.7 exact immutable test fixture"
 
 

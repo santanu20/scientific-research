@@ -5,12 +5,12 @@ ARCHITECTURE:
         → Domain Header Detector (per-domain column dictionaries)
         → Domain Data Model (structured dataclass)
         → Domain Validator (geological plausibility checks)
-        → GeoKit Integration (feed to existing calculation engines)
+        → Calculation Bridge (feed to local calculation modules)
 
 Each domain knows:
   - WHAT tables to look for (header patterns)
   - HOW to parse values (units, formats)
-  - WHAT to calculate (GeoKit modules to invoke)
+  - WHAT to calculate (calculation modules to invoke)
   - WHAT ranges are plausible (validation bounds)
 
 Usage:
@@ -46,9 +46,9 @@ class DomainSpec:
     valid_ranges: dict[str, tuple[float, float]]
     # Unit variants to normalize (e.g., "wt%" → "%", "ppm" → "ppm")
     unit_aliases: dict[str, str] = field(default_factory=dict)
-    # GeoKit module to invoke for calculations
+    # Optional calculation-module hint (legacy bridge metadata)
     calc_module: str = ""
-    # GeoKit function to call with extracted data
+    # Optional calculation-function hint (legacy bridge metadata)
     calc_function: str = ""
 
 
@@ -502,17 +502,17 @@ def extract_domain_data(
 
 
 # =============================================================================
-# GeoKit Integration — feed extracted data to calculation engines
+# Domain Calculations — derive computed values from extracted data
 # =============================================================================
 
 
 def run_domain_calculations(
     dataset: ExtractedDataset,
 ) -> dict[str, Any]:
-    """Run GeoKit domain-specific calculations on extracted data.
+    """Run domain-specific calculations on extracted data.
 
-    Uses GeoKit's EXISTING modules (norms, geotherm, structural, diagrams)
-    to compute derived values from the extracted raw data.
+    Uses local calculation modules (CIPW normative mineralogy) and
+    pure-Python statistics to derive values from the extracted raw data.
     """
     results: dict[str, Any] = {}
 
@@ -589,25 +589,22 @@ def run_domain_calculations(
                     )
 
         except ImportError:
-            log.debug("GeoKit norms module unavailable")
+            log.debug("CIPW calculation dependencies unavailable")
 
     elif dataset.domain == "structural":
         # ── Stereonet + Stress Inversion ──
-        try:
-            orientations = []
-            for tbl in dataset.tables:
-                for row in tbl["rows"]:
-                    strike = row.get("Strike")
-                    dip = row.get("Dip")
-                    if isinstance(strike, (int, float)) and isinstance(dip, (int, float)):
-                        orientations.append((strike, dip))
-            if orientations:
-                results["n_orientations"] = len(orientations)
-                results["mean_strike"] = sum(s for s, _ in orientations) / len(orientations)
-                results["mean_dip"] = sum(d for _, d in orientations) / len(orientations)
-                log.info("Structural data: %d orientations", len(orientations))
-        except ImportError:
-            log.debug("GeoKit structural module unavailable")
+        orientations = []
+        for tbl in dataset.tables:
+            for row in tbl["rows"]:
+                strike = row.get("Strike")
+                dip = row.get("Dip")
+                if isinstance(strike, (int, float)) and isinstance(dip, (int, float)):
+                    orientations.append((strike, dip))
+        if orientations:
+            results["n_orientations"] = len(orientations)
+            results["mean_strike"] = sum(s for s, _ in orientations) / len(orientations)
+            results["mean_dip"] = sum(d for _, d in orientations) / len(orientations)
+            log.info("Structural data: %d orientations", len(orientations))
 
     elif dataset.domain == "geochronology":
         # ── Age Statistics ──

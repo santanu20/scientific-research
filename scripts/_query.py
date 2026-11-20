@@ -20,6 +20,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from _config import env_setting
 from _honesty import _dl_within1, fold_text
 from _timeouts import TIMEOUTS
 
@@ -622,7 +623,7 @@ def ollama_expand_query(query: str, model: str = "") -> str | None:
     import urllib.request
 
     if not model:
-        model = os.environ.get("GEOKIT_LLM_MODEL", "")
+        model = env_setting("SCIENTIFIC_RESEARCH_LLM_MODEL", legacy_name="GEOKIT_LLM_MODEL")
 
     prompt = (
         "/no_think\n"
@@ -788,7 +789,7 @@ def _wikipedia_correct_proper_nouns(query: str) -> tuple[str, list[str]]:
             )
             req = _urlrequest.Request(
                 search_url,
-                headers={"User-Agent": "GeoKit/research (spelling correction)"},
+                headers={"User-Agent": "scientific-research/2.0 (spelling correction)"},
             )
             with _urlrequest.urlopen(req, timeout=TIMEOUTS.wikipedia) as resp:
                 data = _json.loads(resp.read())
@@ -845,7 +846,7 @@ def _wikipedia_correct_proper_nouns(query: str) -> tuple[str, list[str]]:
                         )
                         sreq = _urlrequest.Request(
                             summary_url,
-                            headers={"User-Agent": "GeoKit/research"},
+                            headers={"User-Agent": "scientific-research/2.0 (research pipeline)"},
                         )
                         with _urlrequest.urlopen(sreq, timeout=TIMEOUTS.wikipedia) as sresp:
                             sdata = _json.loads(sresp.read())

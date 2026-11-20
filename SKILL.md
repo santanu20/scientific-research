@@ -161,7 +161,9 @@ Circuit-breaker thresholds + pacing intervals live in `_ratelimits.RateLimitRegi
 
 | Variable | Purpose |
 |---|---|
-| `SCIENTIFIC_RESEARCH_EMAIL` | Polite-pool contact identity for OpenAlex + Crossref (`scientific-research@geokit.dev`) |
+| `SCIENTIFIC_RESEARCH_EMAIL` | Polite-pool contact identity for OpenAlex + Crossref (`scientific-research@skill.local`) |
+| `SCIENTIFIC_RESEARCH_LLM_MODEL` | Local LLM for LLM-assisted extraction paths (`""` — feature skipped when unset; legacy alias `GEOKIT_LLM_MODEL` still honored with a deprecation warning) |
+| `SCIENTIFIC_RESEARCH_EMBEDDING_MODEL` | PaperQA embedding model (`ollama/nomic-embed-text`; legacy alias `GEOKIT_EMBEDDING_MODEL` still honored) |
 | `SCIENTIFIC_RESEARCH_KB` | Knowledge-base dir (`~/.local/share/scientific-research`) |
 | `SCIENTIFIC_RESEARCH_CACHE` | Disposable cache dir (`~/.cache/scientific_research`) |
 | `SCIENTIFIC_RESEARCH_TIMEOUT_*` | Per-API timeouts — CROSSREF/DOI_LOOKUP/OPENALEX/S2/UNPAYWALL/DOAJ (see `_timeouts.py`) |
@@ -449,10 +451,9 @@ uv run python scripts/export_citations.py research_outputs/verified.json \
 
 ## PRISMA accountability & brief verification
 
-Two audit tools + one citation verifier. Pure additive infrastructure
-ported from geokit's research module — foundational modules for future
-wiring of run-scoped rate limiting and centralized timeouts into the
-existing pipeline scripts.
+Two audit tools + one citation verifier. Pure additive infrastructure —
+foundational modules for future wiring of run-scoped rate limiting and
+centralized timeouts into the existing pipeline scripts.
 
 ### Brief citation alignment (`_citation_check.py`)
 

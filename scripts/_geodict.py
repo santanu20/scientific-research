@@ -75,7 +75,7 @@ def _sparql(query: str) -> list[str]:
         data=data,
         headers={
             "Accept": "application/sparql-results+json",
-            "User-Agent": "GeoKit/research (geological dictionary builder)",
+            "User-Agent": "scientific-research/2.0 (geological dictionary builder)",
         },
     )
     with urllib.request.urlopen(req, timeout=_SPARQL_TIMEOUT) as resp:
@@ -268,7 +268,7 @@ def _download_geo_journals() -> list[str]:
         try:
             url = f"https://api.crossref.org/journals?query={urllib.parse.quote(query)}&rows=50"
             req = urllib.request.Request(
-                url, headers={"User-Agent": "GeoKit/research (journal discovery)"}
+                url, headers={"User-Agent": "scientific-research/2.0 (journal discovery)"}
             )
             with urllib.request.urlopen(req, timeout=TIMEOUTS.crossref_doi) as resp:
                 import json as _json

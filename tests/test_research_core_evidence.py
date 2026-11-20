@@ -34,12 +34,19 @@ def test_page_number_disambiguates_repetition_across_pages() -> None:
     pages = ("Repeated exact statement.", "Repeated exact statement.")
     with pytest.raises(EvidenceLocatorError, match="ambiguous"):
         build_evidence_span(
-            evidence_id="e1", source_id="s1", source_content=SOURCE_BYTES,
-            page_texts=pages, quote="Repeated exact statement.",
+            evidence_id="e1",
+            source_id="s1",
+            source_content=SOURCE_BYTES,
+            page_texts=pages,
+            quote="Repeated exact statement.",
         )
     span = build_evidence_span(
-        evidence_id="e2", source_id="s1", source_content=SOURCE_BYTES,
-        page_texts=pages, quote="Repeated exact statement.", page_number=2,
+        evidence_id="e2",
+        source_id="s1",
+        source_content=SOURCE_BYTES,
+        page_texts=pages,
+        quote="Repeated exact statement.",
+        page_number=2,
     )
     assert span.page_number == 2
 
@@ -47,16 +54,21 @@ def test_page_number_disambiguates_repetition_across_pages() -> None:
 def test_repeated_quote_on_same_page_remains_ambiguous() -> None:
     with pytest.raises(EvidenceLocatorError, match="ambiguous"):
         build_evidence_span(
-            evidence_id="e1", source_id="s1", source_content=SOURCE_BYTES,
-            page_texts=("The same phrase. Then the same phrase.",),
-            quote="the same phrase.", page_number=1,
+            evidence_id="e1",
+            source_id="s1",
+            source_content=SOURCE_BYTES,
+            page_texts=("the same phrase. Then the same phrase.",),
+            quote="the same phrase.",
+            page_number=1,
         )
 
 
 def test_rejects_paraphrases_and_non_exact_text() -> None:
     with pytest.raises(EvidenceLocatorError, match="not found verbatim"):
         build_evidence_span(
-            evidence_id="e1", source_id="s1", source_content=SOURCE_BYTES,
+            evidence_id="e1",
+            source_id="s1",
+            source_content=SOURCE_BYTES,
             page_texts=("The intervention significantly improved the outcome.",),
             quote="The intervention improved outcomes.",
         )
@@ -66,8 +78,11 @@ def test_rejects_paraphrases_and_non_exact_text() -> None:
 def test_rejects_invalid_one_based_page_number(page_number) -> None:
     with pytest.raises(EvidenceLocatorError, match="one-based"):
         build_evidence_span(
-            evidence_id="e1", source_id="s1", source_content=SOURCE_BYTES,
-            page_texts=("One page only.",), quote="One page only.",
+            evidence_id="e1",
+            source_id="s1",
+            source_content=SOURCE_BYTES,
+            page_texts=("One page only.",),
+            quote="One page only.",
             page_number=page_number,
         )
 
@@ -80,20 +95,28 @@ def test_hashes_exact_source_bytes() -> None:
 
 def test_generated_span_matches_research_bundle_source_version() -> None:
     span = build_evidence_span(
-        evidence_id="e1", source_id="s1", source_content=SOURCE_BYTES,
+        evidence_id="e1",
+        source_id="s1",
+        source_content=SOURCE_BYTES,
         page_texts=("Results show a clear change.",),
-        quote="Results show a clear change.", page_number=1, section="Results",
+        quote="Results show a clear change.",
+        page_number=1,
+        section="Results",
     )
     source = SourceRecord(
-        source_id="s1", provider="test", provider_record_id="record-1",
+        source_id="s1",
+        provider="test",
+        provider_record_id="record-1",
         title="A reproducibility fixture",
         retrieved_at_utc="2026-11-19T11:00:00Z",
         content_sha256=span.source_sha256,
     )
     protocol = ResearchProtocol(
-        protocol_id="p1", research_question="Does X change Y?",
+        protocol_id="p1",
+        research_question="Does X change Y?",
         created_at_utc="2026-11-19T10:59:00Z",
-        inclusion_criteria=("Primary studies",), exclusion_criteria=(),
+        inclusion_criteria=("Primary studies",),
+        exclusion_criteria=(),
         planned_sources=("test",),
     )
     bundle = ResearchBundle(protocol, (), (source,), (span,), (), ())

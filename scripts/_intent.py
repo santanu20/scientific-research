@@ -38,8 +38,6 @@ log = logging.getLogger("scientific_research.intent")
 # =============================================================================
 
 
-
-
 @dataclass
 class ResearchIntent:
     """Structured research intent parsed from a natural-language query."""
@@ -653,7 +651,9 @@ METHODS: dict[str, dict[str, Any]] = {
     },
     # ── General petrology ────────────────────────────────────────────
     "inclusions": {
-        "target_property": "composition", "unit": "wt%", "range": (0, 100),
+        "target_property": "composition",
+        "unit": "wt%",
+        "range": (0, 100),
         "synonyms": ["melt inclusion", "fluid inclusion", "inclusion study", "inclusions"],
     },
     "petrogenesis": {
@@ -1119,9 +1119,7 @@ def parse_intent_llm(query: str, timeout: float = 30.0) -> ResearchIntent | None
         payload = json.dumps(
             {
                 "model": "qwen3.5",
-                "messages": [
-                    {"role": "user", "content": "/no_think\n" + _LLM_PROMPT.format(query=query)}
-                ],
+                "messages": [{"role": "user", "content": "/no_think\n" + _LLM_PROMPT.format(query=query)}],
                 "stream": False,
                 "think": False,
                 "options": {"temperature": 0.0, "top_k": 1, "num_predict": 512},
@@ -1279,8 +1277,7 @@ def expand_with_intent(intent: ResearchIntent) -> str:
 
     # Add landmark authors
     if intent.template and intent.template.landmarks:
-        for author in intent.template.landmarks:
-            parts.append(author)
+        parts.extend(intent.template.landmarks)
 
     expanded = " ".join(parts)
     if expanded != intent.raw_query:

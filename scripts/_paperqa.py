@@ -35,6 +35,7 @@ import os
 import re
 from pathlib import Path
 
+from _config import env_setting
 from _timeouts import TIMEOUTS
 
 log = logging.getLogger(__name__)
@@ -58,8 +59,12 @@ except ImportError:
     log.debug("Optional feature failed in _paperqa.py", exc_info=True)
 
 # ── Model defaults (overridable via environment) ──────────────────────
-_DEFAULT_LLM = os.environ.get("GEOKIT_LLM_MODEL", "")
-_DEFAULT_EMBEDDING = os.environ.get("GEOKIT_EMBEDDING_MODEL", "ollama/nomic-embed-text")
+_DEFAULT_LLM = env_setting("SCIENTIFIC_RESEARCH_LLM_MODEL", legacy_name="GEOKIT_LLM_MODEL")
+_DEFAULT_EMBEDDING = env_setting(
+    "SCIENTIFIC_RESEARCH_EMBEDDING_MODEL",
+    default="ollama/nomic-embed-text",
+    legacy_name="GEOKIT_EMBEDDING_MODEL",
+)
 _KB_DIR = Path.home() / ".local" / "share" / "scientific-research" / "papers"
 
 # ── Geological domain system prompt ───────────────────────────────────

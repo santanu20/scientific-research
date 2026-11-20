@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from _config import env_setting
 from _timeouts import TIMEOUTS
 
 log = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ def _ollama_chat(
     import urllib.request
 
     if not model:
-        model = os.environ.get("GEOKIT_LLM_MODEL", "")
+        model = env_setting("SCIENTIFIC_RESEARCH_LLM_MODEL", legacy_name="GEOKIT_LLM_MODEL")
 
     payload = json.dumps(
         {
@@ -446,7 +447,7 @@ def generate_brief_ollama(
     if not extractions:
         return None
     if not model:
-        model = os.environ.get("GEOKIT_LLM_MODEL", "")
+        model = env_setting("SCIENTIFIC_RESEARCH_LLM_MODEL", legacy_name="GEOKIT_LLM_MODEL")
     if not model:
         from _llm_extract import _pick_model
 

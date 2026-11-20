@@ -587,7 +587,7 @@ def classify_context_wikipedia(query: str) -> str | None:
             req = urllib.request.Request(
                 url,
                 headers={
-                    "User-Agent": "GeoKit/research (semantic classifier)",
+                    "User-Agent": "scientific-research/2.0 (semantic classifier)",
                     "Accept": "application/json",
                 },
             )

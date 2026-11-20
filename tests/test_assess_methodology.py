@@ -10,7 +10,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from assess import build_assessment, render_assessment_report, select_rob_tool  # noqa: E402
+from assess import build_assessment, render_assessment_report, select_rob_tool
 
 
 def paper():

@@ -37,7 +37,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from _timeouts import TIMEOUTS  # noqa: E402
+from _timeouts import TIMEOUTS
 
 log = logging.getLogger("scientific_research.llm_extract")
 

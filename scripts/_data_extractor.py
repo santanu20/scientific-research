@@ -524,7 +524,6 @@ def run_domain_calculations(
             sys.path.insert(0, "src")
             import pandas as pd
 
-
             # Build DataFrame from extracted major elements
             for tbl in dataset.tables:
                 oxide_cols = [
@@ -542,27 +541,21 @@ def run_domain_calculations(
                 ]
                 data = {}
                 for col in oxide_cols:
-                    values = [
-                        r.get(col) for r in tbl["rows"] if isinstance(r.get(col), (int, float))
-                    ]
+                    values = [r.get(col) for r in tbl["rows"] if isinstance(r.get(col), (int, float))]
                     if values:
                         data[col] = values
 
                 if len(data) >= 8:  # need at least 8 oxides
                     df = pd.DataFrame(data)
                     try:
+                        from _geochem_calculations import cipw_hb
+
                         norm = cipw_hb(df)
                         results["cipw_norm"] = {
                             "n_samples": len(norm),
-                            "quartz_mean": float(norm.get("Q", pd.Series()).mean())
-                            if "Q" in norm
-                            else None,
-                            "orthoclase_mean": float(norm.get("Or", pd.Series()).mean())
-                            if "Or" in norm
-                            else None,
-                            "plagioclase_mean": float(norm.get("Pl", pd.Series()).mean())
-                            if "Pl" in norm
-                            else None,
+                            "quartz_mean": float(norm.get("Q", pd.Series()).mean()) if "Q" in norm else None,
+                            "orthoclase_mean": float(norm.get("Or", pd.Series()).mean()) if "Or" in norm else None,
+                            "plagioclase_mean": float(norm.get("Pl", pd.Series()).mean()) if "Pl" in norm else None,
                         }
                         log.info("CIPW norm computed for %d samples", len(norm))
                     except Exception as e:
@@ -571,9 +564,7 @@ def run_domain_calculations(
             # ── Classification (TAS, etc.) ──
             if "SiO2" in dataset.summary and "Na2O" in dataset.summary and "K2O" in dataset.summary:
                 sio2 = dataset.summary["SiO2"]
-                alkali = dataset.summary.get("Na2O", {}).get("mean", 0) + dataset.summary.get(
-                    "K2O", {}
-                ).get("mean", 0)
+                alkali = dataset.summary.get("Na2O", {}).get("mean", 0) + dataset.summary.get("K2O", {}).get("mean", 0)
                 results["tas_classification"] = _classify_tas(sio2["mean"], alkali)
 
             # ── A/CNK (Alumina Saturation) ──
@@ -603,7 +594,6 @@ def run_domain_calculations(
     elif dataset.domain == "structural":
         # ── Stereonet + Stress Inversion ──
         try:
-
             orientations = []
             for tbl in dataset.tables:
                 for row in tbl["rows"]:

@@ -28,7 +28,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from _timeouts import TIMEOUTS  # noqa: E402
+from _timeouts import TIMEOUTS
 
 log = logging.getLogger("scientific_research.fulltext")
 

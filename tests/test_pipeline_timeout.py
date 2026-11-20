@@ -18,8 +18,8 @@ _SCRIPTS = _SKILL_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-import pipeline  # noqa: E402
-from config import ResearchConfig  # noqa: E402
+import pipeline
+from config import ResearchConfig
 
 
 def _cfg(tmp_path: Path) -> ResearchConfig:

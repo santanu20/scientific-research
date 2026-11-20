@@ -672,9 +672,8 @@ def web_search_paper_discovery(
             call_budget=90,
             no_cache=force_refresh,
         )
-    except _EngineError as e:
-        # Source-level degrade: one blocked/failed source must not kill the
-        # multi-source search (per-source isolation contract).
+    except Exception as e:
+        # Isolate optional web-search failures from scholarly source discovery.
         log.warning("web_search source degraded (%s): %s", type(e).__name__, str(e)[:150])
         return []
     if rc == 3:
@@ -767,90 +766,7 @@ def web_search_agentic_discovery(query: str, max_results: int = 15, force_refres
     log.warning("web_search_agentic: crawl tier unavailable in standalone skill")
     return []
 
-    try:
-        rc, data = _engine_agentic(
-            query,
-            adaptive=True,
-            max_iter=2,
-            top_n_extract=3,
-            call_budget=120,
-            no_cache=force_refresh,
-            quiet=True,
-        )
-    except _EngineError as e:
-        log.warning("web_search_agentic source degraded (%s): %s", type(e).__name__, str(e)[:150])
-        return []
-    if rc != 0:
-        log.warning("web-search agentic failed (rc=%d): %s", rc, str(data.get("error"))[:200])
-        return []
-
-    # Collect text from ALL result tiers: search hits, extracted pages, adaptive crawl
-    text_sources: list[str] = []
-    for r in data.get("results", []):
-        text_sources.append(f"{r.get('href', '')} {r.get('body', '')} {r.get('title', '')}")
-    for e in data.get("extracted", []):
-        text_sources.append(e.get("content") or "")
-    ap = data.get("adaptive", {})
-    confidence = None
-    if isinstance(ap, dict):
-        confidence = ap.get("confidence")
-        for p in ap.get("pages", []):
-            text_sources.append(p.get("content") or "")
-
-    # Extract DOIs from all collected text
-    doi_pattern = re.compile(r"10\.\d{4,9}/[^\s\"<>]+", re.IGNORECASE)
-    found_dois: set[str] = set()
-    for text in text_sources:
-        for m in doi_pattern.finditer(text):
-            found_dois.add(m.group().rstrip(".,;)").lower())
-
-    if not found_dois:
-        log.debug(
-            "web_search_agentic: 0 DOIs (confidence=%s, %d text sources)",
-            confidence,
-            len(text_sources),
-        )
-        return []
-
-    log.info(
-        "web_search_agentic: %d unique DOIs (confidence=%s)",
-        len(found_dois),
-        confidence,
-    )
-
-    # Resolve DOIs via Crossref for metadata
-    resolved: list = []
-    from habanero import Crossref  # HARD dep
-
-    cr = Crossref(mailto=_EMAIL)
-    for doi in list(found_dois)[:max_results]:
-        try:
-            item = cr.works(ids=doi)
-            # habanero works(ids=) typed dict | list; DOI path returns dict.
-            if isinstance(item, dict) and item.get("message"):
-                record = _crossref_item_to_record(item["message"], source="web_search_agentic")
-                if record:
-                    resolved.append(record)
-        except Exception:
-            continue
-
-    log.info(
-        "web_search_agentic: resolved %d/%d papers (confidence=%s)",
-        len(resolved),
-        len(found_dois),
-        confidence,
-    )
-    return resolved
-
-
-# =============================================================================
-
-
-# Geoscience query signals — when present in query, activate geo filtering
-
-
-# Ambiguous terms shared between geology and physics/chemistry/biology
-
+    # Agentic crawl is unavailable in the standalone skill; keep this path\n    # explicitly disabled instead of retaining unreachable external-engine calls.\n    return []\n
 
 def _expand_search_query(query: str) -> str:
     """Return the query unchanged.

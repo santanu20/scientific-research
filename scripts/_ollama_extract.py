@@ -19,9 +19,10 @@ from __future__ import annotations
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
-from _timeouts import TIMEOUTS  # noqa: E402
+from _timeouts import TIMEOUTS
 
 log = logging.getLogger(__name__)
 
@@ -111,9 +112,15 @@ def _journal(
         from _llm_extract import journal_llm_call
 
         journal_llm_call(
-            model=model or "auto", task="synthesis", num_predict=num_predict,
-            num_ctx=32768, prompt=prompt, response=response,
-            done_reason=done_reason, latency_s=latency_s, error=error,
+            model=model or "auto",
+            task="synthesis",
+            num_predict=num_predict,
+            num_ctx=32768,
+            prompt=prompt,
+            response=response,
+            done_reason=done_reason,
+            latency_s=latency_s,
+            error=error,
         )
     except Exception:
         pass
@@ -264,9 +271,7 @@ def screen_relevance(
     embs = list(model.embed([query, abstract]))
     query_emb = np.array(embs[0])
     doc_emb = np.array(embs[1])
-    score = float(
-        np.dot(query_emb, doc_emb) / (np.linalg.norm(query_emb) * np.linalg.norm(doc_emb) + 1e-8)
-    )
+    score = float(np.dot(query_emb, doc_emb) / (np.linalg.norm(query_emb) * np.linalg.norm(doc_emb) + 1e-8))
     return score >= threshold, score
 
 
@@ -350,9 +355,9 @@ def to_extraction_result(
     }
 
     # Count confidence
-    n_items = sum(
-        len(v) if isinstance(v, list) else (1 if v else 0) for v in pico_dict.values()
-    ) + sum(len(v) if isinstance(v, list) else (1 if v else 0) for v in effect_sizes.values())
+    n_items = sum(len(v) if isinstance(v, list) else (1 if v else 0) for v in pico_dict.values()) + sum(
+        len(v) if isinstance(v, list) else (1 if v else 0) for v in effect_sizes.values()
+    )
     confidence = "high" if n_items >= 8 else ("medium" if n_items >= 3 else "low")
 
     # Build key_finding from outcome
@@ -372,10 +377,9 @@ def to_extraction_result(
         "methods": methods_dict,
         "extraction_confidence": confidence,
         "extraction_timestamp": strftime("%Y-%m-%dT%H:%M:%S"),
-        "notes": [
-            f"Extracted via Ollama zero-shot (relevance={ollama_result.get('relevance_score', 0):.3f})"
-        ],
+        "notes": [f"Extracted via Ollama zero-shot (relevance={ollama_result.get('relevance_score', 0):.3f})"],
     }
+
 
 _LATEX_FIXES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\\circ\s*(?:\\text)?\(?\s*C\s*\)?"), "°C"),
@@ -402,9 +406,7 @@ def _normalize_brief_text(text: str) -> str:
     despite the no-LaTeX instruction, doubled spaces, and spaces before
     punctuation."""
     out = text or ""
-    out = re.sub(
-        r"\(\s*([A-Z][\w\-`']+),\s*(\d{4})\s*\)\s*\(\s*\d{4}\s*\)", r"(\1, \2)", out
-    )
+    out = re.sub(r"\(\s*([A-Z][\w\-`']+),\s*(\d{4})\s*\)\s*\(\s*\d{4}\s*\)", r"(\1, \2)", out)
     for pat, rep in _LATEX_FIXES:
         out = pat.sub(rep, out)
     out = re.sub(r"[ \t]{2,}", " ", out)
@@ -462,9 +464,7 @@ def generate_brief_ollama(
     # Read from extraction pico directly — the prompt payload no longer
     # carries per-paper classifier labels (they were narrated as fact).
     disciplines = [
-        ((e.get("pico") or {}).get("discipline", "") or "").lower()
-        for e in extractions
-        if isinstance(e, dict)
+        ((e.get("pico") or {}).get("discipline", "") or "").lower() for e in extractions if isinstance(e, dict)
     ]
     disciplines = [d for d in disciplines if d]
     if disciplines:
@@ -493,11 +493,23 @@ def generate_brief_ollama(
         ).lower()
         _markers = {
             "sedimentology": (
-                "sediment", "stratigraph", "facies", "basin", "sandstone",
-                "shale", "aquifer", "tidal", "deposition", "lithofacies",
+                "sediment",
+                "stratigraph",
+                "facies",
+                "basin",
+                "sandstone",
+                "shale",
+                "aquifer",
+                "tidal",
+                "deposition",
+                "lithofacies",
             ),
             "metamorphic_petrology": (
-                "metamorph", "thermobar", "garnet", "schist", "gneiss",
+                "metamorph",
+                "thermobar",
+                "garnet",
+                "schist",
+                "gneiss",
             ),
             "igneous_petrology": ("volcan", "magma", "basalt", "granite", "lava", "tuff"),
             "ore_geology": ("ore ", "mineraliz", "sulfide", "vein", "ore-grade"),
@@ -505,17 +517,15 @@ def generate_brief_ollama(
             "structural_geology": ("fault", "fold", "strain", "shear zone", "fracture"),
             "geophysics": ("seismic", "gravity", "magnetics", "resistivity"),
         }
-        _scores = {
-            k: sum(1 for m in marks if m in _ql)
-            for k, marks in _markers.items()
-        }
+        _scores = {k: sum(1 for m in marks if m in _ql) for k, marks in _markers.items()}
         _best = max(_scores, key=lambda k: _scores[k])
         _dom_norm = _norm_discipline(dominant)
         if _scores[_best] > 0 and _scores.get(_dom_norm, 0) == 0:
             log.info(
-                "Discipline override: extraction said %r but corpus content "
-                "scores 0 for it — using %s (score %d)",
-                dominant, _best, _scores[_best],
+                "Discipline override: extraction said %r but corpus content scores 0 for it — using %s (score %d)",
+                dominant,
+                _best,
+                _scores[_best],
             )
             dominant = _best
         elif not dominant and _scores[_best] > 0:
@@ -563,16 +573,19 @@ def generate_brief_ollama(
             _notes = None
             for _attempt in (1, 2):  # one retry before failing loud
                 _notes = _ollama_chat(
-                    _chunk_prompt, model,
-                    num_predict=6000, timeout=TIMEOUTS.ollama_synthesis,
+                    _chunk_prompt,
+                    model,
+                    num_predict=6000,
+                    timeout=TIMEOUTS.ollama_synthesis,
                 )
                 if _notes and len(_notes) > 200:
                     break
                 _notes = None
             if not _notes:
                 log.error(
-                    "Map pass chunk %d/%d failed after retry — refusing to "
-                    "synthesize with silent context loss (H1)", _ci, len(chunks),
+                    "Map pass chunk %d/%d failed after retry — refusing to synthesize with silent context loss (H1)",
+                    _ci,
+                    len(chunks),
                 )
                 return None
             _notes_parts.append(_normalize_brief_text(_strip_think(_notes)))
@@ -602,9 +615,7 @@ def generate_brief_ollama(
             '"paper_refs": [ref_id numbers], "key_insight": "what unifies these"}]}\n\n'
             f"DATA:\n{data_json}"
         )
-        themes_resp = _ollama_chat(
-            themes_prompt, model, num_predict=800, timeout=TIMEOUTS.ollama_extract
-        )
+        themes_resp = _ollama_chat(themes_prompt, model, num_predict=800, timeout=TIMEOUTS.ollama_extract)
         if themes_resp:
             themes_json = _strip_think(themes_resp)
             log.info("Pass 1 complete: themes identified")
@@ -695,13 +706,9 @@ def generate_brief_ollama(
         f"{extra_context}"
     )
 
-    draft = _ollama_chat(
-        synthesis_prompt, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis
-    )
+    draft = _ollama_chat(synthesis_prompt, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis)
     if not draft or len(draft) < 500:
-        log.warning(
-            "Pass 2: draft too short (%d chars) — retrying without themes", len(draft or "")
-        )
+        log.warning("Pass 2: draft too short (%d chars) — retrying without themes", len(draft or ""))
         # Retry without themes context (smaller prompt)
         themes_context = ""
         synthesis_prompt_simple = (
@@ -709,9 +716,7 @@ def generate_brief_ollama(
             if themes_json
             else synthesis_prompt
         )
-        draft = _ollama_chat(
-            synthesis_prompt_simple, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis
-        )
+        draft = _ollama_chat(synthesis_prompt_simple, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis)
         if not draft or len(draft) < 500:
             log.warning("Pass 2: retry also failed (%d chars)", len(draft or ""))
             return None
@@ -759,9 +764,7 @@ def generate_brief_ollama(
             f"DRAFT:\n{draft}\n\n"
             f"DATA:\n{data_json}"
         )
-        reviewed = _ollama_chat(
-            review_prompt, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis
-        )
+        reviewed = _ollama_chat(review_prompt, model, num_predict=6000, timeout=TIMEOUTS.ollama_synthesis)
         if reviewed and len(reviewed) > 500:
             reviewed = _strip_think(reviewed)
 
@@ -776,9 +779,7 @@ def generate_brief_ollama(
                 # review preamble into the final brief — 2026-09-03).
                 _first = None
                 for _t, _ in sections:
-                    _m = re.search(
-                        rf"^#{{1,6}}\s+{_re_escape(_t)}\s*$", reviewed, re.M
-                    )
+                    _m = re.search(rf"^#{{1,6}}\s+{_re_escape(_t)}\s*$", reviewed, re.M)
                     if _m and (_first is None or _m.start() < _first):
                         _first = _m.start()
                 if _first is not None and _first > 0:
@@ -853,12 +854,7 @@ def generate_brief_ollama(
     draft = re.sub(
         r"\$([^$]+)\$",
         lambda m: (
-            m.group(1)
-            .replace("\\frac", "/")
-            .replace("_", "")
-            .replace("^", "")
-            .replace("{", "(")
-            .replace("}", ")")
+            m.group(1).replace("\\frac", "/").replace("_", "").replace("^", "").replace("{", "(").replace("}", ")")
         ),
         draft,
     )
@@ -1026,9 +1022,7 @@ def _verify_brief(
     n_values_verified = 0
     flagged_values: list[str] = []
 
-    for match in re.finditer(
-        r"\b(\d+\.?\d*)\s*(°C|°|kbar|kb|GPa|MPa|wt%|ppm|ppb|Ma|Ga|km|m|‰|σ|%)?", brief_body
-    ):
+    for match in re.finditer(r"\b(\d+\.?\d*)\s*(°C|°|kbar|kb|GPa|MPa|wt%|ppm|ppb|Ma|Ga|km|m|‰|σ|%)?", brief_body):
         val = match.group(1)
         unit = match.group(2) or ""
         n_values_checked += 1
@@ -1038,9 +1032,7 @@ def _verify_brief(
             # Check if close to a valid value (within rounding)
             try:
                 fval = float(val)
-                nearby = any(
-                    abs(fval - float(v)) < 0.5 for v in valid_values if v.replace(".", "").isdigit()
-                )
+                nearby = any(abs(fval - float(v)) < 0.5 for v in valid_values if v.replace(".", "").isdigit())
                 if nearby:
                     n_values_verified += 1
                 else:
@@ -1055,9 +1047,7 @@ def _verify_brief(
         author = match.group(1)
         year = match.group(2)
         n_cites_checked += 1
-        author_ok = any(
-            author.lower() in va.lower() or va.lower() in author.lower() for va in valid_authors
-        )
+        author_ok = any(author.lower() in va.lower() or va.lower() in author.lower() for va in valid_authors)
         year_ok = year in valid_years
         if author_ok and year_ok:
             n_cites_verified += 1
@@ -1087,9 +1077,7 @@ def _compute_meta_analysis(papers_data: list[dict]) -> str:
                     lo, hi = float(nums[0]), float(nums[1])
                     mean = (lo + hi) / 2
                     se = max((hi - lo) / 4, 5)
-                    unit = (
-                        "°C" if "°" in str(val_str) else ("kbar" if "kbar" in str(val_str) else "")
-                    )
+                    unit = "°C" if "°" in str(val_str) else ("kbar" if "kbar" in str(val_str) else "")
                     by_unit.setdefault(unit or field, []).append((author, mean, se))
                 elif len(nums) == 1:
                     by_unit.setdefault(field, []).append((author, float(nums[0]), 25))
@@ -1380,146 +1368,143 @@ def _extract_year(text: str) -> int | None:
     return int(m.group()) if m else None
 
 
-
-
 # ───────────────────────────────────────────── Domain-adaptive prompts ──
 
 _DISCIPLINE_SECTIONS: dict[str, list[tuple[str, str]]] = {
     "metamorphic_petrology": [
         (
             "Methods and Calibrations",
-            "Compare calibrations quantitatively (KD ranges, equations). Discuss thermodynamic basis. "
-            "Critique assumptions (ΔV, Fe3+ corrections, Mn/Ca effects on KD).",
+            ("Compare calibrations quantitatively (KD ranges, equations). Discuss thermodynamic basis. "
+            "Critique assumptions (ΔV, Fe3+ corrections, Mn/Ca effects on KD)."),
         ),
         (
             "Pressure-Temperature Results",
-            "Group by rock type and metamorphic grade. Assign metamorphic facies. "
-            "Discuss P-T paths, geothermal gradients, and tectonic implications.",
+            ("Group by rock type and metamorphic grade. Assign metamorphic facies. "
+            "Discuss P-T paths, geothermal gradients, and tectonic implications."),
         ),
         (
             "Limitations and Uncertainties",
-            "Discuss retrograde diffusion and Fe-Mg resetting, garnet growth zoning effects "
+            ("Discuss retrograde diffusion and Fe-Mg resetting, garnet growth zoning effects "
             "on bulk analysis, Fe3+ corrections, Mn/Ca substitution effects on KD, "
-            "pressure dependence of exchange equilibria, and analytical precision (report 2σ).",
+            "pressure dependence of exchange equilibria, and analytical precision (report 2σ)."),
         ),
     ],
     "igneous_petrology": [
         (
             "Petrogenesis and Magma Evolution",
-            "Discuss fractional crystallization, partial melting, AFC processes. "
-            "Compare source characteristics and magma mixing evidence.",
+            ("Discuss fractional crystallization, partial melting, AFC processes. "
+            "Compare source characteristics and magma mixing evidence."),
         ),
         (
             "Geochemical and Isotopic Constraints",
-            "Compare trace element patterns, REE profiles, isotopic signatures "
-            "(Sr-Nd-Pb). Assess mantle vs crustal contributions.",
+            ("Compare trace element patterns, REE profiles, isotopic signatures "
+            "(Sr-Nd-Pb). Assess mantle vs crustal contributions."),
         ),
         (
             "Tectonic Setting and Geodynamic Implications",
-            "Apply tectonic discrimination diagrams. Discuss mantle sources, "
-            "geodynamic context, and temporal evolution.",
+            ("Apply tectonic discrimination diagrams. Discuss mantle sources, "
+            "geodynamic context, and temporal evolution."),
         ),
     ],
     "ore_geology": [
         (
             "Mineralization Styles and Paragenesis",
-            "Discuss ore textures, mineral assemblages, alteration patterns. "
-            "Compare paragenetic sequences across deposits.",
+            ("Discuss ore textures, mineral assemblages, alteration patterns. "
+            "Compare paragenetic sequences across deposits."),
         ),
         (
             "Fluid Evolution and Metal Sources",
-            "Compare fluid inclusion data (T, salinity), isotopic tracers "
-            "(S, O, H, Pb), and metal source constraints.",
+            "Compare fluid inclusion data (T, salinity), isotopic tracers (S, O, H, Pb), and metal source constraints.",
         ),
         (
             "Exploration Implications",
-            "Discuss vectoring tools, exploration targets, deposit classification. "
-            "Identify key indicators for future exploration.",
+            ("Discuss vectoring tools, exploration targets, deposit classification. "
+            "Identify key indicators for future exploration."),
         ),
     ],
     "geochemistry": [
         (
             "Analytical Methods and Data Quality",
-            "Compare analytical techniques (ICP-MS, XRF, TIMS). Discuss precision, "
-            "accuracy, detection limits, and interlaboratory comparisons.",
+            ("Compare analytical techniques (ICP-MS, XRF, TIMS). Discuss precision, "
+            "accuracy, detection limits, and interlaboratory comparisons."),
         ),
         (
             "Element and Isotope Systematics",
-            "Discuss trace element ratios, REE patterns, isotope systematics. "
-            "Compare across sample suites and reference reservoirs.",
+            ("Discuss trace element ratios, REE patterns, isotope systematics. "
+            "Compare across sample suites and reference reservoirs."),
         ),
         (
             "Source and Process Interpretation",
-            "Interpret source characteristics, mixing models, weathering indices. "
-            "Discuss mantle/crustal contributions and fractionation processes.",
+            ("Interpret source characteristics, mixing models, weathering indices. "
+            "Discuss mantle/crustal contributions and fractionation processes."),
         ),
     ],
     "structural_geology": [
         (
             "Deformation Analysis",
-            "Discuss strain regimes, deformation mechanisms, fold/fault geometries. "
-            "Compare strain ellipsoid shapes and kinematic frameworks.",
+            ("Discuss strain regimes, deformation mechanisms, fold/fault geometries. "
+            "Compare strain ellipsoid shapes and kinematic frameworks."),
         ),
         (
             "Kinematic and Dynamic Interpretation",
-            "Compare stress inversion results, paleostress orientations, vorticity data. "
-            "Discuss deformation sequence and overprinting relationships.",
+            ("Compare stress inversion results, paleostress orientations, vorticity data. "
+            "Discuss deformation sequence and overprinting relationships."),
         ),
         (
             "Tectonic Evolution",
-            "Discuss progressive deformation, tectonic models, temporal constraints. "
-            "Integrate with metamorphic and geochronological data where available.",
+            ("Discuss progressive deformation, tectonic models, temporal constraints. "
+            "Integrate with metamorphic and geochronological data where available."),
         ),
     ],
     "sedimentology": [
         (
             "Depositional Environment and Facies",
-            "Discuss facies models, depositional processes, paleoenvironment reconstruction. "
-            "Compare facies proportions and architectural elements.",
+            ("Discuss facies models, depositional processes, paleoenvironment reconstruction. "
+            "Compare facies proportions and architectural elements."),
         ),
         (
             "Provenance and Sediment Sources",
-            "Compare detrital mineral signatures, paleocurrent data, heavy mineral assemblages. "
-            "Discuss source area characteristics and transport distances.",
+            ("Compare detrital mineral signatures, paleocurrent data, heavy mineral assemblages. "
+            "Discuss source area characteristics and transport distances."),
         ),
         (
             "Sequence Stratigraphy and Basin Evolution",
-            "Discuss stratigraphic architecture, accommodation space, stacking patterns. "
-            "Address basin subsidence history and eustatic controls.",
+            ("Discuss stratigraphic architecture, accommodation space, stacking patterns. "
+            "Address basin subsidence history and eustatic controls."),
         ),
     ],
     "volcanology": [
         (
             "Eruption Dynamics and Deposits",
-            "Discuss eruption mechanisms, deposit characteristics, dispersal patterns. "
-            "Compare eruption volumes, column heights, and mass discharge rates.",
+            ("Discuss eruption mechanisms, deposit characteristics, dispersal patterns. "
+            "Compare eruption volumes, column heights, and mass discharge rates."),
         ),
         (
             "Magma Rheology and Architecture",
-            "Discuss magma properties, conduit dynamics, vent architecture. "
-            "Compare pre-eruptive conditions and magma ascent rates.",
+            ("Discuss magma properties, conduit dynamics, vent architecture. "
+            "Compare pre-eruptive conditions and magma ascent rates."),
         ),
         (
             "Hazard Implications",
-            "Discuss hazard assessment, impact zones, recurrence intervals. "
-            "Address monitoring strategies and risk mitigation.",
+            ("Discuss hazard assessment, impact zones, recurrence intervals. "
+            "Address monitoring strategies and risk mitigation."),
         ),
     ],
     "geophysics": [
         (
             "Data Acquisition and Processing",
-            "Compare survey parameters, acquisition geometries, processing workflows. "
-            "Discuss data quality, resolution, and noise characteristics.",
+            ("Compare survey parameters, acquisition geometries, processing workflows. "
+            "Discuss data quality, resolution, and noise characteristics."),
         ),
         (
             "Modeling and Inversion Results",
-            "Compare forward/inverse models, velocity structures, density anomalies. "
-            "Discuss model resolution, non-uniqueness, and sensitivity.",
+            ("Compare forward/inverse models, velocity structures, density anomalies. "
+            "Discuss model resolution, non-uniqueness, and sensitivity."),
         ),
         (
             "Geological Interpretation",
-            "Interpret crustal structure, mantle dynamics, subsurface geometry. "
-            "Integrate with geological and geochemical constraints.",
+            ("Interpret crustal structure, mantle dynamics, subsurface geometry. "
+            "Integrate with geological and geochemical constraints."),
         ),
     ],
 }
@@ -1559,18 +1544,18 @@ def _discipline_sections(discipline: str) -> list[tuple[str, str]]:
     return [
         (
             "Methodological Approaches",
-            "Compare methods, discuss analytical techniques, evaluate data quality. "
-            "Identify methodological evolution and disagreements between studies.",
+            ("Compare methods, discuss analytical techniques, evaluate data quality. "
+            "Identify methodological evolution and disagreements between studies."),
         ),
         (
             "Key Findings and Results",
-            "Report quantitative results, compare across studies, identify patterns. "
-            "Group by study system, analytical approach, or temporal trends.",
+            ("Report quantitative results, compare across studies, identify patterns. "
+            "Group by study system, analytical approach, or temporal trends."),
         ),
         (
             "Interpretive Synthesis",
-            "Discuss broader implications of the combined results. Critique "
-            "assumptions and integrate evidence across studies.",
+            ("Discuss broader implications of the combined results. Critique "
+            "assumptions and integrate evidence across studies."),
         ),
     ]
 
@@ -1578,38 +1563,38 @@ def _discipline_sections(discipline: str) -> list[tuple[str, str]]:
 _TAIL_SECTIONS: list[tuple[str, str]] = [
     (
         "Summary Table",
-        "Create a markdown table with one row per study that reports quantitative data. "
+        ("Create a markdown table with one row per study that reports quantitative data. "
         "Columns: Study | Method | Key Values (with units) | Setting/Sample. "
-        "Only include studies that actually report numbers.",
+        "Only include studies that actually report numbers."),
     ),
     (
         "Geological Implications",
-        "What do these results mean for the geological context? "
+        ("What do these results mean for the geological context? "
         "Assign facies / deposit type / tectonic setting based on reported P-T or "
         "geochemical data. Discuss what the value ranges imply about process "
-        "(depth, temperature, fluid evolution).",
+        "(depth, temperature, fluid evolution)."),
     ),
     (
         "Cross-Method Comparison",
-        "If different analytical methods were used across studies, compare their "
+        ("If different analytical methods were used across studies, compare their "
         "results. Which methods agree or disagree? Discuss analytical bias, "
-        "detection limits, and whether discrepancies are methodological or geological.",
+        "detection limits, and whether discrepancies are methodological or geological."),
     ),
     (
         "Limitations and Methodological Considerations",
-        "Specific analytical limitations of the methods, minerals, and systems in "
+        ("Specific analytical limitations of the methods, minerals, and systems in "
         "this corpus; assumptions underpinning calibrations; geological factors "
-        "that could bias results; uncertainties reported quantitatively (2σ, RMSE, CI).",
+        "that could bias results; uncertainties reported quantitatively (2σ, RMSE, CI)."),
     ),
     (
         "Research Gaps and Future Directions",
-        "Critical questions that remain unanswered in this corpus; methodological "
-        "advances needed; specific, concrete future work.",
+        ("Critical questions that remain unanswered in this corpus; methodological "
+        "advances needed; specific, concrete future work."),
     ),
     (
         "Conclusions",
-        "3-5 numbered conclusions, each traceable to evidence presented in the "
-        "body. End with the single most important implication for the field.",
+        ("3-5 numbered conclusions, each traceable to evidence presented in the "
+        "body. End with the single most important implication for the field."),
     ),
 ]
 
@@ -1617,16 +1602,16 @@ _TAIL_SECTIONS: list[tuple[str, str]] = [
 _HEAD_SECTIONS: list[tuple[str, str]] = [
     (
         "Abstract",
-        "4-6 sentence structured abstract: corpus scope (N studies, year span), "
+        ("4-6 sentence structured abstract: corpus scope (N studies, year span), "
         "principal quantitative findings, the key methodological insight, and "
-        "the main gap. EVERY claim in the abstract must appear in the body.",
+        "the main gap. EVERY claim in the abstract must appear in the body."),
     ),
     (
         "Corpus and Scope",
-        "Describe the reviewed corpus factually: number of studies, publication "
+        ("Describe the reviewed corpus factually: number of studies, publication "
         "span, shared mineral systems / methods, and the selection basis "
         "(query-screened discovery). State coverage limits explicitly — do not "
-        "overclaim comprehensiveness.",
+        "overclaim comprehensiveness."),
     ),
 ]
 
@@ -1667,10 +1652,7 @@ def _fix_citations(text: str, papers_data: list[dict]) -> str:
     ('Duebendorfer and Frost (1988)' — sole-author paper), (b) dangling
     bare-year parentheticals ('on Frost's scale) (1962)'). Ground truth is
     papers_data — never the model's memory."""
-    pairs = {
-        (str(p.get("author") or "").strip(), str(p.get("year") or "").strip())
-        for p in papers_data
-    }
+    pairs = {(str(p.get("author") or "").strip(), str(p.get("year") or "").strip()) for p in papers_data}
     by_year: dict[str, list[str]] = {}
     for a, y in pairs:
         if a and y:

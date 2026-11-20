@@ -166,11 +166,11 @@ def render_assessment_report(assessments: list[Assessment]) -> str:
     out = [
         "# Risk-of-Bias Scaffolds and GRADE Evidence-Profile Template",
         "",
-        "> **Not a completed assessment.** This report contains routing suggestions and blank expert-review fields. "
-        "It must not be cited as a completed risk-of-bias evaluation or GRADE certainty rating.",
+        ("> **Not a completed assessment.** This report contains routing suggestions and blank expert-review fields. "
+        "It must not be cited as a completed risk-of-bias evaluation or GRADE certainty rating."),
         "",
-        "GRADE judgments are outcome-specific and should be made across the body of evidence, not inferred from a "
-        "single paper-level score.",
+        ("GRADE judgments are outcome-specific and should be made across the body of evidence, not inferred from a "
+        "single paper-level score."),
         "",
         "## Candidate tool distribution",
     ]

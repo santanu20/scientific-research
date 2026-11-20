@@ -12,15 +12,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 _SKILL_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPTS = _SKILL_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-import pipeline  # noqa: E402
-from config import ResearchConfig  # noqa: E402
+import pipeline
+from config import ResearchConfig
 
 
 def _capture_run(monkeypatch, results=None):
@@ -41,6 +39,7 @@ def test_unit__cli_help__exits_zero_and_lists_core_flags():
         [sys.executable, str(_SCRIPTS / "pipeline.py"), "--help"],
         capture_output=True,
         text=True,
+        check=False,
         cwd=_SKILL_ROOT,
         timeout=120,
     )

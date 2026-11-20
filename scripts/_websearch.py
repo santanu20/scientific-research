@@ -43,7 +43,7 @@ def _cli_python(root: Path) -> str:
     return str(venv_py) if venv_py.is_file() else sys.executable
 
 
-def run_pro_synthesis(query: str, **kwargs):  # noqa: ANN001, ANN003
+def run_pro_synthesis(query: str, **kwargs):
     """Perplexity-style web synthesis via the sibling web-search skill CLI.
 
     Returns the pipeline supplement contract dict, or None when the skill
@@ -71,10 +71,11 @@ def run_pro_synthesis(query: str, **kwargs):  # noqa: ANN001, ANN003
         "--no-llm",
     ]
     try:
-        proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        proc = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
+            check=False,
             timeout=_PRO_TIMEOUT_S,
             cwd=root,
         )
@@ -129,27 +130,27 @@ def run_pro_synthesis(query: str, **kwargs):  # noqa: ANN001, ANN003
     }
 
 
-def search_text(query, **kwargs):  # noqa: ANN001, ANN003
+def search_text(query, **kwargs):
     from discover import _web_text_engine
 
     return _web_text_engine(query, **kwargs)
 
 
-def agentic(*args, **kwargs):  # noqa: ANN002, ANN003
+def agentic(*args, **kwargs):
     return 1, {"error": "standalone skill: agentic tier unavailable"}
 
 
-def crawl(*args, **kwargs):  # noqa: ANN002, ANN003
+def crawl(*args, **kwargs):
     return 1, {"error": "standalone skill: crawl tier unavailable"}
 
 
-def extract(*args, **kwargs):  # noqa: ANN002, ANN003
+def extract(*args, **kwargs):
     return None
 
 
-def search_news(*args, **kwargs):  # noqa: ANN002, ANN003
+def search_news(*args, **kwargs):
     return 1, {"error": "standalone skill: news tier unavailable"}
 
 
-def run(*args, **kwargs):  # noqa: ANN002, ANN003
+def run(*args, **kwargs):
     return 1, {"error": "standalone skill: engine unavailable"}

@@ -20,8 +20,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from _honesty import _dl_within1, fold_text  # noqa: E402
-from _timeouts import TIMEOUTS  # noqa: E402
+from _honesty import _dl_within1, fold_text
+from _timeouts import TIMEOUTS
 
 log = logging.getLogger("scientific_research.query")
 

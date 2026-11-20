@@ -181,10 +181,10 @@ def sufficiency_verdict(
             ]
             return (
                 True,
-                f"corpus supports only {covered}/{len(distinctive)} "
+                (f"corpus supports only {covered}/{len(distinctive)} "
                 f"distinctive query term(s) — unsupported: "
                 f"{', '.join(unsupported)} ({n_fin} papers after screening, "
-                f"{n_discovered} discovered)",
+                f"{n_discovered} discovered)"),
             )
         return False, ""
     # Legacy all-zero path (only reachable when no distinctive entities
@@ -197,16 +197,16 @@ def sufficiency_verdict(
     if n_final is not None and n_final == 0 and n_discovered > 0:
         return (
             True,
-            f"0/{len(entities)} query entities supported by corpus; "
+            (f"0/{len(entities)} query entities supported by corpus; "
             f"empty corpus after screening ({n_discovered} discovered, "
-            f"{n_excluded} rejected)",
+            f"{n_excluded} rejected)"),
         )
     total = n_discovered + n_excluded
     if total > 0 and n_excluded / total > 0.8:
         return (
             True,
-            f"0/{len(entities)} query entities supported by corpus; "
-            f"{n_excluded}/{total} discovered papers rejected by screening",
+            (f"0/{len(entities)} query entities supported by corpus; "
+            f"{n_excluded}/{total} discovered papers rejected by screening"),
         )
     return False, ""
 
@@ -300,9 +300,9 @@ def render_insufficient_brief(
         "",
         "**Status: INSUFFICIENT EVIDENCE — synthesis refused.**",
         "",
-        f"The pipeline discovered {n_discovered} candidate papers, but after "
+        (f"The pipeline discovered {n_discovered} candidate papers, but after "
         "relevance screening **none of the verified corpus addresses the query's "
-        "key terms**:",
+        "key terms**:"),
         "",
     ]
     if entities:

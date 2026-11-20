@@ -21,7 +21,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from _timeouts import TIMEOUTS  # noqa: E402  # type: ignore[import-not-found]
+from _timeouts import TIMEOUTS  # type: ignore[import-not-found]
 
 log = logging.getLogger("scientific_research.geodict")
 

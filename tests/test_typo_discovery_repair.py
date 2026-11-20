@@ -26,7 +26,6 @@ import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
 
 import pytest
 
@@ -79,7 +78,7 @@ def test_unit__wiki_head_repair__river_titles_fix_both_typos(monkeypatch) -> Non
 
     from _query import _wikipedia_correct_proper_nouns
 
-    def fake_urlopen(req, timeout=0):  # noqa: ANN001
+    def fake_urlopen(req, timeout=0):
         return _FakeResp(_opensearch(["Pranhita River", "Godavari River"]))
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
@@ -94,7 +93,7 @@ def test_unit__wiki_head_repair__unrelated_titles_no_op(monkeypatch) -> None:
 
     from _query import _wikipedia_correct_proper_nouns
 
-    def fake_urlopen(req, timeout=0):  # noqa: ANN001
+    def fake_urlopen(req, timeout=0):
         return _FakeResp(_opensearch(["Nagaur Tertiary Interface", "Bishnumati River"]))
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
@@ -110,7 +109,7 @@ def test_unit__wiki_head_repair__already_correct_word_unchanged(monkeypatch) -> 
 
     from _query import _wikipedia_correct_proper_nouns
 
-    def fake_urlopen(req, timeout=0):  # noqa: ANN001
+    def fake_urlopen(req, timeout=0):
         return _FakeResp(_opensearch(["Chandrapur", "Chandrapur district"]))
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
@@ -128,7 +127,7 @@ def test_unit__wiki_head_repair__ambiguous_forms_skipped(monkeypatch) -> None:
 
     from _query import _wikipedia_correct_proper_nouns
 
-    def fake_urlopen(req, timeout=0):  # noqa: ANN001
+    def fake_urlopen(req, timeout=0):
         # 'chandrpur' is DL1 from BOTH heads, but they differ from each other
         return _FakeResp(
             _opensearch(["Chandrapur District Gazetteer", "Chandarpur Tehsil Records"])
@@ -148,7 +147,7 @@ def test_unit__wiki_head_repair__identity_head_vetoes_near_neighbor(monkeypatch)
 
     from _query import _wikipedia_correct_proper_nouns
 
-    def fake_urlopen(req, timeout=0):  # noqa: ANN001
+    def fake_urlopen(req, timeout=0):
         return _FakeResp(_opensearch(["Chandrapur", "Chandrapura"]))
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
@@ -246,7 +245,7 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
     search_calls: list[str] = []
     emits: list[str] = []
 
-    def fake_search_multi_source(query, **kwargs):  # noqa: ANN001, ANN003
+    def fake_search_multi_source(query, **kwargs):
         search_calls.append(query)
         if _TYPO_TOKEN in query:  # typo spelling present = unrepaired round
             # typo'd round -> the LIVE failure shape: one abstract-less
@@ -275,7 +274,7 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
             )
         ]
 
-    def fake_web_text(query, **kwargs):  # noqa: ANN001, ANN003
+    def fake_web_text(query, **kwargs):
         return 0, {
             "results": [
                 {
@@ -285,7 +284,7 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
             ]
         }
 
-    def fake_ctx(query, **kwargs):  # noqa: ANN001, ANN003
+    def fake_ctx(query, **kwargs):
         return SimpleNamespace(
             intent="subtopic",
             domain="sedimentary",
@@ -305,7 +304,7 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
     monkeypatch.setattr(_context, "build_research_context", fake_ctx)
     monkeypatch.setattr(_sources, "openalex_get_by_doi", lambda doi: None)
     monkeypatch.setattr(
-        _query, "normalize_query", lambda q, **k: (q, [], [])  # noqa: ARG005
+        _query, "normalize_query", lambda q, **k: (q, [], [])
     )
     monkeypatch.setattr(
         _ranking,
@@ -344,12 +343,12 @@ def test_unit__phase_discovery__zero_match_repairs_and_rediscovers(
 
     # Corrected-rediscovery papers carry the provenance route
     rediscovered = [p for p in papers if "Pranhita" in (p.title or "")]
+    titles = [p.title or "" for p in papers]
     assert rediscovered, titles
     assert all(
         p.discovery_provenance == "discovery:typo-repair-rediscovery"
         for p in rediscovered
     ), [p.discovery_provenance for p in rediscovered]
-    titles = [p.title or "" for p in papers]
     assert any("Pranhita" in t for t in titles), titles
     assert any("Godavari" in t or "Godāvari" in t for t in titles), titles
 

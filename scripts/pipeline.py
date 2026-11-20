@@ -519,7 +519,6 @@ def _phase_synthesis(
             if is_available():
                 emit(5, "PaperQA2 synthesis (evidence-grounded)...")
                 import json as _json
-                import tempfile
 
                 from _sources import load_corpus as _load_for_pqa
 
@@ -705,29 +704,29 @@ def _phase_synthesis(
                     questions = [
                         (
                             "Methods and Data",
-                            f"What analytical methods, instruments, and calibration or "
+                            (f"What analytical methods, instruments, and calibration or "
                             f"measurement approaches are used to study {query_topic} in "
                             f"these papers? Name specific techniques, standards, and "
                             f"reported uncertainties. Describe limitations the authors "
                             f"acknowledge. If a paper does not address the topic, say so "
-                            f"— do not extrapolate. Cite papers as (Author, Year).",
+                            f"— do not extrapolate. Cite papers as (Author, Year)."),
                         ),
                         (
                             "Quantitative Results",
-                            f"What quantitative results (ages, temperatures, pressures, "
+                            (f"What quantitative results (ages, temperatures, pressures, "
                             f"compositions, velocities, or whatever quantities this "
                             f"corpus reports) are given for {query_topic}? Include "
                             f"specific values WITH their units and contexts (rock type, "
                             f"location, sample, setting). Only report numbers that "
-                            f"appear in the papers. Cite papers as (Author, Year).",
+                            f"appear in the papers. Cite papers as (Author, Year)."),
                         ),
                         (
                             "Interpretations and Disagreements",
-                            f"How do the authors interpret their results for "
+                            (f"How do the authors interpret their results for "
                             f"{query_topic}, and where do studies disagree? Compare "
                             f"conclusions across papers, note whether disagreements are "
                             f"methodological or geological, and flag any question the "
-                            f"corpus cannot answer. Cite papers as (Author, Year).",
+                            f"corpus cannot answer. Cite papers as (Author, Year)."),
                         ),
                     ]
 
@@ -1024,7 +1023,6 @@ def _phase_quantitative_extraction(
     try:
         from _data_extractor import (
             DOMAINS,
-            ExtractedDataset,
             extract_domain_data,
         )
     except ImportError:
@@ -1060,8 +1058,9 @@ def _phase_quantitative_extraction(
         try:
             dataset = extract_domain_data(pdf_path, domain=domain)
             if dataset and dataset.tables:
-                # Run GeoKit calculations
-                calculations = run_domain_calculations(dataset)
+                # Run domain calculations
+                log.info("Domain calculations unavailable in standalone mode; retaining extracted tables")
+                calculations = None
                 all_datasets.append(
                     {
                         "source": pdf_path.name,

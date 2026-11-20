@@ -17,7 +17,7 @@ from types import SimpleNamespace
 # Make scripts/ importable (matches tests/test_skill.py pattern)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-import _websearch as ws  # noqa: E402
+import _websearch as ws
 
 FAKE_PAYLOAD = {
     "synthesis": "Answer text with [0] marker.",
